@@ -1,0 +1,281 @@
+:root {
+    --background-color: #ECFAE5;
+    --text-color: #000;
+    --controls-bg-color: #DDF6D2;
+    --graph-border-color: #CAE8BD;
+    --node-fill-color: #B0DB9C;
+    --node-stroke-color: #89C977;
+    --node-hover-fill-color: #A0D28D;
+    --edge-stroke-color: #89C977;
+    --edge-selected-stroke-color: #4682b4;
+    --arrow-color: #000;
+    --resize-handle-fill-color: #4682b4;
+    --connection-handle-fill-color: #4682b4;
+    --context-menu-bg-color: #DDF6D2;
+    --context-menu-hover-bg-color: #CAE8BD;
+    --grid-stroke-color: #CAE8BD;
+    --button-bg-color: var(--node-fill-color);
+    --button-border-color: var(--node-stroke-color);
+    --button-hover-bg-color: var(--node-hover-fill-color);
+}
+
+body.dark-theme {
+    --background-color: #3E3232;
+    --text-color: #fff;
+    --controls-bg-color: #503C3C;
+    --graph-border-color: #7E6363;
+    --node-fill-color: #A87C7C;
+    --node-stroke-color: #8A6363;
+    --node-hover-fill-color: #9A6F6F;
+    --edge-stroke-color: #8A6363;
+    --edge-selected-stroke-color: #fff;
+    --arrow-color: #fff;
+    --resize-handle-fill-color: #A87C7C;
+    --connection-handle-fill-color: #A87C7C;
+    --context-menu-bg-color: #503C3C;
+    --context-menu-hover-bg-color: #7E6363;
+    --grid-stroke-color: #7E6363;
+    --button-bg-color: var(--node-fill-color);
+    --button-border-color: var(--node-stroke-color);
+    --button-hover-bg-color: var(--node-hover-fill-color);
+}
+
+body {
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin: 0;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+#controls {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    padding: 20px;
+    background-color: var(--controls-bg-color);
+    border-radius: 5px;
+    z-index: 10;
+    margin: 20px;
+}
+
+#controls button {
+    background-color: var(--button-bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--button-border-color);
+    border-radius: 5px;
+    padding: 5px;
+    cursor: pointer;
+}
+
+#controls button:hover {
+    background-color: var(--button-hover-bg-color);
+}
+
+#controls select {
+    background-color: var(--button-bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--button-border-color);
+    border-radius: 5px;
+    padding: 5px;
+    cursor: pointer;
+}
+
+#graph-container {
+    flex-grow: 1;
+    border: 1px solid var(--graph-border-color);
+    overflow: hidden;
+    position: relative;
+}
+
+#selection-box {
+    position: absolute;
+    border: 1px dashed #000;
+    background-color: rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+}
+
+#graph-svg {
+    width: 100%;
+    height: 100%;
+}
+
+.node {
+    fill: var(--node-fill-color);
+    stroke: var(--node-stroke-color);
+    stroke-width: 2px;
+    cursor: pointer;
+}
+
+.node:hover {
+    fill: var(--node-hover-fill-color);
+}
+
+.node.dragging {
+    cursor: grabbing;
+}
+
+.node.disabled {
+    fill: #ccc;
+    stroke: #999;
+}
+
+.node.group {
+    fill-opacity: 0.1;
+}
+
+.resize-handle {
+    fill: transparent;
+    stroke: transparent;
+    stroke-width: 1px;
+}
+
+.resize-handle.nw { cursor: nwse-resize; }
+.resize-handle.ne { cursor: nesw-resize; }
+.resize-handle.sw { cursor: nesw-resize; }
+.resize-handle.se { cursor: nwse-resize; }
+.resize-handle.n { cursor: ns-resize; }
+.resize-handle.s { cursor: ns-resize; }
+.resize-handle.w { cursor: ew-resize; }
+.resize-handle.e { cursor: ew-resize; }
+
+.connection-handle {
+    fill: var(--connection-handle-fill-color);
+    stroke: #000;
+    stroke-width: 1px;
+    cursor: crosshair;
+    display: none;
+}
+
+.node-group:hover .connection-handle {
+    display: block;
+}
+
+.edge {
+    stroke: var(--edge-stroke-color);
+    stroke-width: 2px;
+}
+
+.edge.selected {
+    stroke: var(--edge-selected-stroke-color);
+}
+
+.context-menu {
+    display: none;
+    position: absolute;
+    background-color: var(--context-menu-bg-color);
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    padding: 12px 0;
+    z-index: 1;
+    border-radius: 5px;
+}
+
+.context-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.context-menu ul li {
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+.context-menu ul li:hover {
+    background-color: var(--context-menu-hover-bg-color);
+}
+
+.node-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    pointer-events: none;
+}
+
+.node-header {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.node-title {
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+.node-body {
+    padding: 5px;
+    flex-grow: 1;
+}
+
+#info-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: var(--controls-bg-color);
+    color: var(--text-color);
+    padding: 5px 10px;
+    font-size: 12px;
+    border-top: 1px solid var(--graph-border-color);
+    height: 20px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#properties-panel {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: var(--controls-bg-color);
+    padding: 20px;
+    border-radius: 5px;
+    z-index: 10;
+    display: none;
+    margin: 20px;
+}
+
+#close-properties-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
+.panel-button {
+    background-color: var(--button-bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--button-border-color);
+    border-radius: 5px;
+    padding: 5px;
+    cursor: pointer;
+}
+
+.panel-button:hover {
+    background-color: var(--button-hover-bg-color);
+}
+
+#properties-panel input {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border: 1px solid var(--graph-border-color);
+    border-radius: 5px;
+    padding: 5px;
+    margin-bottom: 10px;
+}
+
+.property {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.property label {
+    margin-right: 10px;
+}

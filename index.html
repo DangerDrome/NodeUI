@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Node Graph Application</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="dark-theme">
+    <div id="controls">
+        <button id="add-node-btn"><i data-lucide="plus"></i></button>
+        <button id="add-group-btn"><i data-lucide="box-select"></i></button>
+        <button id="zoom-in-btn"><i data-lucide="zoom-in"></i></button>
+        <button id="zoom-out-btn"><i data-lucide="zoom-out"></i></button>
+        <button id="theme-toggle-btn"><i data-lucide="sun"></i></button>
+        <select id="edge-type-select">
+            <option value="straight">Straight</option>
+            <option value="step">Step</option>
+            <option value="bezier" selected>Bezier</option>
+        </select>
+    </div>
+    <div id="graph-container">
+        <svg id="graph-svg"></svg>
+        <div id="selection-box"></div>
+    </div>
+    <div id="context-menu" class="context-menu">
+        <ul>
+            <li id="add-node-option">Add Node</li>
+            <li id="add-group-option-context">Add Group</li>
+            <li id="rename-option">Rename</li>
+            <li id="delete-node-option">Delete Node</li>
+            <li id="disable-node-option">Disable Node</li>
+            <li id="properties-option">Properties</li>
+            <li id="delete-edge-option">Delete Edge</li>
+            <li id="add-routing-point-option">Add Routing Point</li>
+        </ul>
+    </div>
+    <div id="info-bar"></div>
+    <div id="properties-panel">
+        <h3>Properties</h3>
+        <div class="property">
+            <label for="node-name"><i data-lucide="text-cursor-input"></i></label>
+            <input type="text" id="node-name">
+        </div>
+        <div class="property">
+            <label for="node-color"><i data-lucide="palette"></i></label>
+            <input type="color" id="node-color">
+        </div>
+        <button id="close-properties-btn" class="panel-button"><i data-lucide="x"></i></button>
+    </div>
+    <script src="script.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
