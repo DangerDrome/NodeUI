@@ -11,6 +11,7 @@
     --arrow-color: #000;
     --resize-handle-fill-color: #4682b4;
     --connection-handle-fill-color: #4682b4;
+    --connection-zone-radius: 30px;
     --context-menu-bg-color: #DDF6D2;
     --context-menu-hover-bg-color: #CAE8BD;
     --grid-stroke-color: #CAE8BD;
@@ -32,6 +33,7 @@ body.dark-theme {
     --arrow-color: #fff;
     --resize-handle-fill-color: #A87C7C;
     --connection-handle-fill-color: #A87C7C;
+    --connection-zone-radius: 30px;
     --context-menu-bg-color: #503C3C;
     --context-menu-hover-bg-color: #7E6363;
     --grid-stroke-color: #7E6363;
@@ -145,14 +147,23 @@ body {
 .resize-handle.e { cursor: ew-resize; }
 
 .connection-handle {
+    fill: transparent;
+    stroke: transparent;
+    stroke-width: 1px;
+    cursor: crosshair;
+    r: var(--connection-zone-radius);
+    z-index: 20;
+}
+
+.connection-handle-visible {
     fill: var(--connection-handle-fill-color);
-    stroke: #000;
+    stroke: #00000000;
     stroke-width: 1px;
     cursor: crosshair;
     display: none;
 }
 
-.node-group:hover .connection-handle {
+.node-group:hover .connection-handle-visible {
     display: block;
 }
 

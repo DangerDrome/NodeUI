@@ -32,6 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedEdgeIndexes = [];
     let viewbox = { x: 0, y: 0, w: window.innerWidth, h: window.innerHeight };
     const gridSize = 20;
+    const minZoom = 0.2;
+    const maxZoom = 3;
 
     let dragging = false;
     let resizing = false;
@@ -343,10 +345,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     handle.setAttribute('cx', socket.x);
                     handle.setAttribute('cy', socket.y);
                     handle.setAttribute('r', 5);
-                    handle.setAttribute('class', 'connection-handle');
+                    handle.setAttribute('class', 'connection-handle-visible');
                     handle.dataset.nodeId = node.id;
                     handle.dataset.socketId = socket.id;
                     nodeGroup.appendChild(handle);
+                    
+                    const connectionZone = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    connectionZone.setAttribute('cx', socket.x);
+                    connectionZone.setAttribute('cy', socket.y);
+                    connectionZone.setAttribute('r', getComputedStyle(document.documentElement).getPropertyValue('--connection-zone-radius'));
+                    connectionZone.setAttribute('fill', 'transparent');
+                    connectionZone.setAttribute('class', 'connection-handle');
+                    connectionZone.dataset.nodeId = node.id;
+                    connectionZone.dataset.socketId = socket.id;
+                    nodeGroup.appendChild(connectionZone);
                 });
             }
         });
@@ -828,23 +840,27 @@ document.addEventListener('DOMContentLoaded', () => {
     zoomInBtn.addEventListener('click', () => {
         const newWidth = viewbox.w * 0.8;
         const newHeight = viewbox.h * 0.8;
-        viewbox.x += (viewbox.w - newWidth) / 2;
-        viewbox.y += (viewbox.h - newHeight) / 2;
-        viewbox.w = newWidth;
-        viewbox.h = newHeight;
-        log('Zoomed in');
-        render();
+        if (newWidth / window.innerWidth > minZoom) {
+            viewbox.x += (viewbox.w - newWidth) / 2;
+            viewbox.y += (viewbox.h - newHeight) / 2;
+            viewbox.w = newWidth;
+            viewbox.h = newHeight;
+            log('Zoomed in');
+            render();
+        }
     });
 
     zoomOutBtn.addEventListener('click', () => {
         const newWidth = viewbox.w * 1.2;
         const newHeight = viewbox.h * 1.2;
-        viewbox.x += (viewbox.w - newWidth) / 2;
-        viewbox.y += (viewbox.h - newHeight) / 2;
-        viewbox.w = newWidth;
-        viewbox.h = newHeight;
-        log('Zoomed out');
-        render();
+        if (newWidth / window.innerWidth < maxZoom) {
+            viewbox.x += (viewbox.w - newWidth) / 2;
+            viewbox.y += (viewbox.h - newHeight) / 2;
+            viewbox.w = newWidth;
+            viewbox.h = newHeight;
+            log('Zoomed out');
+            render();
+        }
     });
 
     graphContainer.addEventListener('wheel', (e) => {
@@ -860,12 +876,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const newWidth = viewbox.w * zoomFactor;
         const newHeight = viewbox.h * zoomFactor;
 
-        viewbox.x = svgX - (mouseX / rect.width) * newWidth;
-        viewbox.y = svgY - (mouseY / rect.height) * newHeight;
-        viewbox.w = newWidth;
-        viewbox.h = newHeight;
+        if (newWidth / window.innerWidth > minZoom && newWidth / window.innerWidth < maxZoom) {
+            viewbox.x = svgX - (mouseX / rect.width) * newWidth;
+            viewbox.y = svgY - (mouseY / rect.height) * newHeight;
+            viewbox.w = newWidth;
+            viewbox.h = newHeight;
 
-        render();
+            render();
+        }
     });
 
     svg.addEventListener('contextmenu', (e) => {
