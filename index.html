@@ -29,27 +29,26 @@
         <ul>
             <li id="add-node-option"><i data-lucide="box"></i> Add Node</li>
             <li id="add-group-option-context"><i data-lucide="box-select"></i> Add Group</li>
-            <li id="rename-option"><i data-lucide="pencil"></i> Rename</li>
+            <li id="toggle-snap-option"><i data-lucide="grid"></i> <span>Toggle Snapping</span></li>
+            <li id="toggle-snap-obj-option"><i data-lucide="magnet"></i> <span>Snap to Objects</span></li>
             <li id="group-option"><i data-lucide="group"></i> Group Selection</li>
             <li id="delete-node-option"><i data-lucide="trash-2"></i> Delete Node</li>
             <li id="disable-node-option"><i data-lucide="slash"></i> Disable Node</li>
-            <li id="properties-option"><i data-lucide="settings-2"></i> Properties</li>
             <li id="delete-edge-option">Delete Edge</li>
             <li id="add-routing-point-option">Add Routing Point</li>
         </ul>
     </div>
     <div id="info-bar"></div>
     <div id="properties-panel">
-        <h3>Properties</h3>
         <div class="property">
             <label for="node-name"><i data-lucide="text-cursor-input"></i></label>
             <input type="text" id="node-name">
+            <button id="delete-node-btn-prop" class="panel-button"><i data-lucide="trash-2"></i></button>
         </div>
         <div class="property">
-            <label for="node-color"><i data-lucide="palette"></i></label>
-            <input type="color" id="node-color">
+            <label><i data-lucide="palette"></i></label>
+            <div id="node-color-swatches"></div>
         </div>
-        <button id="close-properties-btn" class="panel-button"><i data-lucide="x"></i></button>
     </div>
     <div id="settings-panel">
         <h3>Settings</h3>
@@ -82,6 +81,10 @@
             <input type="number" id="default-group-height" min="80" max="400" step="20">
         </div>
         <div class="property">
+            <label for="default-properties-width">Properties Panel Width:</label>
+            <input type="number" id="default-properties-width" min="200" max="500" step="10" value="300">
+        </div>
+        <div class="property">
             <label for="connection-zone-radius">Connection Zone Radius:</label>
             <input type="number" id="connection-zone-radius" min="10" max="100" step="5">
         </div>
@@ -91,9 +94,10 @@
         </div>
         <button id="close-settings-btn" class="panel-button"><i data-lucide="x"></i></button>
     </div>
-    <script src="script.js"></script>
     <script>
         lucide.createIcons();
     </script>
+    <!-- <script src="script.js"></script> -->
+    <script src="nodeui.js"></script>
 </body>
 </html>

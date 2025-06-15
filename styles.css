@@ -24,6 +24,16 @@
     --button-hover-bg-color: var(--node-hover-fill-color);
     --selection-box-bg-color: rgba(70, 130, 180, 0.2);
     --selection-box-border-color: #4682b4;
+    --edge-stroke-width: 4px;
+    --snap-line-color: #ff00ff;
+    --swatch-1: #444444;
+    --swatch-2: #a8a29e;
+    --swatch-3: #f87171;
+    --swatch-4: #fb923c;
+    --swatch-5: #facc15;
+    --swatch-6: #4ade80;
+    --swatch-7: #60a5fa;
+    --swatch-8: #818cf8;
 }
 
 body.dark-theme {
@@ -52,6 +62,15 @@ body.dark-theme {
     --button-hover-bg-color: var(--node-hover-fill-color);
     --selection-box-bg-color: rgba(255, 255, 255, 0.1);
     --selection-box-border-color: #ffffff;
+    --snap-line-color: #00ffff;
+    --swatch-1: #A87C7C;
+    --swatch-2: #c7b2b2;
+    --swatch-3: #fca5a5;
+    --swatch-4: #fdba74;
+    --swatch-5: #fde047;
+    --swatch-6: #86efac;
+    --swatch-7: #93c5fd;
+    --swatch-8: #a5b4fc;
 }
 
 body.grayscale-theme {
@@ -74,9 +93,17 @@ body.grayscale-theme {
     --button-bg-color: var(--node-fill-color);
     --button-border-color: var(--node-stroke-color);
     --button-hover-bg-color: var(--node-hover-fill-color);
-    /* selection box node selected color plus a bit of transparency */
     --selection-box-bg-color: rgba(87, 244, 134, 0.2);
     --selection-box-border-color: #57f486;
+    --snap-line-color: #57f486;
+    --swatch-1: #444444;
+    --swatch-2: #a8a29e;
+    --swatch-3: #f87171;
+    --swatch-4: #fb923c;
+    --swatch-5: #facc15;
+    --swatch-6: #4ade80;
+    --swatch-7: #60a5fa;
+    --swatch-8: #818cf8;
 }
 
 body {
@@ -230,13 +257,13 @@ body {
 
 .edge {
     stroke: var(--edge-stroke-color);
-    stroke-width: 4px;
+    stroke-width: var(--edge-stroke-width);
     pointer-events: none;
 }
 
 .edge.selected {
     stroke: var(--edge-selected-stroke-color);
-    stroke-width: 4px;
+    stroke-width: var(--edge-stroke-width);
 }
 
 .cut-line {
@@ -322,20 +349,33 @@ body {
 
 #properties-panel {
     position: absolute;
-    top: 10px;
-    right: 10px;
     background-color: var(--controls-bg-color);
-    padding: 20px;
-    border-radius: 5px;
-    z-index: 10;
-    display: none;
-    margin: 20px;
+    padding: 10px 15px;
+    border-radius: 8px;
+    z-index: 20;
+    display: none; /* Controlled by JS */
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    transform: translate(-50%, -100%) translateY(-15px);
+    transition: opacity 0.1s ease-in-out;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+#properties-panel::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 8px;
+    border-style: solid;
+    border-color: var(--controls-bg-color) transparent transparent transparent;
 }
 
 #close-properties-btn {
-    position: absolute;
-    top: 5px;
-    right: 5px;
+    position: static;
+    order: 3;
 }
 
 .panel-button {
@@ -357,7 +397,34 @@ body {
     border: 1px solid var(--graph-border-color);
     border-radius: 5px;
     padding: 5px;
+    margin-bottom: 0;
+    flex-grow: 1;
+}
+
+#node-color-swatches {
+    display: flex;
+    gap: 8px;
+    align-items: center;
     margin-bottom: 10px;
+    gap: 10px;
+}
+
+.color-swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.1s ease;
+}
+
+.color-swatch:hover {
+    transform: scale(1.15);
+}
+
+.color-swatch.selected {
+    border-color: var(--node-selected-stroke-color);
+    transform: scale(1.15);
 }
 
 #settings-panel {
@@ -372,6 +439,8 @@ body {
     margin: 20px;
     max-height: 80vh;
     overflow-y: auto;
+    align-items: center;
+    margin-bottom: 0;
 }
 
 #settings-panel input {
@@ -387,17 +456,13 @@ body {
 #settings-panel label {
     display: inline-block;
     width: 180px;
-    margin-right: 10px;
 }
 
 .property {
     display: flex;
     align-items: center;
     margin-bottom: 10px;
-}
-
-.property label {
-    margin-right: 10px;
+    gap: 10px;
 }
 
 .edge.cuttable {
@@ -411,9 +476,10 @@ body {
     pointer-events: stroke;
 }
 
-.edge.selected {
-    stroke: var(--edge-selected-stroke-color);
-    stroke-width: 4px;
+.snap-line {
+    stroke: var(--snap-line-color);
+    stroke-width: 1px;
+    stroke-dasharray: 5, 5;
 }
 
 input, textarea {
