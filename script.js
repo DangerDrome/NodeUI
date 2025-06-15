@@ -101,6 +101,10 @@ document.addEventListener('DOMContentLoaded', () => {
      * @property {SVGElement|null} tempLine - The temporary line shown when creating a new connection.
      * @property {SVGElement|null} cutLine - The line shown when cutting edges.
      * @property {object|null} connectionEndPosition - The coordinates when a connection is released onto an empty area.
+     * @property {object|null} clipboard - The clipboard content.
+     * @property {object} mousePosition - The current mouse position in SVG coordinates.
+     * @property {Array<object>} undoStack - The stack for storing undo actions.
+     * @property {Array<object>} redoStack - The stack for storing redo actions.
      */
 
     /** @type {State} */
@@ -132,6 +136,10 @@ document.addEventListener('DOMContentLoaded', () => {
         tempLine: null,
         cutLine: null,
         connectionEndPosition: null,
+        clipboard: null,
+        mousePosition: { x: 0, y: 0 },
+        undoStack: [],
+        redoStack: [],
     };
 
     // =================================================================================================
@@ -185,6 +193,81 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
     }
 
+    /**
+     * Saves the current graph state for undo functionality.
+     * @param {string} actionName - A description of the action being performed.
+     */
+    function saveStateForUndo(actionName) {
+        // Deep clone the current state of nodes and edges
+        const currentState = {
+            nodes: JSON.parse(JSON.stringify(state.nodes)),
+            edges: JSON.parse(JSON.stringify(state.edges)),
+            nodeIdCounter: state.nodeIdCounter,
+            actionName: actionName
+        };
+        state.undoStack.push(currentState);
+        // Once a new action is taken, the redo stack should be cleared
+        state.redoStack = [];
+    }
+
+    /**
+     * Reverts the graph to the previous state in the undo stack.
+     */
+    function undo() {
+        if (state.undoStack.length === 0) {
+            log('Nothing to undo.');
+            return;
+        }
+
+        const currentState = {
+            nodes: JSON.parse(JSON.stringify(state.nodes)),
+            edges: JSON.parse(JSON.stringify(state.edges)),
+            nodeIdCounter: state.nodeIdCounter,
+            actionName: state.undoStack[state.undoStack.length - 1].actionName
+        };
+        state.redoStack.push(currentState);
+        
+        const previousState = state.undoStack.pop();
+        state.nodes = previousState.nodes;
+        state.edges = previousState.edges;
+        state.nodeIdCounter = previousState.nodeIdCounter;
+
+        state.selectedNodeIds = [];
+        state.selectedEdgeIndexes = [];
+
+        log(`Undid: ${previousState.actionName}`);
+        render();
+    }
+
+    /**
+     * Re-applies a previously undone action from the redo stack.
+     */
+    function redo() {
+        if (state.redoStack.length === 0) {
+            log('Nothing to redo.');
+            return;
+        }
+
+        const currentState = {
+            nodes: JSON.parse(JSON.stringify(state.nodes)),
+            edges: JSON.parse(JSON.stringify(state.edges)),
+            nodeIdCounter: state.nodeIdCounter,
+            actionName: state.redoStack[state.redoStack.length - 1].actionName
+        };
+        state.undoStack.push(currentState);
+
+        const nextState = state.redoStack.pop();
+        state.nodes = nextState.nodes;
+        state.edges = nextState.edges;
+        state.nodeIdCounter = nextState.nodeIdCounter;
+
+        state.selectedNodeIds = [];
+        state.selectedEdgeIndexes = [];
+        
+        log(`Redid: ${nextState.actionName}`);
+        render();
+    }
+
     // =================================================================================================
     // Core Functions
     // =================================================================================================
@@ -196,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {string} [type='default'] - The type of node ('default' or 'group').
      */
     function addNode(x, y, type = 'default') {
+        saveStateForUndo(`Add ${type}`);
         const snappedX = Math.round(x / settings.gridSize) * settings.gridSize;
         const snappedY = Math.round(y / settings.gridSize) * settings.gridSize;
         const newNode = {
@@ -229,9 +313,99 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {object} nodeToRemove - The node object to remove.
      */
     function removeNode(nodeToRemove) {
+        saveStateForUndo('Remove Node');
         state.nodes = state.nodes.filter(node => node.id !== nodeToRemove.id);
         state.edges = state.edges.filter(edge => edge.source.nodeId !== nodeToRemove.id && edge.target.nodeId !== nodeToRemove.id);
         log(`Removed node ${nodeToRemove.id}`);
+        render();
+    }
+
+    /**
+     * Copies selected nodes and their edges to the clipboard.
+     */
+    function copySelectedNodes() {
+        if (state.selectedNodeIds.length === 0) {
+            state.clipboard = null;
+            return;
+        }
+
+        const selectedNodes = state.nodes.filter(node => state.selectedNodeIds.includes(node.id));
+        const copiedNodes = JSON.parse(JSON.stringify(selectedNodes));
+        const copiedNodeIds = copiedNodes.map(n => n.id);
+        const containedEdges = state.edges.filter(edge =>
+            copiedNodeIds.includes(edge.source.nodeId) &&
+            copiedNodeIds.includes(edge.target.nodeId)
+        );
+        const copiedEdges = JSON.parse(JSON.stringify(containedEdges));
+
+        const basePosition = copiedNodes.reduce((acc, node) => ({
+            x: Math.min(acc.x, node.x),
+            y: Math.min(acc.y, node.y)
+        }), { x: Infinity, y: Infinity });
+
+        state.clipboard = {
+            nodes: copiedNodes,
+            edges: copiedEdges,
+            basePosition: basePosition
+        };
+        
+        log(`Copied ${copiedNodes.length} nodes and ${copiedEdges.length} edges.`);
+    }
+
+    /**
+     * Pastes nodes and edges from the clipboard onto the canvas.
+     */
+    function pasteNodes() {
+        if (!state.clipboard) return;
+
+        const { nodes: copiedNodes, edges: copiedEdges, basePosition } = state.clipboard;
+        const pastePosition = {
+            x: Math.round(state.mousePosition.x / settings.gridSize) * settings.gridSize,
+            y: Math.round(state.mousePosition.y / settings.gridSize) * settings.gridSize,
+        };
+
+        const idMap = new Map();
+        const newNodes = [];
+        const newSelectedIds = [];
+
+        copiedNodes.forEach(copiedNode => {
+            const newNode = JSON.parse(JSON.stringify(copiedNode));
+            const oldId = newNode.id;
+            
+            newNode.id = state.nodeIdCounter++;
+            idMap.set(oldId, newNode.id);
+
+            const offsetX = copiedNode.x - basePosition.x;
+            const offsetY = copiedNode.y - basePosition.y;
+
+            newNode.x = pastePosition.x + offsetX;
+            newNode.y = pastePosition.y + offsetY;
+            
+            const socketYOffset = newNode.type === 'group' ? newNode.height / 2 + 10 : newNode.height / 2 + 10;
+            const socketXOffset = newNode.type === 'group' ? newNode.width / 2 + 10 : newNode.width / 2 + 10;
+            newNode.sockets[0] = { id: 0, x: newNode.x, y: newNode.y - socketYOffset };
+            newNode.sockets[1] = { id: 1, x: newNode.x, y: newNode.y + socketYOffset };
+            newNode.sockets[2] = { id: 2, x: newNode.x - socketXOffset, y: newNode.y };
+            newNode.sockets[3] = { id: 3, x: newNode.x + socketXOffset, y: newNode.y };
+
+            newNodes.push(newNode);
+            newSelectedIds.push(newNode.id);
+        });
+
+        const newEdges = copiedEdges.map(copiedEdge => {
+            const newEdge = JSON.parse(JSON.stringify(copiedEdge));
+            newEdge.source.nodeId = idMap.get(newEdge.source.nodeId);
+            newEdge.target.nodeId = idMap.get(newEdge.target.nodeId);
+            return newEdge;
+        });
+
+        state.selectedNodeIds = newSelectedIds;
+        state.selectedEdgeIndexes = [];
+
+        state.nodes.push(...newNodes);
+        state.edges.push(...newEdges);
+
+        log(`Pasted ${newNodes.length} nodes and ${newEdges.length} edges.`);
         render();
     }
 
@@ -249,6 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
              edge.target.nodeId === sourceSocket.nodeId && edge.target.socketId === sourceSocket.socketId)
         );
         if (!existingEdge) {
+            saveStateForUndo('Create Edge');
             state.edges.push({ source: sourceSocket, target: targetSocket, type: dom.edgeTypeSelect.value, points: [] });
             log(`Created edge between node ${sourceSocket.nodeId} and node ${targetSocket.nodeId}`);
         }
@@ -718,11 +893,47 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupEventListeners() {
         // Keyboard events
         document.addEventListener('keydown', (e) => {
+            const isEditingText = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key.toLowerCase() === 'c') {
+                    if (isEditingText) return;
+                    e.preventDefault();
+                    copySelectedNodes();
+                    return;
+                }
+                if (e.key.toLowerCase() === 'v') {
+                    if (isEditingText) return;
+                    e.preventDefault();
+                    pasteNodes();
+                    return;
+                }
+                if (e.key.toLowerCase() === 'z') {
+                    if (isEditingText) return;
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        redo();
+                    } else {
+                        undo();
+                    }
+                    return;
+                }
+                if (e.key.toLowerCase() === 'y') {
+                    if (isEditingText) return;
+                    e.preventDefault();
+                    redo();
+                    return;
+                }
+            }
+
             if (e.key === 'c' && !state.interaction.cutting) {
                 state.interaction.cutting = true;
                 render();
             }
             if ((e.key === 'Delete' || e.key === 'Backspace')) {
+                if (state.selectedEdgeIndexes.length > 0 || state.selectedNodeIds.length > 0) {
+                    saveStateForUndo('Delete Selection');
+                }
                 if (state.selectedEdgeIndexes.length > 0) {
                     log(`Deleted ${state.selectedEdgeIndexes.length} edges`);
                     state.edges = state.edges.filter((edge, index) => !state.selectedEdgeIndexes.includes(index));
@@ -737,6 +948,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 render();
             }
             if (e.key === 'd' && state.selectedNodeIds.length > 0) {
+                saveStateForUndo('Toggle Disable');
                 state.selectedNodeIds.forEach(nodeId => {
                     const node = state.nodes.find(n => n.id === nodeId);
                     if (node) {
@@ -744,7 +956,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         log(`Toggled disabled state for node ${nodeId}`);
                     }
                 });
-                render();
+                state.selectedEdgeIndexes = [];
             }
             if (e.key === 'p') {
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -855,6 +1067,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showPropertiesPanel(node);
                 }
                 if (!node.disabled) {
+                    saveStateForUndo('Move Nodes');
                     state.interaction.dragging = true;
                     state.draggedNodes = state.selectedNodeIds.map(id => state.nodes.find(n => n.id === id));
                     const pt = dom.svg.createSVGPoint();
@@ -867,6 +1080,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else if (target.classList.contains('resize-handle')) {
                 e.stopPropagation();
+                saveStateForUndo('Resize Node');
                 state.interaction.resizing = true;
                 state.resizeDirection = target.dataset.direction;
                 const nodeId = parseInt(target.dataset.nodeId, 10);
@@ -906,6 +1120,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 log(`Selected edge ${edgeIndex}`);
             } else if (target.classList.contains('routing-handle')) {
                 e.stopPropagation();
+                saveStateForUndo('Move Routing Point');
                 state.interaction.draggingRoutingPoint = true;
                 const edgeIndex = parseInt(target.dataset.edgeIndex);
                 const pointIndex = parseInt(target.dataset.pointIndex);
@@ -919,13 +1134,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         dom.svg.addEventListener('mousemove', (e) => {
+            const pt = dom.svg.createSVGPoint();
+            pt.x = e.clientX;
+            pt.y = e.clientY;
+            const svgP = pt.matrixTransform(dom.svg.getScreenCTM().inverse());
+            state.mousePosition.x = svgP.x;
+            state.mousePosition.y = svgP.y;
+
             if (state.interaction.cutting && state.interaction.mouseDown) {
                 if (!state.cutLine) return;
-                const pt = dom.svg.createSVGPoint();
-                pt.x = e.clientX;
-                pt.y = e.clientY;
-                const svgP = pt.matrixTransform(dom.svg.getScreenCTM().inverse());
-                
                 const d = state.cutLine.getAttribute('d');
                 let lastPointStr;
                 const lastLIndex = d.lastIndexOf('L');
@@ -947,10 +1164,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 state.cutLine.setAttribute('d', `${d} L ${scribbleX} ${scribbleY}`);
 
-            render();
-            return;
-        }
-        
+                render();
+                return;
+            }
+            
             if (state.interaction.selecting) {
                 const x = Math.min(e.clientX, state.dragStart.x);
                 const y = Math.min(e.clientY, state.dragStart.y);
@@ -1159,6 +1376,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             });
 
                             if (edgesToDelete.length > 0) {
+                                saveStateForUndo('Cut Edges');
                                 log(`Cut ${edgesToDelete.length} edges`);
                                 state.edges = state.edges.filter((_, index) => !edgesToDelete.includes(index));
                             }
@@ -1315,6 +1533,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         dom.edgeTypeSelect.addEventListener('change', (e) => {
+            saveStateForUndo('Change Edge Style');
             const newType = e.target.value;
             state.edges.forEach(edge => {
                 edge.type = newType;
@@ -1434,6 +1653,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (state.contextNode) {
                 const newName = prompt('Enter new name:', state.contextNode.title);
                 if (newName) {
+                    saveStateForUndo('Rename Node');
                     state.contextNode.title = newName;
                     render();
                 }
@@ -1451,6 +1671,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         dom.contextMenu.disableNode.addEventListener('click', () => {
             if (state.contextNode) {
+                saveStateForUndo('Toggle Disable');
                 state.contextNode.disabled = !state.contextNode.disabled;
                 log(`Toggled disabled state for node ${state.contextNode.id}`);
                 state.contextNode = null;
@@ -1471,6 +1692,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         dom.contextMenu.deleteEdge.addEventListener('click', () => {
             if (state.contextEdge !== null) {
+                saveStateForUndo('Delete Edge');
                 state.edges.splice(state.contextEdge, 1);
                 log(`Deleted edge ${state.contextEdge}`);
                 state.contextEdge = null;
@@ -1488,6 +1710,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const targetSocket = targetNode.sockets[edge.target.socketId];
                     const x = (sourceSocket.x + targetSocket.x) / 2;
                     const y = (sourceSocket.y + targetSocket.y) / 2;
+                    saveStateForUndo('Add Routing Point');
                     edge.points.push({ x, y });
                     log(`Added routing point to edge ${state.contextEdge}`);
                     render();
@@ -1504,8 +1727,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         dom.propertiesPanel.nodeNameInput.addEventListener('input', (e) => {
             if (state.contextNode) {
+                if (!state.contextNode.preEditTitle) {
+                    state.contextNode.preEditTitle = state.contextNode.title;
+                }
                 state.contextNode.title = e.target.value;
                 render();
+            }
+        });
+
+        dom.propertiesPanel.nodeNameInput.addEventListener('focus', (e) => {
+            if (state.contextNode) {
+                state.contextNode.preEditTitle = state.contextNode.title;
+            }
+        });
+
+        dom.propertiesPanel.nodeNameInput.addEventListener('blur', (e) => {
+            if (state.contextNode && state.contextNode.preEditTitle !== state.contextNode.title) {
+                saveStateForUndo('Rename Node');
+                delete state.contextNode.preEditTitle;
             }
         });
 
@@ -1513,6 +1752,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (state.contextNode) {
                 state.contextNode.color = e.target.value;
                 render();
+            }
+        });
+
+        dom.propertiesPanel.nodeColorInput.addEventListener('focus', (e) => {
+            if (state.contextNode) {
+                state.contextNode.preEditColor = state.contextNode.color;
+            }
+        });
+
+        dom.propertiesPanel.nodeColorInput.addEventListener('blur', (e) => {
+            if (state.contextNode && state.contextNode.preEditColor !== state.contextNode.color) {
+                saveStateForUndo('Change Node Color');
+                delete state.contextNode.preEditColor;
             }
         });
 
