@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const settings = {
         gridSize: 20,
         minZoom: 0.01,
-        maxZoom: 3,
+        maxZoom: 1,
         connectionZoneRadius: 50,
         defaultNodeWidth: 300,
         defaultNodeHeight: 200,

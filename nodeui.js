@@ -11,21 +11,25 @@ class GraphEditor {
         // =================================================================================================
         this.settings = {
             gridSize: 20,
-            minZoom: 0.01,
-            maxZoom: 3,
-            connectionZoneRadius: 50,
+            minZoom: 0.1,
+            maxZoom: 2,
             defaultNodeWidth: 300,
             defaultNodeHeight: 200,
             defaultGroupWidth: 600,
-            defaultGroupHeight: 500,
-            defaultPropertiesWidth: 300,
-            arrowSize: 20,
-            arrowWidth: 20,
-            arrowOffset: 0,
-            arrowGap: 5,
+            defaultGroupHeight: 400,
+            propertiesPanelWidth: 250,
+            connectionZoneRadius: 20,
+            edgeStrokeWidth: 4,
+            bezierOffset: 100,
             bezierStraightLineDistance: 20,
             socketOffset: 10,
+            arrowSize: 15,
+            arrowWidth: 15,
+            arrowOffset: 0,
+            arrowGap: 0,
         };
+
+        this.defaultSettings = { ...this.settings };
 
         this.defaultColors = [];
 
@@ -38,6 +42,7 @@ class GraphEditor {
             addGroupBtn: document.getElementById('add-group-btn'),
             zoomInBtn: document.getElementById('zoom-in-btn'),
             zoomOutBtn: document.getElementById('zoom-out-btn'),
+            zoomToSelectionBtn: document.getElementById('zoom-to-selection-btn'),
             themeToggleBtn: document.getElementById('theme-toggle-btn'),
             settingsBtn: document.getElementById('settings-btn'),
             edgeTypeSelect: document.getElementById('edge-type-select'),
@@ -72,9 +77,10 @@ class GraphEditor {
                 defaultNodeHeight: document.getElementById('default-node-height'),
                 defaultGroupWidth: document.getElementById('default-group-width'),
                 defaultGroupHeight: document.getElementById('default-group-height'),
-                defaultPropertiesWidth: document.getElementById('default-properties-width'),
+                propertiesPanelWidth: document.getElementById('default-properties-width'),
                 connectionZoneRadius: document.getElementById('connection-zone-radius'),
                 edgeStrokeWidth: document.getElementById('edge-stroke-width'),
+                resetBtn: document.getElementById('reset-settings-btn')
             },
         };
 
@@ -240,6 +246,7 @@ class GraphEditor {
         pattern.appendChild(path);
         defs.appendChild(pattern);
         this.dom.svg.appendChild(defs);
+        this._createArrowMarker();
 
         // Grid background
         this.gridRect = this._createSVGElement('rect', { fill: 'url(#grid)' });
@@ -249,6 +256,22 @@ class GraphEditor {
         this.dom.svg.appendChild(this.mainGroup);
 
         this._updateView();
+    }
+
+    _createArrowMarker() {
+        const marker = this._createSVGElement('marker', {
+            id: 'arrowhead',
+            markerWidth: this.settings.arrowSize,
+            markerHeight: this.settings.arrowWidth,
+            refX: this.settings.arrowSize + this.settings.arrowOffset,
+            refY: this.settings.arrowWidth / 2,
+            orient: 'auto',
+            markerUnits: 'userSpaceOnUse',
+        });
+        const polygon = this._createSVGElement('polygon', { points: `0 0, ${this.settings.arrowSize} ${this.settings.arrowWidth / 2}, 0 ${this.settings.arrowWidth}` });
+        polygon.style.fill = 'var(--arrow-color)';
+        marker.appendChild(polygon);
+        this.dom.svg.appendChild(marker);
     }
 
     /**
@@ -280,9 +303,10 @@ class GraphEditor {
         });
         this.dom.zoomInBtn.addEventListener('click', () => this._zoom(0.8));
         this.dom.zoomOutBtn.addEventListener('click', () => this._zoom(1.2));
-        this.dom.edgeTypeSelect.addEventListener('change', this._handleChangeEdgeType.bind(this));
+        this.dom.zoomToSelectionBtn.addEventListener('click', () => this._zoomToSelected());
         this.dom.themeToggleBtn.addEventListener('click', this._toggleTheme.bind(this));
         this.dom.settingsBtn.addEventListener('click', () => this._toggleSettingsPanel());
+        this.dom.edgeTypeSelect.addEventListener('change', this._handleChangeEdgeType.bind(this));
 
         // Context Menu
         this._setupContextMenuListeners();
@@ -369,6 +393,7 @@ class GraphEditor {
 
     _setupSettingsPanelListeners() {
         this.dom.settingsPanel.closeBtn.addEventListener('click', () => this._toggleSettingsPanel());
+        this.dom.settingsPanel.resetBtn.addEventListener('click', () => this._resetSettingsToDefault());
 
         const setupListener = (element, settingKey, isRender, isUpdateView) => {
             if (!element) return;
@@ -404,9 +429,9 @@ class GraphEditor {
         setupListener(this.dom.settingsPanel.defaultNodeHeight, 'defaultNodeHeight');
         setupListener(this.dom.settingsPanel.defaultGroupWidth, 'defaultGroupWidth');
         setupListener(this.dom.settingsPanel.defaultGroupHeight, 'defaultGroupHeight');
-        setupListener(this.dom.settingsPanel.defaultPropertiesWidth, 'defaultPropertiesWidth', true);
+        setupListener(this.dom.settingsPanel.propertiesPanelWidth, 'propertiesPanelWidth', true);
         setupListener(this.dom.settingsPanel.connectionZoneRadius, 'connectionZoneRadius', true);
-        setupListener(this.dom.settingsPanel.edgeStrokeWidth, 'edgeStrokeWidth');
+        setupListener(this.dom.settingsPanel.edgeStrokeWidth, 'edgeStrokeWidth', true);
     }
 
     _setupDragAndDropListeners() {
@@ -888,9 +913,7 @@ class GraphEditor {
             'data-id': id
         });
         rect.style.fill = color;
-        if (type === 'group') {
-            rect.style.stroke = color;
-        }
+        rect.style.stroke = color;
         parent.appendChild(rect);
     }
 
@@ -968,18 +991,24 @@ class GraphEditor {
                 cx: socket.x, cy: socket.y, r: 5,
                 class: `connection-handle-visible ${isConnected ? 'connected' : ''}`,
                 'data-node-id': id,
-                'data-socket-id': socket.id,
+                'data-socket-id': socket.id
             });
             parent.appendChild(handle);
-            
-            const zone = this._createSVGElement('circle', {
-                cx: socket.x, cy: socket.y, r: this.settings.connectionZoneRadius,
+
+            if (handle) {
+                handle.style.fill = node.color;
+            }
+
+            const connectionZone = this._createSVGElement('circle', {
+                cx: socket.x,
+                cy: socket.y,
+                r: this.settings.connectionZoneRadius,
                 fill: 'transparent',
                 class: 'connection-handle',
                 'data-node-id': id,
-                'data-socket-id': socket.id,
+                'data-socket-id': socket.id
             });
-            parent.appendChild(zone);
+            parent.appendChild(connectionZone);
         });
     }
 
@@ -1018,11 +1047,12 @@ class GraphEditor {
                     this._log(`Selected all ${this.state.selectedNodeIds.length} nodes and ${this.state.selectedEdgeIndexes.length} edges.`);
                     this._render();
                     break;
+
             }
             return;
         }
 
-        switch (e.key) {
+        switch (e.key.toLowerCase()) {
             case 'c':
                 if (!this.state.interaction.cutting) {
                     this.state.interaction.cutting = true;
@@ -1049,6 +1079,12 @@ class GraphEditor {
                     e.preventDefault();
                 }
                 break;
+            case 'f':
+                if (!isEditingText) {
+                    e.preventDefault();
+                    this._zoomToSelected();
+                }
+                break;
         }
     }
 
@@ -1057,6 +1093,48 @@ class GraphEditor {
             this.state.interaction.cutting = false;
             this._render();
         }
+    }
+    
+    _zoomToSelected() {
+        if (this.state.selectedNodeIds.length === 0) return;
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        this.state.selectedNodeIds.forEach(nodeId => {
+            const node = this.state.nodes.find(n => n.id === nodeId);
+            if (node) {
+                minX = Math.min(minX, node.x);
+                minY = Math.min(minY, node.y);
+                maxX = Math.max(maxX, node.x + node.width);
+                maxY = Math.max(maxY, node.y + node.height);
+            }
+        });
+
+        if (minX === Infinity) return;
+
+        const padding = 100;
+        const selectionWidth = maxX - minX;
+        const selectionHeight = maxY - minY;
+
+        const svgRect = this.dom.svg.getBoundingClientRect();
+        const zoomX = svgRect.width / (selectionWidth + padding * 2);
+        const zoomY = svgRect.height / (selectionHeight + padding * 2);
+        let zoomLevel = Math.min(zoomX, zoomY);
+
+        zoomLevel = Math.max(this.settings.minZoom, Math.min(this.settings.maxZoom, zoomLevel));
+        
+        this.state.viewbox.w = svgRect.width / zoomLevel;
+        this.state.viewbox.h = svgRect.height / zoomLevel;
+
+        const centerX = minX + selectionWidth / 2;
+        const centerY = minY + selectionHeight / 2;
+        
+        this.state.viewbox.x = centerX - this.state.viewbox.w / 2;
+        this.state.viewbox.y = centerY - this.state.viewbox.h / 2;
+
+        this._updateView();
+        this._render();
+        this._log(`Zoomed to selection`);
     }
     
     _handleMouseDown(e) {
@@ -1642,8 +1720,8 @@ class GraphEditor {
         const currentZoomX = window.innerWidth / newWidth;
         const currentZoomY = window.innerHeight / newHeight;
         
-        if( (factor < 1 && (currentZoomX > maxZoom || currentZoomY > maxZoom)) || 
-            (factor > 1 && (currentZoomX < minZoom || currentZoomY < minZoom)) ) {
+        if ((factor < 1 && (currentZoomX > maxZoom || currentZoomY > maxZoom)) ||
+            (factor > 1 && (currentZoomX < minZoom || currentZoomY < minZoom))) {
             return;
         }
         
@@ -1766,12 +1844,17 @@ class GraphEditor {
             const startNode = this.state.nodes.find(n => n.id === this.state.connectionStartSocket.nodeId);
             const startSocket = startNode.sockets[this.state.connectionStartSocket.socketId];
 
-            const closestSocket = newNode.sockets.reduce((closest, socket) => {
-                const distance = Math.hypot(socket.x - startSocket.x, socket.y - startSocket.y);
-                return distance < closest.minDistance ? { socket, minDistance: distance } : closest;
-            }, { socket: null, minDistance: Infinity }).socket;
+            const closestSocketInfo = newNode.sockets.reduce((closest, socket) => {
+                const socketPos = { x: newNode.x + socket.x, y: newNode.y + socket.y };
+                const startSocketPos = { x: startNode.x + startSocket.x, y: startNode.y + startSocket.y };
+                const distance = Math.hypot(socketPos.x - startSocketPos.x, socketPos.y - startSocketPos.y);
+                if (distance < closest.minDistance) {
+                    return { socket, minDistance: distance };
+                }
+                return closest;
+            }, { socket: null, minDistance: Infinity });
 
-            this._createEdge(this.state.connectionStartSocket, { nodeId: newNode.id, socketId: closestSocket.id });
+            this._createEdge(this.state.connectionStartSocket, { nodeId: newNode.id, socketId: closestSocketInfo.socket.id });
             this._resetConnectionState();
         } else {
             const rect = this.dom.svg.getBoundingClientRect();
@@ -1780,6 +1863,7 @@ class GraphEditor {
             this._addNode(svgP.x, svgP.y, type);
         }
         this._hideContextMenu();
+        this._render();
     }
 
     _handleContextMenuDeleteNode() {
@@ -2107,6 +2191,14 @@ class GraphEditor {
                 this.defaultColors.push(color);
             }
         }
+    }
+
+    _resetSettingsToDefault() {
+        this.settings = { ...this.defaultSettings };
+        this._loadSettingsToUI();
+        this._render();
+        this._updateView();
+        this._log('Settings reset to default');
     }
 }
 

@@ -488,3 +488,42 @@ input, textarea {
     -ms-user-select: text; /* IE 10+ and Edge */
     -moz-user-select: text; /* Firefox */
 }
+
+#settings-panel.open {
+    display: flex;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+.panel-header h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.panel-content {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.panel-footer {
+    border-top: 1px solid var(--border-color);
+    padding-top: 10px;
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+#settings-panel .property label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
