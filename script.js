@@ -1284,6 +1284,15 @@ document.addEventListener('DOMContentLoaded', () => {
             addNode(x, y, 'group');
         });
 
+        dom.edgeTypeSelect.addEventListener('change', (e) => {
+            const newType = e.target.value;
+            state.edges.forEach(edge => {
+                edge.type = newType;
+            });
+            log(`Changed all edges to ${newType} style`);
+            render();
+        });
+
         dom.zoomInBtn.addEventListener('click', () => {
             const newWidth = state.viewbox.w * 0.8;
             const newHeight = state.viewbox.h * 0.8;
