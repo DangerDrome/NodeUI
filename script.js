@@ -687,8 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.cutLine.setAttribute('y1', svgP.y);
                 state.cutLine.setAttribute('x2', svgP.x);
                 state.cutLine.setAttribute('y2', svgP.y);
-                state.cutLine.setAttribute('class', 'edge');
-                state.cutLine.style.stroke = 'red';
+                state.cutLine.setAttribute('class', 'cut-line');
                 return;
             }
             

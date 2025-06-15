@@ -204,6 +204,12 @@ body {
     stroke-width: 4px;
 }
 
+.cut-line {
+    stroke: red;
+    stroke-width: 2px;
+    stroke-dasharray: 5 5;
+}
+
 .context-menu {
     display: none;
     position: absolute;
