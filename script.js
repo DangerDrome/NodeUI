@@ -358,6 +358,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function pasteNodes() {
         if (!state.clipboard) return;
 
+        saveStateForUndo('Paste Nodes');
+
         const { nodes: copiedNodes, edges: copiedEdges, basePosition } = state.clipboard;
         const pastePosition = {
             x: Math.round(state.mousePosition.x / settings.gridSize) * settings.gridSize,
@@ -368,11 +370,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const newNodes = [];
         const newSelectedIds = [];
 
+        // First pass: create new nodes and map old IDs to new IDs
         copiedNodes.forEach(copiedNode => {
             const newNode = JSON.parse(JSON.stringify(copiedNode));
             const oldId = newNode.id;
             
             newNode.id = state.nodeIdCounter++;
+            newNode.title = `${newNode.title} copy`;
             idMap.set(oldId, newNode.id);
 
             const offsetX = copiedNode.x - basePosition.x;
@@ -390,6 +394,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             newNodes.push(newNode);
             newSelectedIds.push(newNode.id);
+        });
+
+        // Second pass: update parent/child relationships
+        newNodes.forEach(newNode => {
+            if (newNode.parent !== undefined) {
+                newNode.parent = idMap.get(newNode.parent);
+            }
+            if (newNode.type === 'group' && newNode.children) {
+                newNode.children = newNode.children.map(childId => idMap.get(childId)).filter(id => id !== undefined);
+            }
         });
 
         const newEdges = copiedEdges.map(copiedEdge => {
@@ -922,6 +936,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (isEditingText) return;
                     e.preventDefault();
                     redo();
+                    return;
+                }
+                if (e.key.toLowerCase() === 'a') {
+                    if (isEditingText) return;
+                    e.preventDefault();
+                    state.selectedNodeIds = state.nodes.map(node => node.id);
+                    state.selectedEdgeIndexes = state.edges.map((_, index) => index);
+                    log(`Selected all ${state.selectedNodeIds.length} nodes and ${state.selectedEdgeIndexes.length} edges.`);
+                    render();
                     return;
                 }
             }
