@@ -5,6 +5,7 @@
     --graph-border-color: #CAE8BD;
     --node-fill-color: #B0DB9C;
     --node-stroke-color: #89C977;
+    --node-selected-stroke-color: #4682b4;
     --node-hover-fill-color: #A0D28D;
     --edge-stroke-color: #89C977;
     --edge-selected-stroke-color: #4682b4;
@@ -21,6 +22,8 @@
     --button-bg-color: var(--node-fill-color);
     --button-border-color: var(--node-stroke-color);
     --button-hover-bg-color: var(--node-hover-fill-color);
+    --selection-box-bg-color: rgba(70, 130, 180, 0.2);
+    --selection-box-border-color: #4682b4;
 }
 
 body.dark-theme {
@@ -30,6 +33,7 @@ body.dark-theme {
     --graph-border-color: #7E6363;
     --node-fill-color: #A87C7C;
     --node-stroke-color: #8A6363;
+    --node-selected-stroke-color: #ffffff;
     --node-hover-fill-color: #9A6F6F;
     --edge-stroke-color: #8A6363;
     --edge-selected-stroke-color: #fff;
@@ -46,6 +50,8 @@ body.dark-theme {
     --button-bg-color: var(--node-fill-color);
     --button-border-color: var(--node-stroke-color);
     --button-hover-bg-color: var(--node-hover-fill-color);
+    --selection-box-bg-color: rgba(255, 255, 255, 0.1);
+    --selection-box-border-color: #ffffff;
 }
 
 body.grayscale-theme {
@@ -55,9 +61,10 @@ body.grayscale-theme {
     --graph-border-color: #3a3a3a;
     --node-fill-color: #444444;
     --node-stroke-color: #666666;
+    --node-selected-stroke-color: #57f486;
     --node-hover-fill-color: #555555;
     --edge-stroke-color: #888888;
-    --edge-selected-stroke-color: #ffffff;
+    --edge-selected-stroke-color: #57f486;
     --arrow-color: #888888;
     --resize-handle-fill-color: #ffffff;
     --connection-handle-fill-color: #888888;
@@ -67,6 +74,9 @@ body.grayscale-theme {
     --button-bg-color: var(--node-fill-color);
     --button-border-color: var(--node-stroke-color);
     --button-hover-bg-color: var(--node-hover-fill-color);
+    /* selection box node selected color plus a bit of transparency */
+    --selection-box-bg-color: rgba(87, 244, 134, 0.2);
+    --selection-box-border-color: #57f486;
 }
 
 body {
@@ -124,8 +134,9 @@ body {
 
 #selection-box {
     position: absolute;
-    border: 1px dashed #000;
-    background-color: rgba(0, 0, 0, 0.1);
+    border: 1px dashed var(--selection-box-border-color);
+    background-color: var(--selection-box-bg-color);
+    display: none;
     pointer-events: none;
 }
 
@@ -152,6 +163,11 @@ body {
 .node.disabled {
     fill: #ccc;
     stroke: #999;
+}
+
+.node.selected {
+    stroke: var(--node-selected-stroke-color);
+    stroke-width: 3px;
 }
 
 .node.group {
@@ -208,6 +224,7 @@ body {
     stroke: red;
     stroke-width: 2px;
     stroke-dasharray: 5 5;
+    fill: none;
 }
 
 .context-menu {

@@ -682,16 +682,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 pt.x = e.clientX;
                 pt.y = e.clientY;
                 const svgP = pt.matrixTransform(dom.svg.getScreenCTM().inverse());
-                state.cutLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                state.cutLine.setAttribute('x1', svgP.x);
-                state.cutLine.setAttribute('y1', svgP.y);
-                state.cutLine.setAttribute('x2', svgP.x);
-                state.cutLine.setAttribute('y2', svgP.y);
+                state.cutLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                state.cutLine.setAttribute('d', `M ${svgP.x} ${svgP.y}`);
                 state.cutLine.setAttribute('class', 'cut-line');
                 return;
             }
             
-            if (e.shiftKey) {
+            if (e.shiftKey || e.ctrlKey) {
                 if (target.classList.contains('node')) {
                     e.stopPropagation();
                     const nodeId = parseInt(target.dataset.id);
@@ -804,16 +801,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
         dom.svg.addEventListener('mousemove', (e) => {
             if (state.interaction.cutting && state.interaction.mouseDown) {
+                if (!state.cutLine) return;
                 const pt = dom.svg.createSVGPoint();
                 pt.x = e.clientX;
                 pt.y = e.clientY;
                 const svgP = pt.matrixTransform(dom.svg.getScreenCTM().inverse());
-                state.cutLine.setAttribute('x2', svgP.x);
-                state.cutLine.setAttribute('y2', svgP.y);
-                render();
-                return;
-            }
-            
+                
+                const d = state.cutLine.getAttribute('d');
+                let lastPointStr;
+                const lastLIndex = d.lastIndexOf('L');
+                if (lastLIndex !== -1) {
+                    lastPointStr = d.substring(lastLIndex + 1);
+                } else {
+                    lastPointStr = d.substring(d.lastIndexOf('M') + 1);
+                }
+                const coords = lastPointStr.trim().split(/\s+/);
+                const lastPoint = { x: parseFloat(coords[0]), y: parseFloat(coords[1]) };
+
+                const smoothingFactor = 0.4;
+                const smoothedX = lastPoint.x * (1 - smoothingFactor) + svgP.x * smoothingFactor;
+                const smoothedY = lastPoint.y * (1 - smoothingFactor) + svgP.y * smoothingFactor;
+
+                const scribbleAmount = 8;
+                const scribbleX = smoothedX + (Math.random() - 0.5) * scribbleAmount;
+                const scribbleY = smoothedY + (Math.random() - 0.5) * scribbleAmount;
+                
+                state.cutLine.setAttribute('d', `${d} L ${scribbleX} ${scribbleY}`);
+
+            render();
+            return;
+        }
+        
             if (state.interaction.selecting) {
                 const x = Math.min(e.clientX, state.dragStart.x);
                 const y = Math.min(e.clientY, state.dragStart.y);
@@ -982,30 +1000,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
             if (state.interaction.cutting) {
-                const p1 = { x: parseFloat(state.cutLine.getAttribute('x1')), y: parseFloat(state.cutLine.getAttribute('y1')) };
-                const p2 = { x: parseFloat(state.cutLine.getAttribute('x2')), y: parseFloat(state.cutLine.getAttribute('y2')) };
-                const edgesToDelete = [];
-                state.edges.forEach((edge, index) => {
-                    const sourceNode = state.nodes.find(n => n.id === edge.source.nodeId);
-                    const targetNode = state.nodes.find(n => n.id === edge.target.nodeId);
-                    if (sourceNode && targetNode) {
-                        const sourceSocket = sourceNode.sockets[edge.source.socketId];
-                        const targetSocket = targetNode.sockets[edge.target.socketId];
-                        if (lineIntersects(p1, p2, sourceSocket, targetSocket)) {
-                            edgesToDelete.push(index);
+                if (state.cutLine) {
+                    const d = state.cutLine.getAttribute('d');
+                    if (d) {
+                        const pointsStr = d.substring(1).trim().split('L');
+                        const points = pointsStr.map(pStr => {
+                            const coords = pStr.trim().split(/\s+/);
+                            return { x: parseFloat(coords[0]), y: parseFloat(coords[1]) };
+                        });
+
+                        if (points.length > 1) {
+                            const edgesToDelete = [];
+                            state.edges.forEach((edge, index) => {
+                                const sourceNode = state.nodes.find(n => n.id === edge.source.nodeId);
+                                const targetNode = state.nodes.find(n => n.id === edge.target.nodeId);
+                                if (sourceNode && targetNode) {
+                                    const sourceSocket = sourceNode.sockets[edge.source.socketId];
+                                    const targetSocket = targetNode.sockets[edge.target.socketId];
+                                    
+                                    for (let i = 0; i < points.length - 1; i++) {
+                                        const p1 = points[i];
+                                        const p2 = points[i+1];
+                                        if (lineIntersects(p1, p2, sourceSocket, targetSocket)) {
+                                            if (!edgesToDelete.includes(index)) {
+                                                edgesToDelete.push(index);
+                                            }
+                                            break; 
+                                        }
+                                    }
+                                }
+                            });
+
+                            if (edgesToDelete.length > 0) {
+                                log(`Cut ${edgesToDelete.length} edges`);
+                                state.edges = state.edges.filter((_, index) => !edgesToDelete.includes(index));
+                            }
                         }
                     }
-                });
-                if (edgesToDelete.length > 0) {
-                    log(`Cut ${edgesToDelete.length} edges`);
-                    state.edges = state.edges.filter((edge, index) => !edgesToDelete.includes(index));
                 }
                 state.cutLine = null;
             }
             if (state.interaction.selecting) {
+                const selectionRect = dom.selectionBox.getBoundingClientRect();
                 state.interaction.selecting = false;
                 dom.selectionBox.style.display = 'none';
-                const selectionRect = dom.selectionBox.getBoundingClientRect();
                 const svgRect = dom.svg.getBoundingClientRect();
                 const selectionStart = {
                     x: (selectionRect.left - svgRect.left) * (state.viewbox.w / svgRect.width) + state.viewbox.x,
@@ -1016,16 +1054,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     y: (selectionRect.bottom - svgRect.top) * (state.viewbox.h / svgRect.height) + state.viewbox.y
                 };
 
-                state.selectedNodeIds = state.nodes.filter(node =>
-                    node.x >= selectionStart.x && node.x <= selectionEnd.x &&
-                    node.y >= selectionStart.y && node.y <= selectionEnd.y
-                ).map(node => node.id);
+                state.selectedNodeIds = state.nodes.filter(node => {
+                    const nodeLeft = node.x - node.width / 2;
+                    const nodeRight = node.x + node.width / 2;
+                    const nodeTop = node.y - node.height / 2;
+                    const nodeBottom = node.y + node.height / 2;
 
-                state.selectedEdgeIndexes = state.edges.filter((edge, index) => {
-                    const sourceNode = state.nodes.find(n => n.id === edge.source.nodeId);
-                    const targetNode = state.nodes.find(n => n.id === edge.target.nodeId);
-                    return state.selectedNodeIds.includes(sourceNode.id) && state.selectedNodeIds.includes(targetNode.id);
-                }).map((edge, index) => index);
+                    return nodeRight > selectionStart.x && nodeLeft < selectionEnd.x &&
+                           nodeBottom > selectionStart.y && nodeTop < selectionEnd.y;
+                }).map(node => node.id);
+
+                const newSelectedEdgeIndexes = [];
+                if (state.selectedNodeIds.length > 0) {
+                    state.edges.forEach((edge, index) => {
+                        if (state.selectedNodeIds.includes(edge.source.nodeId) && state.selectedNodeIds.includes(edge.target.nodeId)) {
+                            newSelectedEdgeIndexes.push(index);
+                        }
+                    });
+                }
+                state.selectedEdgeIndexes = newSelectedEdgeIndexes;
                 log(`Selected ${state.selectedNodeIds.length} nodes and ${state.selectedEdgeIndexes.length} edges`);
 
             } else if (state.interaction.connecting) {
