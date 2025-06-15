@@ -483,10 +483,10 @@ document.addEventListener('DOMContentLoaded', () => {
             nodeGroup.appendChild(foreignObject);
             lucide.createIcons();
 
-            // Render resize handles for selected nodes
-            if (state.selectedNodeIds.includes(node.id) && !node.disabled) {
-                const handleThickness = 8;
-                const cornerSize = 12;
+            // Render resize handles
+            if (!node.disabled) {
+                const handleThickness = 12;
+                const cornerSize = 16;
 
                 const handles = [
                     // Sides
@@ -557,6 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     handle.setAttribute('height', handleData.height);
                     handle.setAttribute('class', `resize-handle ${handleData.class}`);
                     handle.dataset.direction = handleData.class;
+                    handle.dataset.nodeId = node.id;
                     nodeGroup.appendChild(handle);
                 });
             }
@@ -755,14 +756,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.stopPropagation();
                 state.interaction.resizing = true;
                 state.resizeDirection = target.dataset.direction;
-                state.originalNode = { ...state.nodes.find(n => n.id === state.selectedNodeIds[0]) };
+                const nodeId = parseInt(target.dataset.nodeId, 10);
+                state.originalNode = { ...state.nodes.find(n => n.id === nodeId) };
+                if (!state.selectedNodeIds.includes(nodeId)) {
+                    state.selectedNodeIds = [nodeId];
+                    state.selectedEdgeIndexes = [];
+                }
                 const pt = dom.svg.createSVGPoint();
                 pt.x = e.clientX;
                 pt.y = e.clientY;
                 const svgP = pt.matrixTransform(dom.svg.getScreenCTM().inverse());
                 state.dragStart.x = svgP.x;
                 state.dragStart.y = svgP.y;
-                log(`Started resizing node ${state.originalNode.id}`);
+                log(`Started resizing node ${nodeId}`);
             } else if (target.classList.contains('connection-handle')) {
                 e.stopPropagation();
                 state.interaction.connecting = true;

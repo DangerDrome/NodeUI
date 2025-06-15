@@ -170,24 +170,39 @@ body {
     stroke-width: 3px;
 }
 
+.resize-handle {
+    fill: transparent;
+    visibility: hidden;
+}
+
+.node-group:hover .resize-handle {
+    visibility: visible;
+}
+
+.node.selected ~ .resize-handle {
+    visibility: visible;
+}
+
+.resize-handle.n,
+.resize-handle.s {
+    cursor: ns-resize;
+}
+.resize-handle.w,
+.resize-handle.e {
+    cursor: ew-resize;
+}
+.resize-handle.nw,
+.resize-handle.se {
+    cursor: nwse-resize;
+}
+.resize-handle.ne,
+.resize-handle.sw {
+    cursor: nesw-resize;
+}
+
 .node.group {
     fill-opacity: 0.1;
 }
-
-.resize-handle {
-    fill: transparent;
-    stroke: transparent;
-    stroke-width: 1px;
-}
-
-.resize-handle.nw { cursor: nwse-resize; }
-.resize-handle.ne { cursor: nesw-resize; }
-.resize-handle.sw { cursor: nesw-resize; }
-.resize-handle.se { cursor: nwse-resize; }
-.resize-handle.n { cursor: ns-resize; }
-.resize-handle.s { cursor: ns-resize; }
-.resize-handle.w { cursor: ew-resize; }
-.resize-handle.e { cursor: ew-resize; }
 
 .connection-handle {
     fill: transparent;
