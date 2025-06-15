@@ -271,6 +271,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
+     * Recursively gets all descendant nodes for a given node ID.
+     * @param {number} nodeId - The ID of the parent node.
+     * @param {Set<object>} nodesSet - The set to store the descendant nodes.
+     */
+    function getAllDescendants(nodeId, nodesSet) {
+        const node = state.nodes.find(n => n.id === nodeId);
+        if (!node || nodesSet.has(node)) return;
+
+        nodesSet.add(node);
+
+        if (node.type === 'group' && node.children) {
+            node.children.forEach(childId => getAllDescendants(childId, nodesSet));
+        }
+    }
+
+    /**
+     * Checks if a node is a descendant of another node.
+     * @param {number} childIdToFind - The ID of the potential descendant node.
+     * @param {number} parentId - The ID of the potential ancestor node.
+     * @returns {boolean} - True if the node is a descendant, false otherwise.
+     */
+    function isDescendant(childIdToFind, parentId) {
+        const parentNode = state.nodes.find(n => n.id === parentId);
+        if (!parentNode || parentNode.type !== 'group' || !parentNode.children) {
+            return false;
+        }
+        if (parentNode.children.includes(childIdToFind)) {
+            return true;
+        }
+        for (const childId of parentNode.children) {
+            if (isDescendant(childIdToFind, childId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Groups the currently selected nodes.
      */
     function groupSelectedNodes() {
@@ -687,11 +725,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Sort nodes to render groups first, then selected nodes on top
+        const getDepth = (nodeId) => {
+            let depth = 0;
+            let node = state.nodes.find(n => n.id === nodeId);
+            while (node && node.parent !== undefined) {
+                depth++;
+                node = state.nodes.find(n => n.id === node.parent);
+            }
+            return depth;
+        };
+
         const sortedNodes = [...state.nodes].sort((a, b) => {
+            const depthA = getDepth(a.id);
+            const depthB = getDepth(b.id);
+
+            if (depthA !== depthB) {
+                return depthA - depthB; // Render nodes with lower depth first
+            }
+            
+            // If depths are equal, render groups before non-groups
             if (a.type === 'group' && b.type !== 'group') return -1;
             if (a.type !== 'group' && b.type === 'group') return 1;
-            if (state.selectedNodeIds.includes(a.id)) return 1;
-            if (state.selectedNodeIds.includes(b.id)) return -1;
+
+            // If types and depth are equal, render selected nodes on top
+            const aSelected = state.selectedNodeIds.includes(a.id);
+            const bSelected = state.selectedNodeIds.includes(b.id);
+            if (aSelected && !bSelected) return 1;
+            if (!aSelected && bSelected) return -1;
+            
             return 0;
         });
 
@@ -1271,15 +1332,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const nodesToMove = new Set();
                 state.draggedNodes.forEach(draggedNode => {
-                    nodesToMove.add(draggedNode);
-                    if (draggedNode.type === 'group') {
-                        draggedNode.children.forEach(childId => {
-                            const childNode = state.nodes.find(n => n.id === childId);
-                            if (childNode) {
-                                nodesToMove.add(childNode);
-                            }
-                        });
-                    }
+                    getAllDescendants(draggedNode.id, nodesToMove);
                 });
 
                 nodesToMove.forEach(node => {
@@ -1393,8 +1446,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (state.interaction.dragging) {
                 state.draggedNodes.forEach(node => {
-                    if (node.type === 'group') return;
-
                     const oldParent = state.nodes.find(g => g.id === node.parent);
                     const newParent = state.nodes.find(g =>
                         g.type === 'group' &&
@@ -1402,6 +1453,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         node.x >= g.x - g.width / 2 && node.x <= g.x + g.width / 2 &&
                         node.y >= g.y - g.height / 2 && node.y <= g.y + g.height / 2
                     );
+
+                    // Prevent dropping a group into itself or a descendant
+                    if (newParent && isDescendant(newParent.id, node.id)) {
+                        log(`Cannot move group ${node.id} into its own descendant ${newParent.id}.`);
+                        return; // Invalid move
+                    }
 
                     if (newParent && (!oldParent || oldParent.id !== newParent.id)) {
                         // Moved into a new or different group
