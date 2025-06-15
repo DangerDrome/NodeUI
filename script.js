@@ -720,6 +720,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     log('Started selection box');
                 }
             } else if (e.button === 1 || (e.button === 0 && !target.classList.contains('node') && !target.classList.contains('resize-handle') && !target.classList.contains('connection-handle') && !target.classList.contains('edge') && !target.classList.contains('routing-handle'))) {
+                if (dom.contextMenu.menu.style.display === 'block') {
+                    // A click on the background while the context menu is open should just dismiss it.
+                    // The global click handler will take care of closing and cleaning up.
+                    return;
+                }
                 state.interaction.panning = true;
                 state.dragStart.x = e.clientX;
                 state.dragStart.y = e.clientY;
@@ -966,12 +971,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     const targetSocket = { nodeId, socketId };
                     createEdge(state.connectionStartSocket, targetSocket);
                 } else {
-                    const pt = dom.svg.createSVGPoint();
-                    pt.x = e.clientX;
-                    pt.y = e.clientY;
-                    const svgP = pt.matrixTransform(dom.svg.getScreenCTM().inverse());
-                    state.connectionEndPosition = svgP;
-                    showContextMenu(e.clientX, e.clientY, 'connecting');
+                    // Not a valid target. If the menu isn't open, show it and wait.
+                    if (dom.contextMenu.menu.style.display !== 'block') {
+                        const pt = dom.svg.createSVGPoint();
+                        pt.x = e.clientX;
+                        pt.y = e.clientY;
+                        const svgP = pt.matrixTransform(dom.svg.getScreenCTM().inverse());
+                        state.connectionEndPosition = svgP;
+                        showContextMenu(e.clientX, e.clientY, 'connecting');
+                        // By returning here, we skip the state reset at the end of the function,
+                        // allowing the global click handler or a context menu action to take over.
+                        return;
+                    }
+                    // if the menu is already open, this mouseup is part of the click to dismiss it.
+                    // We should do nothing and let the global click handler manage it.
                     return;
                 }
             }
@@ -1368,7 +1381,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Global click to hide context menu
         window.addEventListener('click', (e) => {
-            if (!e.target.closest('.context-menu')) {
+            if (dom.contextMenu.menu.style.display === 'block' && !e.target.closest('#context-menu')) {
                 dom.contextMenu.menu.style.display = 'none';
                 if (state.interaction.connecting) {
                     state.interaction.connecting = false;
@@ -1378,7 +1391,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     render();
                 }
             }
-        });
+        }, true);
 
         // Drag and drop file handling
         dom.graphContainer.addEventListener('dragover', (e) => {
