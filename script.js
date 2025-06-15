@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gridSize: 20,
         minZoom: 0.01,
         maxZoom: 3,
-        connectionZoneRadius: 15,
+        connectionZoneRadius: 50,
         defaultNodeWidth: 300,
         defaultNodeHeight: 200,
         defaultGroupWidth: 600,
@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * @property {object} mousePosition - The current mouse position in SVG coordinates.
      * @property {Array<object>} undoStack - The stack for storing undo actions.
      * @property {Array<object>} redoStack - The stack for storing redo actions.
+     * @property {object|null} rewiringEdge - The edge being rewired.
      */
 
     /** @type {State} */
@@ -142,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mousePosition: { x: 0, y: 0 },
         undoStack: [],
         redoStack: [],
+        rewiringEdge: null,
     };
 
     let mainGroup = null;
@@ -1234,14 +1236,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.tempLine.setAttribute('fill', 'none');
                 state.tempLine.setAttribute('marker-end', 'url(#arrowhead)');
                 log(`Started connecting from node ${nodeId}`);
-            } else if (target.classList.contains('edge')) {
+            } else if (target.classList.contains('edge') || target.classList.contains('edge-hitbox')) {
                 e.stopPropagation();
                 const edgeIndex = parseInt(target.dataset.index);
-                if (!state.selectedEdgeIndexes.includes(edgeIndex)) {
-                    state.selectedEdgeIndexes = [edgeIndex];
-                    state.selectedNodeIds = [];
-                }
-                log(`Selected edge ${edgeIndex}`);
+                const edge = state.edges[edgeIndex];
+                if (!edge) return;
+
+                const pt = dom.svg.createSVGPoint();
+                pt.x = e.clientX;
+                pt.y = e.clientY;
+                const svgP = pt.matrixTransform(dom.svg.getScreenCTM().inverse());
+
+                saveStateForUndo('Rewire Edge');
+
+                // Temporarily remove the edge and store it
+                state.rewiringEdge = { edge: state.edges.splice(edgeIndex, 1)[0], originalIndex: edgeIndex };
+
+                // Always drag the target end, so the source is fixed
+                state.interaction.rewiring = { end: 'target' };
+                state.connectionStartSocket = edge.source;
+
+                // Use existing connection logic
+                state.interaction.connecting = true;
+                const fixedSocketNode = state.nodes.find(n => n.id === state.connectionStartSocket.nodeId);
+                const fixedSocketPos = fixedSocketNode.sockets[state.connectionStartSocket.socketId];
+
+                state.tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                state.tempLine.setAttribute('d', `M ${fixedSocketPos.x} ${fixedSocketPos.y} L ${svgP.x} ${svgP.y}`);
+                state.tempLine.setAttribute('class', 'edge');
+                state.tempLine.setAttribute('fill', 'none');
+                state.tempLine.setAttribute('marker-end', 'url(#arrowhead)');
+                
+                log(`Rewiring edge ${edgeIndex}`);
+
             } else if (target.classList.contains('routing-handle')) {
                 e.stopPropagation();
                 saveStateForUndo('Move Routing Point');
@@ -1417,21 +1444,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     const targetSocket = { nodeId, socketId };
                     createEdge(state.connectionStartSocket, targetSocket);
                 } else {
-                    // Not a valid target. If the menu isn't open, show it and wait.
-                    if (dom.contextMenu.menu.style.display !== 'block') {
-                        const pt = dom.svg.createSVGPoint();
-                        pt.x = e.clientX;
-                        pt.y = e.clientY;
-                        const svgP = pt.matrixTransform(dom.svg.getScreenCTM().inverse());
-                        state.connectionEndPosition = svgP;
-                        showContextMenu(e.clientX, e.clientY, 'connecting');
-                        // By returning here, we skip the state reset at the end of the function,
-                        // allowing the global click handler or a context menu action to take over.
-                        return;
+                    // Not a valid target. If rewiring, cancel and restore the original edge.
+                    if (state.interaction.rewiring) {
+                        state.edges.splice(state.rewiringEdge.originalIndex, 0, state.rewiringEdge.edge);
+                        log('Rewiring cancelled');
+                        // Don't show context menu, just cancel the operation.
+                    } else {
+                        // If creating a new connection, show the context menu.
+                        if (dom.contextMenu.menu.style.display !== 'block') {
+                            const pt = dom.svg.createSVGPoint();
+                            pt.x = e.clientX;
+                            pt.y = e.clientY;
+                            const svgP = pt.matrixTransform(dom.svg.getScreenCTM().inverse());
+                            state.connectionEndPosition = svgP;
+                            showContextMenu(e.clientX, e.clientY, 'connecting');
+                            return;
+                        }
                     }
-                    // if the menu is already open, this mouseup is part of the click to dismiss it.
-                    // We should do nothing and let the global click handler manage it.
-                    return;
                 }
             }
 
@@ -1603,12 +1632,14 @@ document.addEventListener('DOMContentLoaded', () => {
             state.tempLine = null;
             state.interaction.draggingRoutingPoint = false;
             state.draggedRoutingPoint = null;
+            state.interaction.rewiring = null;
+            state.rewiringEdge = null;
             renderContent();
         });
 
         dom.svg.addEventListener('dblclick', (e) => {
             const target = e.target;
-            if (target.classList.contains('edge')) {
+            if (target.classList.contains('edge-hitbox')) {
                 const edgeIndex = parseInt(target.dataset.index);
                 const edge = state.edges[edgeIndex];
                 const pt = dom.svg.createSVGPoint();
@@ -1627,7 +1658,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (target.classList.contains('node')) {
                 state.contextNode = state.nodes.find(n => n.id == target.dataset.id);
                 showContextMenu(e.clientX, e.clientY, 'node');
-            } else if (target.classList.contains('edge')) {
+            } else if (target.classList.contains('edge-hitbox')) {
                 state.contextEdge = parseInt(target.dataset.index);
                 showContextMenu(e.clientX, e.clientY, 'edge');
             } else {
@@ -2013,6 +2044,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         mainGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         dom.svg.appendChild(mainGroup);
+
+        updateView();
     }
 
     /**

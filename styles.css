@@ -87,6 +87,10 @@ body {
     margin: 0;
     background-color: var(--background-color);
     color: var(--text-color);
+    user-select: none; /* Standard */
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10+ and Edge */
+    -moz-user-select: none; /* Firefox */
 }
 
 #controls {
@@ -209,7 +213,6 @@ body {
     stroke: transparent;
     stroke-width: 1px;
     cursor: crosshair;
-    r: var(--connection-zone-radius);
     z-index: 20;
 }
 
@@ -228,6 +231,7 @@ body {
 .edge {
     stroke: var(--edge-stroke-color);
     stroke-width: 4px;
+    pointer-events: none;
 }
 
 .edge.selected {
@@ -404,9 +408,17 @@ body {
     stroke-width: 20px;
     stroke: transparent;
     fill: none;
+    pointer-events: stroke;
 }
 
 .edge.selected {
     stroke: var(--edge-selected-stroke-color);
     stroke-width: 4px;
+}
+
+input, textarea {
+    user-select: text; /* Standard */
+    -webkit-user-select: text; /* Safari */
+    -ms-user-select: text; /* IE 10+ and Edge */
+    -moz-user-select: text; /* Firefox */
 }
