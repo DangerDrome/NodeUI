@@ -1192,7 +1192,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const svgP = pt.matrixTransform(dom.svg.getScreenCTM().inverse());
                 const dx = svgP.x - state.dragStart.x;
                 const dy = svgP.y - state.dragStart.y;
-                state.draggedNodes.forEach(node => {
+                
+                const nodesToMove = new Set();
+                state.draggedNodes.forEach(draggedNode => {
+                    nodesToMove.add(draggedNode);
+                    if (draggedNode.type === 'group') {
+                        draggedNode.children.forEach(childId => {
+                            const childNode = state.nodes.find(n => n.id === childId);
+                            if (childNode) {
+                                nodesToMove.add(childNode);
+                            }
+                        });
+                    }
+                });
+
+                nodesToMove.forEach(node => {
                     node.x += dx;
                     node.y += dy;
                     const socketYOffset = node.type === 'group' ? node.height / 2 + 10 : node.height / 2 + 10;
@@ -1201,26 +1215,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     node.sockets[1] = { id: 1, x: node.x, y: node.y + socketYOffset };
                     node.sockets[2] = { id: 2, x: node.x - socketXOffset, y: node.y };
                     node.sockets[3] = { id: 3, x: node.x + socketXOffset, y: node.y };
-
-                    if (node.type === 'group') {
-                        node.children.forEach(childId => {
-                            const childNode = state.nodes.find(n => n.id === childId);
-                            if (childNode) {
-                                childNode.x += dx;
-                                childNode.y += dy;
-                                childNode.sockets.forEach(socket => {
-                                    socket.x += dx;
-                                    socket.y += dy;
-                                });
-                            }
-                        });
-                    }
                 });
+
                 state.dragStart.x = svgP.x;
                 state.dragStart.y = svgP.y;
-                render();
+            render();
             } else if (state.interaction.resizing) {
-                const node = state.nodes.find(n => n.id === state.selectedNodeIds[0]);
+                const node = state.nodes.find(n => n.id === state.originalNode.id);
                 const pt = dom.svg.createSVGPoint();
                 pt.x = e.clientX;
                 pt.y = e.clientY;
