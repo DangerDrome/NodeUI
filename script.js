@@ -629,6 +629,28 @@ document.addEventListener('DOMContentLoaded', () => {
         menu.style.top = `${y}px`;
     }
 
+    /**
+     * Shows the properties panel for a given node.
+     * @param {object} node - The node to show properties for.
+     */
+    function showPropertiesPanel(node) {
+        if (!node) return;
+        state.contextNode = node;
+        dom.propertiesPanel.panel.style.display = 'block';
+        dom.propertiesPanel.nodeNameInput.value = node.title;
+        dom.propertiesPanel.nodeColorInput.value = node.color;
+        log(`Showing properties for node ${node.id}`);
+    }
+
+    /**
+     * Hides the properties panel.
+     */
+    function hidePropertiesPanel() {
+        dom.propertiesPanel.panel.style.display = 'none';
+        state.contextNode = null;
+        log('Hid properties panel');
+    }
+
     // =================================================================================================
     // Event Handlers
     // =================================================================================================
@@ -664,6 +686,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 render();
             }
+            if (e.key === 'p') {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                e.preventDefault();
+                if (state.selectedNodeIds.length === 1) {
+                    const selectedNode = state.nodes.find(n => n.id === state.selectedNodeIds[0]);
+                    if (dom.propertiesPanel.panel.style.display === 'block' && state.contextNode?.id === selectedNode.id) {
+                        hidePropertiesPanel();
+                    } else {
+                        showPropertiesPanel(selectedNode);
+                    }
+                } else if (dom.propertiesPanel.panel.style.display === 'block') {
+                    hidePropertiesPanel();
+                }
+            }
         });
 
         document.addEventListener('keyup', (e) => {
@@ -678,6 +714,25 @@ document.addEventListener('DOMContentLoaded', () => {
             state.interaction.mouseDown = true;
             const target = e.target;
 
+            const isBackground = !target.classList.contains('node') &&
+                                 !target.classList.contains('resize-handle') &&
+                                 !target.classList.contains('connection-handle') &&
+                                 !target.classList.contains('edge') &&
+                                 !target.classList.contains('routing-handle');
+
+            // If the context menu is open, any click on the background should close it and do nothing else.
+            if (isBackground && dom.contextMenu.menu.style.display === 'block') {
+                dom.contextMenu.menu.style.display = 'none';
+                if (state.interaction.connecting) {
+                    state.interaction.connecting = false;
+                    state.connectionStartSocket = null;
+                    state.tempLine = null;
+                    state.connectionEndPosition = null;
+                    render();
+                }
+                return;
+            }
+
             if (state.interaction.cutting) {
                 const pt = dom.svg.createSVGPoint();
                 pt.x = e.clientX;
@@ -689,8 +744,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            if (e.shiftKey || e.ctrlKey) {
-                if (target.classList.contains('node')) {
+            if ((e.shiftKey || e.ctrlKey) || (e.button === 0 && isBackground)) {
+                if ((e.shiftKey || e.ctrlKey) && target.classList.contains('node')) {
                     e.stopPropagation();
                     const nodeId = parseInt(target.dataset.id);
                     if (state.selectedNodeIds.includes(nodeId)) {
@@ -699,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         state.selectedNodeIds.push(nodeId);
                     }
                     log(`Toggled selection for node ${nodeId}`);
-                } else if (target.classList.contains('edge')) {
+                } else if ((e.shiftKey || e.ctrlKey) && target.classList.contains('edge')) {
                     e.stopPropagation();
                     const edgeIndex = parseInt(target.dataset.index);
                     if (state.selectedEdgeIndexes.includes(edgeIndex)) {
@@ -719,12 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     dom.selectionBox.style.height = '0px';
                     log('Started selection box');
                 }
-            } else if (e.button === 1 || (e.button === 0 && !target.classList.contains('node') && !target.classList.contains('resize-handle') && !target.classList.contains('connection-handle') && !target.classList.contains('edge') && !target.classList.contains('routing-handle'))) {
-                if (dom.contextMenu.menu.style.display === 'block') {
-                    // A click on the background while the context menu is open should just dismiss it.
-                    // The global click handler will take care of closing and cleaning up.
-                    return;
-                }
+            } else if (e.button === 1) { // Pan with middle mouse button only
                 state.interaction.panning = true;
                 state.dragStart.x = e.clientX;
                 state.dragStart.y = e.clientY;
@@ -742,9 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 log(`Selected node ${nodeId}`);
                 const node = state.nodes.find(n => n.id === nodeId);
                 if (dom.propertiesPanel.panel.style.display === 'block') {
-                    state.contextNode = node;
-                    dom.propertiesPanel.nodeNameInput.value = state.contextNode.title;
-                    dom.propertiesPanel.nodeColorInput.value = state.contextNode.color;
+                    showPropertiesPanel(node);
                 }
                 if (!node.disabled) {
                     state.interaction.dragging = true;
@@ -1324,9 +1372,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.contextNode = state.nodes.find(n => n.id === state.selectedNodeIds[0]);
             }
             if (state.contextNode) {
-                dom.propertiesPanel.panel.style.display = 'block';
-                dom.propertiesPanel.nodeNameInput.value = state.contextNode.title;
-                dom.propertiesPanel.nodeColorInput.value = state.contextNode.color;
+                showPropertiesPanel(state.contextNode);
             }
             dom.contextMenu.menu.style.display = 'none';
         });
@@ -1337,7 +1383,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 log(`Deleted edge ${state.contextEdge}`);
                 state.contextEdge = null;
                 dom.contextMenu.menu.style.display = 'none';
-                render();
             }
         });
 
@@ -1362,7 +1407,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Properties panel events
         dom.propertiesPanel.closeBtn.addEventListener('click', () => {
-            dom.propertiesPanel.panel.style.display = 'none';
+            hidePropertiesPanel();
         });
 
         dom.propertiesPanel.nodeNameInput.addEventListener('input', (e) => {
