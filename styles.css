@@ -48,6 +48,27 @@ body.dark-theme {
     --button-hover-bg-color: var(--node-hover-fill-color);
 }
 
+body.grayscale-theme {
+    --background-color: #1a1a1a;
+    --text-color: #e0e0e0;
+    --controls-bg-color: #2a2a2a;
+    --graph-border-color: #3a3a3a;
+    --node-fill-color: #444444;
+    --node-stroke-color: #666666;
+    --node-hover-fill-color: #555555;
+    --edge-stroke-color: #888888;
+    --edge-selected-stroke-color: #ffffff;
+    --arrow-color: #888888;
+    --resize-handle-fill-color: #ffffff;
+    --connection-handle-fill-color: #ffffff;
+    --context-menu-bg-color: #2a2a2a;
+    --context-menu-hover-bg-color: #3a3a3a;
+    --grid-stroke-color: #333333;
+    --button-bg-color: var(--node-fill-color);
+    --button-border-color: var(--node-stroke-color);
+    --button-hover-bg-color: var(--node-hover-fill-color);
+}
+
 body {
     font-family: sans-serif;
     display: flex;
@@ -231,6 +252,15 @@ body {
 .node-body {
     padding: 5px;
     flex-grow: 1;
+}
+
+.node-footer {
+    padding: 5px;
+    font-size: 10px;
+    text-align: right;
+    color: var(--text-color);
+    background-color: rgba(0, 0, 0, 0.05);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 #info-bar {

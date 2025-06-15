@@ -22,12 +22,13 @@ document.addEventListener('DOMContentLoaded', () => {
      * @property {number} arrowSize - The size of the arrowhead.
      * @property {number} arrowWidth - The width of the arrowhead.
      * @property {number} arrowOffset - The offset of the arrowhead from the edge.
+     * @property {number} arrowGap - The gap between the arrowhead and the node.
      */
 
     /** @type {Settings} */
     const settings = {
         gridSize: 20,
-        minZoom: 0.2,
+        minZoom: 0.01,
         maxZoom: 3,
         connectionZoneRadius: 15,
         defaultNodeWidth: 300,
@@ -37,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         arrowSize: 20,
         arrowWidth: 20,
         arrowOffset: 10,
+        arrowGap: 10,
     };
 
     // =================================================================================================
@@ -305,34 +307,48 @@ document.addEventListener('DOMContentLoaded', () => {
             const targetNode = state.nodes.find(node => node.id === edge.target.nodeId);
             if (sourceNode && targetNode) {
                 const sourceSocket = sourceNode.sockets[edge.source.socketId];
-                const targetSocket = targetNode.sockets[edge.target.socketId];
+                let targetSocket = targetNode.sockets[edge.target.socketId];
+
+                const lastPoint = edge.points.length > 0 ? edge.points[edge.points.length - 1] : sourceSocket;
+                
+                const dx = targetSocket.x - lastPoint.x;
+                const dy = targetSocket.y - lastPoint.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > settings.arrowGap) {
+                    const ratio = (distance - settings.arrowGap) / distance;
+                    targetSocket = { 
+                        ...targetSocket, 
+                        x: lastPoint.x + dx * ratio, 
+                        y: lastPoint.y + dy * ratio 
+                    };
+                }
+
                 let d = `M ${sourceSocket.x} ${sourceSocket.y}`;
                 if (edge.type === 'step') {
-                    let lastPoint = sourceSocket;
+                    let lastPointStep = sourceSocket;
                     edge.points.forEach(point => {
-                        const midX = lastPoint.x + (point.x - lastPoint.x) / 2;
-                        d += ` L ${midX} ${lastPoint.y} L ${midX} ${point.y}`;
-                        lastPoint = point;
+                        const midX = lastPointStep.x + (point.x - lastPointStep.x) / 2;
+                        d += ` L ${midX} ${lastPointStep.y} L ${midX} ${point.y}`;
+                        lastPointStep = point;
                     });
-                    const midX = lastPoint.x + (targetSocket.x - lastPoint.x) / 2;
-                    d += ` L ${midX} ${lastPoint.y} L ${midX} ${targetSocket.y} L ${targetSocket.x} ${targetSocket.y}`;
+                    const midX = lastPointStep.x + (targetSocket.x - lastPointStep.x) / 2;
+                    d += ` L ${midX} ${lastPointStep.y} L ${midX} ${targetSocket.y} L ${targetSocket.x} ${targetSocket.y}`;
                 } else if (edge.type === 'bezier') {
-                    let lastPoint = sourceSocket;
+                    let lastPointBezier = sourceSocket;
                     edge.points.forEach(point => {
-                        const dx = Math.abs(lastPoint.x - point.x) * 0.5;
-                        const dy = Math.abs(lastPoint.y - point.y) * 0.5;
-                        const cp1x = lastPoint.x + dx;
-                        const cp1y = lastPoint.y;
-                        const cp2x = point.x - dx;
+                        const dxBezier = Math.abs(lastPointBezier.x - point.x) * 0.5;
+                        const cp1x = lastPointBezier.x + dxBezier;
+                        const cp1y = lastPointBezier.y;
+                        const cp2x = point.x - dxBezier;
                         const cp2y = point.y;
                         d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${point.x} ${point.y}`;
-                        lastPoint = point;
+                        lastPointBezier = point;
                     });
-                    const dx = Math.abs(lastPoint.x - targetSocket.x) * 0.5;
-                    const dy = Math.abs(lastPoint.y - targetSocket.y) * 0.5;
-                    const cp1x = lastPoint.x + dx;
-                    const cp1y = lastPoint.y;
-                    const cp2x = targetSocket.x - dx;
+                    const dxBezier = Math.abs(lastPointBezier.x - targetSocket.x) * 0.5;
+                    const cp1x = lastPointBezier.x + dxBezier;
+                    const cp1y = lastPointBezier.y;
+                    const cp2x = targetSocket.x - dxBezier;
                     const cp2y = targetSocket.y;
                     d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${targetSocket.x} ${targetSocket.y}`;
                 } else {
@@ -455,8 +471,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const nodeBody = document.createElement('div');
             nodeBody.setAttribute('class', 'node-body');
 
+            const nodeFooter = document.createElement('div');
+            nodeFooter.setAttribute('class', 'node-footer');
+            nodeFooter.textContent = `ID: ${node.id}`;
+
             nodeContent.appendChild(nodeHeader);
             nodeContent.appendChild(nodeBody);
+            nodeContent.appendChild(nodeFooter);
 
             foreignObject.appendChild(nodeContent);
             nodeGroup.appendChild(foreignObject);
@@ -464,24 +485,76 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Render resize handles for selected nodes
             if (state.selectedNodeIds.includes(node.id) && !node.disabled) {
-                const handleSize = 8;
-                const resizeHandles = [
-                    { x: node.x - node.width / 2, y: node.y - node.height / 2, class: 'nw' },
-                    { x: node.x + node.width / 2, y: node.y - node.height / 2, class: 'ne' },
-                    { x: node.x - node.width / 2, y: node.y + node.height / 2, class: 'sw' },
-                    { x: node.x + node.width / 2, y: node.y + node.height / 2, class: 'se' },
-                    { x: node.x, y: node.y - node.height / 2, class: 'n' },
-                    { x: node.x, y: node.y + node.height / 2, class: 's' },
-                    { x: node.x - node.width / 2, y: node.y, class: 'w' },
-                    { x: node.x + node.width / 2, y: node.y, class: 'e' },
+                const handleThickness = 8;
+                const cornerSize = 12;
+
+                const handles = [
+                    // Sides
+                    {
+                        class: 'n',
+                        x: node.x - node.width / 2,
+                        y: node.y - node.height / 2 - handleThickness / 2,
+                        width: node.width,
+                        height: handleThickness,
+                    },
+                    {
+                        class: 's',
+                        x: node.x - node.width / 2,
+                        y: node.y + node.height / 2 - handleThickness / 2,
+                        width: node.width,
+                        height: handleThickness,
+                    },
+                    {
+                        class: 'w',
+                        x: node.x - node.width / 2 - handleThickness / 2,
+                        y: node.y - node.height / 2,
+                        width: handleThickness,
+                        height: node.height,
+                    },
+                    {
+                        class: 'e',
+                        x: node.x + node.width / 2 - handleThickness / 2,
+                        y: node.y - node.height / 2,
+                        width: handleThickness,
+                        height: node.height,
+                    },
+                    // Corners
+                    {
+                        class: 'nw',
+                        x: node.x - node.width / 2 - cornerSize / 2,
+                        y: node.y - node.height / 2 - cornerSize / 2,
+                        width: cornerSize,
+                        height: cornerSize,
+                    },
+                    {
+                        class: 'ne',
+                        x: node.x + node.width / 2 - cornerSize / 2,
+                        y: node.y - node.height / 2 - cornerSize / 2,
+                        width: cornerSize,
+                        height: cornerSize,
+                    },
+                    {
+                        class: 'sw',
+                        x: node.x - node.width / 2 - cornerSize / 2,
+                        y: node.y + node.height / 2 - cornerSize / 2,
+                        width: cornerSize,
+                        height: cornerSize,
+                    },
+                    {
+                        class: 'se',
+                        x: node.x + node.width / 2 - cornerSize / 2,
+                        y: node.y + node.height / 2 - cornerSize / 2,
+                        width: cornerSize,
+                        height: cornerSize,
+                    },
                 ];
 
-                resizeHandles.forEach(handleData => {
+                handles.forEach(handleData => {
                     const handle = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                    handle.setAttribute('x', handleData.x - handleSize / 2);
-                    handle.setAttribute('y', handleData.y - handleSize / 2);
-                    handle.setAttribute('width', handleSize);
-                    handle.setAttribute('height', handleSize);
+                    handle.setAttribute('x', handleData.x);
+                    handle.setAttribute('y', handleData.y);
+                    handle.setAttribute('width', handleData.width);
+                    handle.setAttribute('height', handleData.height);
                     handle.setAttribute('class', `resize-handle ${handleData.class}`);
                     handle.dataset.direction = handleData.class;
                     nodeGroup.appendChild(handle);
@@ -1004,12 +1077,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // UI button events
         dom.themeToggleBtn.addEventListener('click', () => {
-            document.body.classList.toggle('dark-theme');
+            if (document.body.classList.contains('dark-theme')) {
+                document.body.classList.remove('dark-theme');
+                document.body.classList.add('grayscale-theme');
+                log('Switched to grayscale theme');
+            } else if (document.body.classList.contains('grayscale-theme')) {
+                document.body.classList.remove('grayscale-theme');
+                log('Switched to light theme');
+            } else {
+                document.body.classList.add('dark-theme');
+                log('Switched to dark theme');
+            }
+            
             const newColor = getComputedStyle(document.body).getPropertyValue('--node-fill-color');
             state.nodes.forEach(node => {
                 node.color = newColor.trim();
             });
-            log('Toggled theme');
             render();
         });
 
