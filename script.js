@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
             addNode: document.getElementById('add-node-option'),
             addGroup: document.getElementById('add-group-option-context'),
             rename: document.getElementById('rename-option'),
+            group: document.getElementById('group-option'),
             deleteNode: document.getElementById('delete-node-option'),
             disableNode: document.getElementById('disable-node-option'),
             properties: document.getElementById('properties-option'),
@@ -126,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             draggingRoutingPoint: false,
             cutting: false,
             mouseDown: false,
+            didDrag: false,
         },
         dragStart: { x: 0, y: 0 },
         draggedNodes: [],
@@ -265,6 +267,47 @@ document.addEventListener('DOMContentLoaded', () => {
         state.selectedEdgeIndexes = [];
         
         log(`Redid: ${nextState.actionName}`);
+        render();
+    }
+
+    /**
+     * Groups the currently selected nodes.
+     */
+    function groupSelectedNodes() {
+        if (state.selectedNodeIds.length <= 1) return;
+
+        saveStateForUndo('Group Nodes');
+
+        const selectedNodes = state.nodes.filter(node => state.selectedNodeIds.includes(node.id));
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        selectedNodes.forEach(node => {
+            minX = Math.min(minX, node.x - node.width / 2);
+            minY = Math.min(minY, node.y - node.height / 2);
+            maxX = Math.max(maxX, node.x + node.width / 2);
+            maxY = Math.max(maxY, node.y + node.height / 2);
+        });
+        
+        const padding = 40;
+        const groupWidth = maxX - minX + padding * 2;
+        const groupHeight = maxY - minY + padding * 2;
+        const groupX = minX + groupWidth / 2 - padding;
+        const groupY = minY + groupHeight / 2 - padding;
+        
+        const newGroup = addNode(groupX, groupY, 'group');
+        newGroup.width = groupWidth;
+        newGroup.height = groupHeight;
+
+        selectedNodes.forEach(node => {
+            node.parent = newGroup.id;
+            newGroup.children.push(node.id);
+        });
+
+        // Deselect original nodes and select the new group
+        state.selectedNodeIds = [newGroup.id];
+        state.selectedEdgeIndexes = [];
+
+        log(`Grouped ${selectedNodes.length} nodes into new group ${newGroup.id}.`);
         render();
     }
 
@@ -862,14 +905,15 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {string} type - The type of context ('node', 'edge', or 'canvas').
      */
     function showContextMenu(x, y, type) {
-        const { menu, addNode, addGroup, rename, deleteNode, disableNode, properties, deleteEdge, addRoutingPoint } = dom.contextMenu;
+        const { menu, addNode, addGroup, rename, deleteNode, disableNode, properties, deleteEdge, addRoutingPoint, group } = dom.contextMenu;
         
         addNode.style.display = (type === 'canvas' || type === 'connecting') ? 'block' : 'none';
         addGroup.style.display = (type === 'canvas' || type === 'connecting') ? 'block' : 'none';
-        rename.style.display = type === 'node' ? 'block' : 'none';
+        rename.style.display = type === 'node' && state.selectedNodeIds.length === 1 ? 'block' : 'none';
         deleteNode.style.display = type === 'node' ? 'block' : 'none';
         disableNode.style.display = type === 'node' ? 'block' : 'none';
-        properties.style.display = type === 'node' ? 'block' : 'none';
+        properties.style.display = type === 'node' && state.selectedNodeIds.length === 1 ? 'block' : 'none';
+        group.style.display = type === 'node' && state.selectedNodeIds.length > 1 ? 'block' : 'none';
         deleteEdge.style.display = type === 'edge' ? 'block' : 'none';
         addRoutingPoint.style.display = type === 'edge' ? 'block' : 'none';
 
@@ -952,6 +996,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.key === 'c' && !state.interaction.cutting) {
                 state.interaction.cutting = true;
                 render();
+            }
+            if (e.key.toLowerCase() === 'g' && !isEditingText) {
+                e.preventDefault();
+                groupSelectedNodes();
             }
             if ((e.key === 'Delete' || e.key === 'Backspace')) {
                 if (state.selectedEdgeIndexes.length > 0 || state.selectedNodeIds.length > 0) {
@@ -1092,6 +1140,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!node.disabled) {
                     saveStateForUndo('Move Nodes');
                     state.interaction.dragging = true;
+                    state.interaction.didDrag = false;
                     state.draggedNodes = state.selectedNodeIds.map(id => state.nodes.find(n => n.id === id));
                     const pt = dom.svg.createSVGPoint();
                     pt.x = e.clientX;
@@ -1209,6 +1258,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.dragStart.y = e.clientY;
                 render();
             } else if (state.interaction.dragging) {
+                if (!state.interaction.didDrag) {
+                    saveStateForUndo('Move Nodes');
+                    state.interaction.didDrag = true;
+                }
                 const pt = dom.svg.createSVGPoint();
                 pt.x = e.clientX;
                 pt.y = e.clientY;
@@ -1340,30 +1393,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (state.interaction.dragging) {
                 state.draggedNodes.forEach(node => {
-                    if (node.type !== 'group') {
-                        const group = state.nodes.find(g => 
-                            g.type === 'group' &&
-                            node.x > g.x - g.width / 2 &&
-                            node.x < g.x + g.width / 2 &&
-                            node.y > g.y - g.height / 2 &&
-                            node.y < g.y + g.height / 2
-                        );
-                        if (group) {
-                            if (!group.children.includes(node.id)) {
-                                group.children.push(node.id);
-                                node.parent = group.id;
-                                log(`Added node ${node.id} to group ${group.id}`);
-                            }
-                        } else {
-                            if (node.parent) {
-                                const parentGroup = state.nodes.find(g => g.id === node.parent);
-                                if (parentGroup) {
-                                    parentGroup.children = parentGroup.children.filter(id => id !== node.id);
-                                    node.parent = undefined;
-                                    log(`Removed node ${node.id} from group ${parentGroup.id}`);
-                                }
-                            }
+                    if (node.type === 'group') return;
+
+                    const oldParent = state.nodes.find(g => g.id === node.parent);
+                    const newParent = state.nodes.find(g =>
+                        g.type === 'group' &&
+                        g.id !== node.id &&
+                        node.x >= g.x - g.width / 2 && node.x <= g.x + g.width / 2 &&
+                        node.y >= g.y - g.height / 2 && node.y <= g.y + g.height / 2
+                    );
+
+                    if (newParent && (!oldParent || oldParent.id !== newParent.id)) {
+                        // Moved into a new or different group
+                        if (oldParent) {
+                            oldParent.children = oldParent.children.filter(id => id !== node.id);
                         }
+                        newParent.children.push(node.id);
+                        node.parent = newParent.id;
+                        log(`Moved node ${node.id} to group ${newParent.id}`);
+                    } else if (!newParent && oldParent) {
+                        // Moved out of a group into the canvas
+                        oldParent.children = oldParent.children.filter(id => id !== node.id);
+                        node.parent = undefined;
+                        log(`Removed node ${node.id} from group ${oldParent.id}`);
                     }
                 });
             }
@@ -1742,6 +1794,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.contextEdge = null;
                 dom.contextMenu.menu.style.display = 'none';
             }
+        });
+
+        dom.contextMenu.group.addEventListener('click', () => {
+            groupSelectedNodes();
+            dom.contextMenu.menu.style.display = 'none';
         });
 
         // Properties panel events
