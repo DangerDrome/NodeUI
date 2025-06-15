@@ -9,6 +9,9 @@
     --edge-stroke-color: #89C977;
     --edge-selected-stroke-color: #4682b4;
     --arrow-color: #000;
+    --arrow-size: 10px;
+    --arrow-width: 7px;
+    --arrow-offset: 8px;
     --resize-handle-fill-color: #4682b4;
     --connection-handle-fill-color: #4682b4;
     --connection-zone-radius: 30px;
@@ -30,7 +33,10 @@ body.dark-theme {
     --node-hover-fill-color: #9A6F6F;
     --edge-stroke-color: #8A6363;
     --edge-selected-stroke-color: #fff;
-    --arrow-color: #fff;
+    --arrow-color: #8A6363;
+    --arrow-size: 100px;
+    --arrow-width: 7px;
+    --arrow-offset: 8px;
     --resize-handle-fill-color: #A87C7C;
     --connection-handle-fill-color: #A87C7C;
     --connection-zone-radius: 30px;
@@ -169,11 +175,12 @@ body {
 
 .edge {
     stroke: var(--edge-stroke-color);
-    stroke-width: 2px;
+    stroke-width: 4px;
 }
 
 .edge.selected {
     stroke: var(--edge-selected-stroke-color);
+    stroke-width: 4px;
 }
 
 .context-menu {
@@ -279,6 +286,36 @@ body {
     border-radius: 5px;
     padding: 5px;
     margin-bottom: 10px;
+}
+
+#settings-panel {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: var(--controls-bg-color);
+    padding: 20px;
+    border-radius: 5px;
+    z-index: 10;
+    display: none;
+    margin: 20px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+#settings-panel input {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border: 1px solid var(--graph-border-color);
+    border-radius: 5px;
+    padding: 5px;
+    margin-bottom: 10px;
+    width: 80px;
+}
+
+#settings-panel label {
+    display: inline-block;
+    width: 180px;
+    margin-right: 10px;
 }
 
 .property {
