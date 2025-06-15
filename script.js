@@ -144,6 +144,9 @@ document.addEventListener('DOMContentLoaded', () => {
         redoStack: [],
     };
 
+    let mainGroup = null;
+    let gridRect = null;
+
     // =================================================================================================
     // Utility Functions
     // =================================================================================================
@@ -238,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.selectedEdgeIndexes = [];
 
         log(`Undid: ${previousState.actionName}`);
-        render();
+        renderContent();
     }
 
     /**
@@ -267,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.selectedEdgeIndexes = [];
         
         log(`Redid: ${nextState.actionName}`);
-        render();
+        renderContent();
     }
 
     /**
@@ -346,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.selectedEdgeIndexes = [];
 
         log(`Grouped ${selectedNodes.length} nodes into new group ${newGroup.id}.`);
-        render();
+        renderContent();
     }
 
     // =================================================================================================
@@ -385,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         state.nodes.push(newNode);
         log(`Added ${type} ${newNode.id}`);
-        render();
+        renderContent();
         return newNode;
     }
 
@@ -398,7 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.nodes = state.nodes.filter(node => node.id !== nodeToRemove.id);
         state.edges = state.edges.filter(edge => edge.source.nodeId !== nodeToRemove.id && edge.target.nodeId !== nodeToRemove.id);
         log(`Removed node ${nodeToRemove.id}`);
-        render();
+        renderContent();
     }
 
     /**
@@ -501,7 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.edges.push(...newEdges);
 
         log(`Pasted ${newNodes.length} nodes and ${newEdges.length} edges.`);
-        render();
+        renderContent();
     }
 
     /**
@@ -527,51 +530,34 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Renders the entire graph, including nodes, edges, and grid.
      */
-    function render() {
-        dom.svg.innerHTML = '';
-        dom.svg.setAttribute('viewBox', `${state.viewbox.x} ${state.viewbox.y} ${state.viewbox.w} ${state.viewbox.h}`);
+    function renderContent() {
+        if (!mainGroup) return;
+        mainGroup.innerHTML = '';
 
-        // Defs for arrowhead and grid pattern
-        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-        marker.setAttribute('id', 'arrowhead');
-        marker.setAttribute('markerWidth', settings.arrowSize);
-        marker.setAttribute('markerHeight', settings.arrowWidth);
-        marker.setAttribute('refX', settings.arrowSize + settings.arrowOffset);
-        marker.setAttribute('refY', settings.arrowWidth / 2);
-        marker.setAttribute('orient', 'auto');
-        marker.setAttribute('markerUnits', 'userSpaceOnUse');
-        const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        polygon.setAttribute('points', `0 0, ${settings.arrowSize} ${settings.arrowWidth / 2}, 0 ${settings.arrowWidth}`);
-        polygon.style.fill = 'var(--arrow-color)';
-        marker.appendChild(polygon);
-        defs.appendChild(marker);
+        const g = mainGroup;
 
-        const pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
-        pattern.setAttribute('id', 'grid');
-        pattern.setAttribute('width', settings.gridSize);
-        pattern.setAttribute('height', settings.gridSize);
-        pattern.setAttribute('patternUnits', 'userSpaceOnUse');
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', `M ${settings.gridSize/2 - 2} ${settings.gridSize/2} L ${settings.gridSize/2 + 2} ${settings.gridSize/2} M ${settings.gridSize/2} ${settings.gridSize/2 - 2} L ${settings.gridSize/2} ${settings.gridSize/2 + 2}`);
-        path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', 'var(--grid-stroke-color)');
-        path.setAttribute('stroke-width', '1');
-        pattern.appendChild(path);
-        defs.appendChild(pattern);
-        dom.svg.appendChild(defs);
+        // Determine which nodes are visible using a dynamic padding based on viewbox size
+        const paddingX = state.viewbox.w * 0.25;
+        const paddingY = state.viewbox.h * 0.25;
+        const viewboxWithPadding = {
+            x: state.viewbox.x - paddingX,
+            y: state.viewbox.y - paddingY,
+            w: state.viewbox.w + paddingX * 2,
+            h: state.viewbox.h + paddingY * 2,
+        };
+        const visibleNodeIds = new Set();
+        state.nodes.forEach(node => {
+            const nodeRight = node.x + node.width / 2;
+            const nodeLeft = node.x - node.width / 2;
+            const nodeBottom = node.y + node.height / 2;
+            const nodeTop = node.y - node.height / 2;
 
-        // Grid background
-        const gridRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        gridRect.setAttribute('x', state.viewbox.x);
-        gridRect.setAttribute('y', state.viewbox.y);
-        gridRect.setAttribute('width', state.viewbox.w);
-        gridRect.setAttribute('height', state.viewbox.h);
-        gridRect.setAttribute('fill', 'url(#grid)');
-        dom.svg.appendChild(gridRect);
-
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        dom.svg.appendChild(g);
+            if (nodeRight >= viewboxWithPadding.x && nodeLeft <= viewboxWithPadding.x + viewboxWithPadding.w &&
+                nodeBottom >= viewboxWithPadding.y && nodeTop <= viewboxWithPadding.y + viewboxWithPadding.h)
+            {
+                visibleNodeIds.add(node.id);
+            }
+        });
 
         // Sort nodes to render groups first, then selected nodes on top
         const getDepth = (nodeId) => {
@@ -584,26 +570,28 @@ document.addEventListener('DOMContentLoaded', () => {
             return depth;
         };
 
-        const sortedNodes = [...state.nodes].sort((a, b) => {
-            const depthA = getDepth(a.id);
-            const depthB = getDepth(b.id);
+        const sortedNodes = [...state.nodes]
+            .filter(node => visibleNodeIds.has(node.id))
+            .sort((a, b) => {
+                const depthA = getDepth(a.id);
+                const depthB = getDepth(b.id);
 
-            if (depthA !== depthB) {
-                return depthA - depthB; // Render nodes with lower depth first
-            }
-            
-            // If depths are equal, render groups before non-groups
-            if (a.type === 'group' && b.type !== 'group') return -1;
-            if (a.type !== 'group' && b.type === 'group') return 1;
+                if (depthA !== depthB) {
+                    return depthA - depthB; // Render nodes with lower depth first
+                }
+                
+                // If depths are equal, render groups before non-groups
+                if (a.type === 'group' && b.type !== 'group') return -1;
+                if (a.type !== 'group' && b.type === 'group') return 1;
 
-            // If types and depth are equal, render selected nodes on top
-            const aSelected = state.selectedNodeIds.includes(a.id);
-            const bSelected = state.selectedNodeIds.includes(b.id);
-            if (aSelected && !bSelected) return 1;
-            if (!aSelected && bSelected) return -1;
-            
-            return 0;
-        });
+                // If types and depth are equal, render selected nodes on top
+                const aSelected = state.selectedNodeIds.includes(a.id);
+                const bSelected = state.selectedNodeIds.includes(b.id);
+                if (aSelected && !bSelected) return 1;
+                if (!aSelected && bSelected) return -1;
+                
+                return 0;
+            });
 
         // Render nodes
         sortedNodes.forEach(node => {
@@ -801,6 +789,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Render edges
         state.edges.forEach((edge, index) => {
+            if (!visibleNodeIds.has(edge.source.nodeId) && !visibleNodeIds.has(edge.target.nodeId)) {
+                return; // Skip edge if both nodes are off-screen
+            }
             const sourceNode = state.nodes.find(node => node.id === edge.source.nodeId);
             const targetNode = state.nodes.find(node => node.id === edge.target.nodeId);
             if (sourceNode && targetNode) {
@@ -1049,14 +1040,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.selectedNodeIds = state.nodes.map(node => node.id);
                     state.selectedEdgeIndexes = state.edges.map((_, index) => index);
                     log(`Selected all ${state.selectedNodeIds.length} nodes and ${state.selectedEdgeIndexes.length} edges.`);
-                    render();
+                    renderContent();
                     return;
                 }
             }
 
             if (e.key === 'c' && !state.interaction.cutting) {
                 state.interaction.cutting = true;
-                render();
+                renderContent();
             }
             if (e.key.toLowerCase() === 'g' && !isEditingText) {
                 e.preventDefault();
@@ -1077,7 +1068,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.edges = state.edges.filter(edge => !state.selectedNodeIds.includes(edge.source.nodeId) && !state.selectedNodeIds.includes(edge.target.nodeId));
                     state.selectedNodeIds = [];
                 }
-                render();
+                renderContent();
             }
             if (e.key === 'd' && state.selectedNodeIds.length > 0) {
                 saveStateForUndo('Toggle Disable');
@@ -1109,7 +1100,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('keyup', (e) => {
             if (e.key === 'c') {
                 state.interaction.cutting = false;
-                render();
+                renderContent();
             }
         });
 
@@ -1132,7 +1123,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.connectionStartSocket = null;
                     state.tempLine = null;
                     state.connectionEndPosition = null;
-                    render();
+                    renderContent();
                 }
                 return;
             }
@@ -1263,7 +1254,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.selectedNodeIds = [];
                 state.selectedEdgeIndexes = [];
             }
-            render();
+            renderContent();
         });
 
         dom.svg.addEventListener('mousemove', (e) => {
@@ -1297,7 +1288,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 state.cutLine.setAttribute('d', `${d} L ${scribbleX} ${scribbleY}`);
 
-                render();
+                renderContent();
                 return;
             }
             
@@ -1317,7 +1308,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.viewbox.y -= dy;
                 state.dragStart.x = e.clientX;
                 state.dragStart.y = e.clientY;
-                render();
+                updateView();
             } else if (state.interaction.dragging) {
                 if (!state.interaction.didDrag) {
                     saveStateForUndo('Move Nodes');
@@ -1348,7 +1339,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 state.dragStart.x = svgP.x;
                 state.dragStart.y = svgP.y;
-            render();
+            renderContent();
             } else if (state.interaction.resizing) {
                 const node = state.nodes.find(n => n.id === state.originalNode.id);
                 const pt = dom.svg.createSVGPoint();
@@ -1391,7 +1382,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     node.sockets[1] = { id: 1, x: node.x, y: node.y + socketYOffset };
                     node.sockets[2] = { id: 2, x: node.x - socketXOffset, y: node.y };
                     node.sockets[3] = { id: 3, x: node.x + socketXOffset, y: node.y };
-                    render();
+                    renderContent();
                 }
             } else if (state.interaction.connecting) {
                 const pt = dom.svg.createSVGPoint();
@@ -1401,7 +1392,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const startNode = state.nodes.find(n => n.id === state.connectionStartSocket.nodeId);
                 const startSocketPos = startNode.sockets[state.connectionStartSocket.socketId];
                 state.tempLine.setAttribute('d', `M ${startSocketPos.x} ${startSocketPos.y} L ${svgP.x} ${svgP.y}`);
-                render();
+                renderContent();
             } else if (state.interaction.draggingRoutingPoint) {
                 const edge = state.edges[state.draggedRoutingPoint.edgeIndex];
                 const point = edge.points[state.draggedRoutingPoint.pointIndex];
@@ -1411,7 +1402,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const svgP = pt.matrixTransform(dom.svg.getScreenCTM().inverse());
                 point.x = Math.round(svgP.x / settings.gridSize) * settings.gridSize;
                 point.y = Math.round(svgP.y / settings.gridSize) * settings.gridSize;
-                render();
+                renderContent();
             }
         });
 
@@ -1612,7 +1603,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.tempLine = null;
             state.interaction.draggingRoutingPoint = false;
             state.draggedRoutingPoint = null;
-            render();
+            renderContent();
         });
 
         dom.svg.addEventListener('dblclick', (e) => {
@@ -1626,7 +1617,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const svgP = pt.matrixTransform(dom.svg.getScreenCTM().inverse());
                 edge.points.push({ x: svgP.x, y: svgP.y });
                 log(`Added routing point to edge ${edgeIndex}`);
-                render();
+                renderContent();
             }
         });
 
@@ -1664,7 +1655,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.nodes.forEach(node => {
                 node.color = newColor.trim();
             });
-            render();
+            renderContent();
         });
 
         dom.addNodeBtn.addEventListener('click', () => {
@@ -1686,7 +1677,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 edge.type = newType;
             });
             log(`Changed all edges to ${newType} style`);
-            render();
+            renderContent();
         });
 
         dom.zoomInBtn.addEventListener('click', () => {
@@ -1698,7 +1689,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.viewbox.w = newWidth;
                 state.viewbox.h = newHeight;
                 log('Zoomed in');
-                render();
+                updateView();
             }
         });
 
@@ -1711,7 +1702,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.viewbox.w = newWidth;
                 state.viewbox.h = newHeight;
                 log('Zoomed out');
-                render();
+                updateView();
             }
         });
 
@@ -1735,7 +1726,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.viewbox.w = newWidth;
                 state.viewbox.h = newHeight;
 
-                render();
+                updateView();
             }
         });
 
@@ -1765,7 +1756,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.connectionEndPosition = null;
 
             dom.contextMenu.menu.style.display = 'none';
-            render();
+            renderContent();
         }
 
         dom.contextMenu.addNode.addEventListener('click', () => {
@@ -1802,7 +1793,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (newName) {
                     saveStateForUndo('Rename Node');
                     state.contextNode.title = newName;
-                    render();
+                    renderContent();
                 }
             }
             dom.contextMenu.menu.style.display = 'none';
@@ -1823,7 +1814,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 log(`Toggled disabled state for node ${state.contextNode.id}`);
                 state.contextNode = null;
                 dom.contextMenu.menu.style.display = 'none';
-                render();
+                renderContent();
             }
         });
 
@@ -1860,7 +1851,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     saveStateForUndo('Add Routing Point');
                     edge.points.push({ x, y });
                     log(`Added routing point to edge ${state.contextEdge}`);
-                    render();
+                    renderContent();
                 }
                 state.contextEdge = null;
                 dom.contextMenu.menu.style.display = 'none';
@@ -1883,7 +1874,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.contextNode.preEditTitle = state.contextNode.title;
                 }
                 state.contextNode.title = e.target.value;
-                render();
+                renderContent();
             }
         });
 
@@ -1903,7 +1894,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.propertiesPanel.nodeColorInput.addEventListener('input', (e) => {
             if (state.contextNode) {
                 state.contextNode.color = e.target.value;
-                render();
+                renderContent();
             }
         });
 
@@ -1929,7 +1920,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.connectionStartSocket = null;
                     state.tempLine = null;
                     state.connectionEndPosition = null;
-                    render();
+                    renderContent();
                 }
             }
         }, true);
@@ -1964,7 +1955,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             state.edges = data.edges;
                             state.nodeIdCounter = Math.max(...state.nodes.map(n => n.id)) + 1;
                             log('Loaded graph from file');
-                            render();
+                            renderContent();
                         } else {
                             alert('Invalid JSON format for graph data.');
                         }
@@ -1982,11 +1973,55 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================================================
 
     /**
+     * Initializes the application's canvas and one-time SVG definitions.
+     */
+    function initCanvas() {
+        // Defs for arrowhead and grid pattern
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.setAttribute('id', 'arrowhead');
+        marker.setAttribute('markerWidth', settings.arrowSize);
+        marker.setAttribute('markerHeight', settings.arrowWidth);
+        marker.setAttribute('refX', settings.arrowSize + settings.arrowOffset);
+        marker.setAttribute('refY', settings.arrowWidth / 2);
+        marker.setAttribute('orient', 'auto');
+        marker.setAttribute('markerUnits', 'userSpaceOnUse');
+        const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        polygon.setAttribute('points', `0 0, ${settings.arrowSize} ${settings.arrowWidth / 2}, 0 ${settings.arrowWidth}`);
+        polygon.style.fill = 'var(--arrow-color)';
+        marker.appendChild(polygon);
+        defs.appendChild(marker);
+
+        const pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        pattern.setAttribute('id', 'grid');
+        pattern.setAttribute('width', settings.gridSize);
+        pattern.setAttribute('height', settings.gridSize);
+        pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${settings.gridSize/2 - 2} ${settings.gridSize/2} L ${settings.gridSize/2 + 2} ${settings.gridSize/2} M ${settings.gridSize/2} ${settings.gridSize/2 - 2} L ${settings.gridSize/2} ${settings.gridSize/2 + 2}`);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', 'var(--grid-stroke-color)');
+        path.setAttribute('stroke-width', '1');
+        pattern.appendChild(path);
+        defs.appendChild(pattern);
+        dom.svg.appendChild(defs);
+
+        // Grid background
+        gridRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        gridRect.setAttribute('fill', 'url(#grid)');
+        dom.svg.appendChild(gridRect);
+        
+        mainGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        dom.svg.appendChild(mainGroup);
+    }
+
+    /**
      * Initializes the application.
      */
     function init() {
+        initCanvas();
         setupEventListeners();
-        render();
+        renderContent();
     }
 
     init();
@@ -2015,5 +2050,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         return false;
+    }
+
+    /**
+     * Updates the SVG viewbox and grid to reflect the current pan and zoom state.
+     * This is a lightweight function for smooth navigation.
+     */
+    function updateView() {
+        dom.svg.setAttribute('viewBox', `${state.viewbox.x} ${state.viewbox.y} ${state.viewbox.w} ${state.viewbox.h}`);
+        if (gridRect) {
+            gridRect.setAttribute('x', state.viewbox.x);
+            gridRect.setAttribute('y', state.viewbox.y);
+            gridRect.setAttribute('width', state.viewbox.w);
+            gridRect.setAttribute('height', state.viewbox.h);
+        }
     }
 });
