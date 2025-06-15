@@ -573,157 +573,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         dom.svg.appendChild(g);
 
-        // Render edges
-        state.edges.forEach((edge, index) => {
-            const sourceNode = state.nodes.find(node => node.id === edge.source.nodeId);
-            const targetNode = state.nodes.find(node => node.id === edge.target.nodeId);
-            if (sourceNode && targetNode) {
-                const sourceSocket = sourceNode.sockets[edge.source.socketId];
-                const originalTargetSocket = targetNode.sockets[edge.target.socketId];
-                let gappedTargetSocket = originalTargetSocket;
-
-                // Calculate the gap before the arrowhead
-                const lastPoint = edge.points.length > 0 ? edge.points[edge.points.length - 1] : sourceSocket;
-                if (edge.type === 'bezier') {
-                    const handleOffset = 75;
-                    const getControlPoint = (point, socketId) => {
-                        if (socketId === 0) return { x: point.x, y: point.y - handleOffset };
-                        if (socketId === 1) return { x: point.x, y: point.y + handleOffset };
-                        if (socketId === 2) return { x: point.x - handleOffset, y: point.y };
-                        if (socketId === 3) return { x: point.x + handleOffset, y: point.y };
-                        return { x: point.x + handleOffset, y: point.y };
-                    };
-                    const p2 = getControlPoint(originalTargetSocket, edge.target.socketId);
-                    const tangentX = originalTargetSocket.x - p2.x;
-                    const tangentY = originalTargetSocket.y - p2.y;
-                    const tangentLength = Math.sqrt(tangentX * tangentX + tangentY * tangentY);
-
-                    if (tangentLength > 0 && tangentLength > settings.arrowGap) {
-                        const unitTangentX = tangentX / tangentLength;
-                        const unitTangentY = tangentY / tangentLength;
-                        gappedTargetSocket = {
-                            x: originalTargetSocket.x - unitTangentX * settings.arrowGap,
-                            y: originalTargetSocket.y - unitTangentY * settings.arrowGap
-                        };
-                    }
-                } else { // For 'straight' and 'step' edges
-                    const dx = originalTargetSocket.x - lastPoint.x;
-                    const dy = originalTargetSocket.y - lastPoint.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance > settings.arrowGap) {
-                        const ratio = (distance - settings.arrowGap) / distance;
-                        gappedTargetSocket = {
-                            x: lastPoint.x + dx * ratio,
-                            y: lastPoint.y + dy * ratio
-                        };
-                    }
-                }
-
-                let d = `M ${sourceSocket.x} ${sourceSocket.y}`;
-
-                if (edge.type === 'step') {
-                    let lastPointStep = sourceSocket;
-                    edge.points.forEach(point => {
-                        const midX = lastPointStep.x + (point.x - lastPointStep.x) / 2;
-                        d += ` L ${midX} ${lastPointStep.y} L ${midX} ${point.y}`;
-                        lastPointStep = point;
-                    });
-                    const midX = lastPointStep.x + (originalTargetSocket.x - lastPointStep.x) / 2;
-                    d += ` L ${midX} ${lastPointStep.y} L ${midX} ${originalTargetSocket.y} L ${gappedTargetSocket.x} ${gappedTargetSocket.y}`;
-                } else if (edge.type === 'bezier') {
-                    const handleOffset = 75;
-
-                    const getStraightPoint = (point, socketId, distance) => {
-                        if (socketId === 0) return { x: point.x, y: point.y - distance };
-                        if (socketId === 1) return { x: point.x, y: point.y + distance };
-                        if (socketId === 2) return { x: point.x - distance, y: point.y };
-                        if (socketId === 3) return { x: point.x + distance, y: point.y };
-                        return { x: point.x, y: point.y };
-                    };
-                    
-                    const straightSourcePoint = getStraightPoint(sourceSocket, edge.source.socketId, settings.bezierStraightLineDistance);
-                    const straightTargetPoint = getStraightPoint(gappedTargetSocket, edge.target.socketId, settings.bezierStraightLineDistance);
-                    
-                    d += ` L ${straightSourcePoint.x} ${straightSourcePoint.y}`;
-
-                    let lastBezierPoint = straightSourcePoint;
-
-                    const getControlPoint = (point, socketId) => {
-                        if (socketId === 0) return { x: point.x, y: point.y - handleOffset };
-                        if (socketId === 1) return { x: point.x, y: point.y + handleOffset };
-                        if (socketId === 2) return { x: point.x - handleOffset, y: point.y };
-                        if (socketId === 3) return { x: point.x + handleOffset, y: point.y };
-                        return { x: point.x + handleOffset, y: point.y };
-                    };
-
-                    let cp1 = getControlPoint(straightSourcePoint, edge.source.socketId);
-
-                    edge.points.forEach(point => {
-                        const cp2x = point.x - (point.x - lastBezierPoint.x) * 0.5;
-                        const cp2y = point.y - (point.y - lastBezierPoint.y) * 0.5;
-                        d += ` C ${cp1.x} ${cp1.y}, ${cp2x} ${cp2y}, ${point.x} ${point.y}`;
-                        
-                        cp1 = { 
-                            x: point.x + (point.x - lastBezierPoint.x) * 0.5, 
-                            y: point.y + (point.y - lastBezierPoint.y) * 0.5
-                        };
-                        lastBezierPoint = point;
-                    });
-                    
-                    const cp2 = getControlPoint(straightTargetPoint, edge.target.socketId);
-                    d += ` C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${straightTargetPoint.x} ${straightTargetPoint.y}`;
-                    d += ` L ${gappedTargetSocket.x} ${gappedTargetSocket.y}`;
-                } else { // 'straight' edges
-                    edge.points.forEach(point => {
-                        d += ` L ${point.x} ${point.y}`;
-                    });
-                    d += ` L ${gappedTargetSocket.x} ${gappedTargetSocket.y}`;
-                }
-
-                // Hitbox for easier selection
-                const edgeHitbox = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                edgeHitbox.setAttribute('d', d);
-                edgeHitbox.setAttribute('class', 'edge-hitbox edge'); // 'edge' class for event listeners
-                edgeHitbox.dataset.index = index;
-                g.appendChild(edgeHitbox);
-
-                const edgeElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                edgeElement.setAttribute('d', d);
-                edgeElement.setAttribute('fill', 'none');
-                edgeElement.setAttribute('class', 'edge');
-                if (state.selectedEdgeIndexes.includes(index)) {
-                    edgeElement.classList.add('selected');
-                }
-                if (state.interaction.cutting) {
-                    edgeElement.classList.add('cuttable');
-                }
-                edgeElement.dataset.index = index;
-                edgeElement.setAttribute('marker-end', 'url(#arrowhead)');
-                g.appendChild(edgeElement);
-
-                // Render routing handles
-                edge.points.forEach((point, pointIndex) => {
-                    const handle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                    handle.setAttribute('cx', point.x);
-                    handle.setAttribute('cy', point.y);
-                    handle.setAttribute('r', 5);
-                    handle.setAttribute('class', 'routing-handle');
-                    handle.dataset.edgeIndex = index;
-                    handle.dataset.pointIndex = pointIndex;
-                    g.appendChild(handle);
-                });
-            }
-        });
-
-        if (state.tempLine) {
-            g.appendChild(state.tempLine);
-        }
-
-        if (state.cutLine) {
-            g.appendChild(state.cutLine);
-        }
-
         // Sort nodes to render groups first, then selected nodes on top
         const getDepth = (nodeId) => {
             let depth = 0;
@@ -949,6 +798,157 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
+
+        // Render edges
+        state.edges.forEach((edge, index) => {
+            const sourceNode = state.nodes.find(node => node.id === edge.source.nodeId);
+            const targetNode = state.nodes.find(node => node.id === edge.target.nodeId);
+            if (sourceNode && targetNode) {
+                const sourceSocket = sourceNode.sockets[edge.source.socketId];
+                const originalTargetSocket = targetNode.sockets[edge.target.socketId];
+                let gappedTargetSocket = originalTargetSocket;
+
+                // Calculate the gap before the arrowhead
+                const lastPoint = edge.points.length > 0 ? edge.points[edge.points.length - 1] : sourceSocket;
+                if (edge.type === 'bezier') {
+                    const handleOffset = 75;
+                    const getControlPoint = (point, socketId) => {
+                        if (socketId === 0) return { x: point.x, y: point.y - handleOffset };
+                        if (socketId === 1) return { x: point.x, y: point.y + handleOffset };
+                        if (socketId === 2) return { x: point.x - handleOffset, y: point.y };
+                        if (socketId === 3) return { x: point.x + handleOffset, y: point.y };
+                        return { x: point.x + handleOffset, y: point.y };
+                    };
+                    const p2 = getControlPoint(originalTargetSocket, edge.target.socketId);
+                    const tangentX = originalTargetSocket.x - p2.x;
+                    const tangentY = originalTargetSocket.y - p2.y;
+                    const tangentLength = Math.sqrt(tangentX * tangentX + tangentY * tangentY);
+
+                    if (tangentLength > 0 && tangentLength > settings.arrowGap) {
+                        const unitTangentX = tangentX / tangentLength;
+                        const unitTangentY = tangentY / tangentLength;
+                        gappedTargetSocket = {
+                            x: originalTargetSocket.x - unitTangentX * settings.arrowGap,
+                            y: originalTargetSocket.y - unitTangentY * settings.arrowGap
+                        };
+                    }
+                } else { // For 'straight' and 'step' edges
+                    const dx = originalTargetSocket.x - lastPoint.x;
+                    const dy = originalTargetSocket.y - lastPoint.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance > settings.arrowGap) {
+                        const ratio = (distance - settings.arrowGap) / distance;
+                        gappedTargetSocket = {
+                            x: lastPoint.x + dx * ratio,
+                            y: lastPoint.y + dy * ratio
+                        };
+                    }
+                }
+
+                let d = `M ${sourceSocket.x} ${sourceSocket.y}`;
+
+                if (edge.type === 'step') {
+                    let lastPointStep = sourceSocket;
+                    edge.points.forEach(point => {
+                        const midX = lastPointStep.x + (point.x - lastPointStep.x) / 2;
+                        d += ` L ${midX} ${lastPointStep.y} L ${midX} ${point.y}`;
+                        lastPointStep = point;
+                    });
+                    const midX = lastPointStep.x + (originalTargetSocket.x - lastPointStep.x) / 2;
+                    d += ` L ${midX} ${lastPointStep.y} L ${midX} ${originalTargetSocket.y} L ${gappedTargetSocket.x} ${gappedTargetSocket.y}`;
+                } else if (edge.type === 'bezier') {
+                    const handleOffset = 75;
+
+                    const getStraightPoint = (point, socketId, distance) => {
+                        if (socketId === 0) return { x: point.x, y: point.y - distance };
+                        if (socketId === 1) return { x: point.x, y: point.y + distance };
+                        if (socketId === 2) return { x: point.x - distance, y: point.y };
+                        if (socketId === 3) return { x: point.x + distance, y: point.y };
+                        return { x: point.x, y: point.y };
+                    };
+                    
+                    const straightSourcePoint = getStraightPoint(sourceSocket, edge.source.socketId, settings.bezierStraightLineDistance);
+                    const straightTargetPoint = getStraightPoint(gappedTargetSocket, edge.target.socketId, settings.bezierStraightLineDistance);
+                    
+                    d += ` L ${straightSourcePoint.x} ${straightSourcePoint.y}`;
+
+                    let lastBezierPoint = straightSourcePoint;
+
+                    const getControlPoint = (point, socketId) => {
+                        if (socketId === 0) return { x: point.x, y: point.y - handleOffset };
+                        if (socketId === 1) return { x: point.x, y: point.y + handleOffset };
+                        if (socketId === 2) return { x: point.x - handleOffset, y: point.y };
+                        if (socketId === 3) return { x: point.x + handleOffset, y: point.y };
+                        return { x: point.x + handleOffset, y: point.y };
+                    };
+
+                    let cp1 = getControlPoint(straightSourcePoint, edge.source.socketId);
+
+                    edge.points.forEach(point => {
+                        const cp2x = point.x - (point.x - lastBezierPoint.x) * 0.5;
+                        const cp2y = point.y - (point.y - lastBezierPoint.y) * 0.5;
+                        d += ` C ${cp1.x} ${cp1.y}, ${cp2x} ${cp2y}, ${point.x} ${point.y}`;
+                        
+                        cp1 = { 
+                            x: point.x + (point.x - lastBezierPoint.x) * 0.5, 
+                            y: point.y + (point.y - lastBezierPoint.y) * 0.5
+                        };
+                        lastBezierPoint = point;
+                    });
+                    
+                    const cp2 = getControlPoint(straightTargetPoint, edge.target.socketId);
+                    d += ` C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${straightTargetPoint.x} ${straightTargetPoint.y}`;
+                    d += ` L ${gappedTargetSocket.x} ${gappedTargetSocket.y}`;
+                } else { // 'straight' edges
+                    edge.points.forEach(point => {
+                        d += ` L ${point.x} ${point.y}`;
+                    });
+                    d += ` L ${gappedTargetSocket.x} ${gappedTargetSocket.y}`;
+                }
+
+                // Hitbox for easier selection
+                const edgeHitbox = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                edgeHitbox.setAttribute('d', d);
+                edgeHitbox.setAttribute('class', 'edge-hitbox edge'); // 'edge' class for event listeners
+                edgeHitbox.dataset.index = index;
+                g.appendChild(edgeHitbox);
+
+                const edgeElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                edgeElement.setAttribute('d', d);
+                edgeElement.setAttribute('fill', 'none');
+                edgeElement.setAttribute('class', 'edge');
+                if (state.selectedEdgeIndexes.includes(index)) {
+                    edgeElement.classList.add('selected');
+                }
+                if (state.interaction.cutting) {
+                    edgeElement.classList.add('cuttable');
+                }
+                edgeElement.dataset.index = index;
+                edgeElement.setAttribute('marker-end', 'url(#arrowhead)');
+                g.appendChild(edgeElement);
+
+                // Render routing handles
+                edge.points.forEach((point, pointIndex) => {
+                    const handle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    handle.setAttribute('cx', point.x);
+                    handle.setAttribute('cy', point.y);
+                    handle.setAttribute('r', 5);
+                    handle.setAttribute('class', 'routing-handle');
+                    handle.dataset.edgeIndex = index;
+                    handle.dataset.pointIndex = pointIndex;
+                    g.appendChild(handle);
+                });
+            }
+        });
+
+        if (state.tempLine) {
+            g.appendChild(state.tempLine);
+        }
+
+        if (state.cutLine) {
+            g.appendChild(state.cutLine);
+        }
 
         // Update cursor for cutting mode
         if (state.interaction.cutting) {
@@ -1543,11 +1543,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).map(node => node.id);
 
                 const newSelectedEdgeIndexes = [];
+                const selectedGroups = state.nodes.filter(n => state.selectedNodeIds.includes(n.id) && n.type === 'group');
 
-                // Add edges with both nodes selected
+                // Add edges based on selection
                 state.edges.forEach((edge, index) => {
-                    if (state.selectedNodeIds.includes(edge.source.nodeId) && state.selectedNodeIds.includes(edge.target.nodeId)) {
+                    const sourceNodeSelected = state.selectedNodeIds.includes(edge.source.nodeId);
+                    const targetNodeSelected = state.selectedNodeIds.includes(edge.target.nodeId);
+
+                    // Case 1: Both nodes of the edge are directly selected.
+                    if (sourceNodeSelected && targetNodeSelected) {
                         newSelectedEdgeIndexes.push(index);
+                        return;
+                    }
+
+                    // Case 2: The edge is fully contained within a selected group.
+                    for (const group of selectedGroups) {
+                        if (isNodeInGroup(edge.source.nodeId, group.id) && isNodeInGroup(edge.target.nodeId, group.id)) {
+                            newSelectedEdgeIndexes.push(index);
+                            break; // Edge is in this group, no need to check other groups
+                        }
                     }
                 });
 
@@ -1976,4 +1990,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     init();
+
+    /**
+     * Checks if a node is inside a group, including nested groups.
+     * @param {number} nodeId - The ID of the node to check.
+     * @param {number} groupId - The ID of the group.
+     * @returns {boolean} - True if the node is in the group, false otherwise.
+     */
+    function isNodeInGroup(nodeId, groupId) {
+        const group = state.nodes.find(n => n.id === groupId);
+        if (!group || group.type !== 'group' || !group.children) {
+            return false;
+        }
+
+        const queue = [...group.children];
+        while (queue.length > 0) {
+            const currentId = queue.shift();
+            if (currentId === nodeId) {
+                return true;
+            }
+            const currentNode = state.nodes.find(n => n.id === currentId);
+            if (currentNode && currentNode.type === 'group' && currentNode.children) {
+                queue.push(...currentNode.children);
+            }
+        }
+        return false;
+    }
 });
