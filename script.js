@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * @property {number} arrowWidth - The width of the arrowhead.
      * @property {number} arrowOffset - The offset of the arrowhead from the edge.
      * @property {number} arrowGap - The gap between the arrowhead and the node.
+     * @property {number} bezierStraightLineDistance - The length of the straight segment at the start/end of a Bezier edge.
      */
 
     /** @type {Settings} */
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         arrowWidth: 20,
         arrowOffset: 0,
         arrowGap: 5,
+        bezierStraightLineDistance: 20,
     };
 
     // =================================================================================================
@@ -308,23 +310,48 @@ document.addEventListener('DOMContentLoaded', () => {
             if (sourceNode && targetNode) {
                 const sourceSocket = sourceNode.sockets[edge.source.socketId];
                 const originalTargetSocket = targetNode.sockets[edge.target.socketId];
-
-                const lastPoint = edge.points.length > 0 ? edge.points[edge.points.length - 1] : sourceSocket;
-                
-                const dx = originalTargetSocket.x - lastPoint.x;
-                const dy = originalTargetSocket.y - lastPoint.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
                 let gappedTargetSocket = originalTargetSocket;
-                if (distance > settings.arrowGap) {
-                    const ratio = (distance - settings.arrowGap) / distance;
-                    gappedTargetSocket = {
-                        x: lastPoint.x + dx * ratio,
-                        y: lastPoint.y + dy * ratio
+
+                // Calculate the gap before the arrowhead
+                const lastPoint = edge.points.length > 0 ? edge.points[edge.points.length - 1] : sourceSocket;
+                if (edge.type === 'bezier') {
+                    const handleOffset = 75;
+                    const getControlPoint = (point, socketId) => {
+                        if (socketId === 0) return { x: point.x, y: point.y - handleOffset };
+                        if (socketId === 1) return { x: point.x, y: point.y + handleOffset };
+                        if (socketId === 2) return { x: point.x - handleOffset, y: point.y };
+                        if (socketId === 3) return { x: point.x + handleOffset, y: point.y };
+                        return { x: point.x + handleOffset, y: point.y };
                     };
+                    const p2 = getControlPoint(originalTargetSocket, edge.target.socketId);
+                    const tangentX = originalTargetSocket.x - p2.x;
+                    const tangentY = originalTargetSocket.y - p2.y;
+                    const tangentLength = Math.sqrt(tangentX * tangentX + tangentY * tangentY);
+
+                    if (tangentLength > 0 && tangentLength > settings.arrowGap) {
+                        const unitTangentX = tangentX / tangentLength;
+                        const unitTangentY = tangentY / tangentLength;
+                        gappedTargetSocket = {
+                            x: originalTargetSocket.x - unitTangentX * settings.arrowGap,
+                            y: originalTargetSocket.y - unitTangentY * settings.arrowGap
+                        };
+                    }
+                } else { // For 'straight' and 'step' edges
+                    const dx = originalTargetSocket.x - lastPoint.x;
+                    const dy = originalTargetSocket.y - lastPoint.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance > settings.arrowGap) {
+                        const ratio = (distance - settings.arrowGap) / distance;
+                        gappedTargetSocket = {
+                            x: lastPoint.x + dx * ratio,
+                            y: lastPoint.y + dy * ratio
+                        };
+                    }
                 }
 
                 let d = `M ${sourceSocket.x} ${sourceSocket.y}`;
+
                 if (edge.type === 'step') {
                     let lastPointStep = sourceSocket;
                     edge.points.forEach(point => {
@@ -335,23 +362,49 @@ document.addEventListener('DOMContentLoaded', () => {
                     const midX = lastPointStep.x + (originalTargetSocket.x - lastPointStep.x) / 2;
                     d += ` L ${midX} ${lastPointStep.y} L ${midX} ${originalTargetSocket.y} L ${gappedTargetSocket.x} ${gappedTargetSocket.y}`;
                 } else if (edge.type === 'bezier') {
-                    let lastPointBezier = sourceSocket;
+                    const handleOffset = 75;
+
+                    const getStraightPoint = (point, socketId, distance) => {
+                        if (socketId === 0) return { x: point.x, y: point.y - distance };
+                        if (socketId === 1) return { x: point.x, y: point.y + distance };
+                        if (socketId === 2) return { x: point.x - distance, y: point.y };
+                        if (socketId === 3) return { x: point.x + distance, y: point.y };
+                        return { x: point.x, y: point.y };
+                    };
+                    
+                    const straightSourcePoint = getStraightPoint(sourceSocket, edge.source.socketId, settings.bezierStraightLineDistance);
+                    const straightTargetPoint = getStraightPoint(gappedTargetSocket, edge.target.socketId, settings.bezierStraightLineDistance);
+                    
+                    d += ` L ${straightSourcePoint.x} ${straightSourcePoint.y}`;
+
+                    let lastBezierPoint = straightSourcePoint;
+
+                    const getControlPoint = (point, socketId) => {
+                        if (socketId === 0) return { x: point.x, y: point.y - handleOffset };
+                        if (socketId === 1) return { x: point.x, y: point.y + handleOffset };
+                        if (socketId === 2) return { x: point.x - handleOffset, y: point.y };
+                        if (socketId === 3) return { x: point.x + handleOffset, y: point.y };
+                        return { x: point.x + handleOffset, y: point.y };
+                    };
+
+                    let cp1 = getControlPoint(straightSourcePoint, edge.source.socketId);
+
                     edge.points.forEach(point => {
-                        const dxBezier = Math.abs(lastPointBezier.x - point.x) * 0.5;
-                        const cp1x = lastPointBezier.x + dxBezier;
-                        const cp1y = lastPointBezier.y;
-                        const cp2x = point.x - dxBezier;
-                        const cp2y = point.y;
-                        d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${point.x} ${point.y}`;
-                        lastPointBezier = point;
+                        const cp2x = point.x - (point.x - lastBezierPoint.x) * 0.5;
+                        const cp2y = point.y - (point.y - lastBezierPoint.y) * 0.5;
+                        d += ` C ${cp1.x} ${cp1.y}, ${cp2x} ${cp2y}, ${point.x} ${point.y}`;
+                        
+                        cp1 = { 
+                            x: point.x + (point.x - lastBezierPoint.x) * 0.5, 
+                            y: point.y + (point.y - lastBezierPoint.y) * 0.5
+                        };
+                        lastBezierPoint = point;
                     });
-                    const dxBezier = Math.abs(lastPointBezier.x - originalTargetSocket.x) * 0.5;
-                    const cp1x = lastPointBezier.x + dxBezier;
-                    const cp1y = lastPointBezier.y;
-                    const cp2x = originalTargetSocket.x - dxBezier;
-                    const cp2y = originalTargetSocket.y;
-                    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${gappedTargetSocket.x} ${gappedTargetSocket.y}`;
-                } else {
+                    
+                    const cp2 = getControlPoint(straightTargetPoint, edge.target.socketId);
+                    d += ` C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${straightTargetPoint.x} ${straightTargetPoint.y}`;
+                    d += ` L ${gappedTargetSocket.x} ${gappedTargetSocket.y}`;
+                } else { // 'straight' edges
                     edge.points.forEach(point => {
                         d += ` L ${point.x} ${point.y}`;
                     });
