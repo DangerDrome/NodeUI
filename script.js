@@ -411,6 +411,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     d += ` L ${gappedTargetSocket.x} ${gappedTargetSocket.y}`;
                 }
 
+                // Hitbox for easier selection
+                const edgeHitbox = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                edgeHitbox.setAttribute('d', d);
+                edgeHitbox.setAttribute('class', 'edge-hitbox edge'); // 'edge' class for event listeners
+                edgeHitbox.dataset.index = index;
+                g.appendChild(edgeHitbox);
+
                 const edgeElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 edgeElement.setAttribute('d', d);
                 edgeElement.setAttribute('fill', 'none');
@@ -1185,14 +1192,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).map(node => node.id);
 
                 const newSelectedEdgeIndexes = [];
-                if (state.selectedNodeIds.length > 0) {
-                    state.edges.forEach((edge, index) => {
-                        if (state.selectedNodeIds.includes(edge.source.nodeId) && state.selectedNodeIds.includes(edge.target.nodeId)) {
-                            newSelectedEdgeIndexes.push(index);
-                        }
-                    });
-                }
-                state.selectedEdgeIndexes = newSelectedEdgeIndexes;
+
+                // Add edges with both nodes selected
+                state.edges.forEach((edge, index) => {
+                    if (state.selectedNodeIds.includes(edge.source.nodeId) && state.selectedNodeIds.includes(edge.target.nodeId)) {
+                        newSelectedEdgeIndexes.push(index);
+                    }
+                });
+
+                // Add edges intersecting the selection box
+                const selectionSVGRect = {
+                    x: selectionStart.x,
+                    y: selectionStart.y,
+                    width: selectionEnd.x - selectionStart.x,
+                    height: selectionEnd.y - selectionStart.y
+                };
+                const edgeHitboxes = dom.svg.querySelectorAll('.edge-hitbox');
+                edgeHitboxes.forEach(hitbox => {
+                    const edgeBBox = hitbox.getBBox();
+                    
+                    // Check for intersection of two rectangles
+                    if (edgeBBox.x < selectionSVGRect.x + selectionSVGRect.width &&
+                        edgeBBox.x + edgeBBox.width > selectionSVGRect.x &&
+                        edgeBBox.y < selectionSVGRect.y + selectionSVGRect.height &&
+                        edgeBBox.y + edgeBBox.height > selectionSVGRect.y)
+                    {
+                        const index = parseInt(hitbox.dataset.index, 10);
+                        newSelectedEdgeIndexes.push(index);
+                    }
+                });
+
+                state.selectedEdgeIndexes = [...new Set(newSelectedEdgeIndexes)];
                 log(`Selected ${state.selectedNodeIds.length} nodes and ${state.selectedEdgeIndexes.length} edges`);
 
             } else if (state.interaction.connecting) {

@@ -395,3 +395,18 @@ body {
 .property label {
     margin-right: 10px;
 }
+
+.edge.cuttable {
+    pointer-events: all;
+}
+
+.edge-hitbox {
+    stroke-width: 20px;
+    stroke: transparent;
+    fill: none;
+}
+
+.edge.selected {
+    stroke: var(--edge-selected-stroke-color);
+    stroke-width: 4px;
+}
