@@ -60,7 +60,7 @@ body.grayscale-theme {
     --edge-selected-stroke-color: #ffffff;
     --arrow-color: #888888;
     --resize-handle-fill-color: #ffffff;
-    --connection-handle-fill-color: #ffffff;
+    --connection-handle-fill-color: #888888;
     --context-menu-bg-color: #2a2a2a;
     --context-menu-hover-bg-color: #3a3a3a;
     --grid-stroke-color: #333333;
@@ -190,7 +190,7 @@ body {
     display: none;
 }
 
-.node-group:hover .connection-handle-visible {
+.node-group:hover .connection-handle-visible, .connection-handle-visible.connected {
     display: block;
 }
 

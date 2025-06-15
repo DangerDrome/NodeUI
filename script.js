@@ -37,8 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
         defaultGroupHeight: 500,
         arrowSize: 20,
         arrowWidth: 20,
-        arrowOffset: 10,
-        arrowGap: 10,
+        arrowOffset: 0,
+        arrowGap: 5,
     };
 
     // =================================================================================================
@@ -265,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
         marker.setAttribute('id', 'arrowhead');
         marker.setAttribute('markerWidth', settings.arrowSize);
         marker.setAttribute('markerHeight', settings.arrowWidth);
-        marker.setAttribute('refX', settings.arrowOffset);
+        marker.setAttribute('refX', settings.arrowSize + settings.arrowOffset);
         marker.setAttribute('refY', settings.arrowWidth / 2);
         marker.setAttribute('orient', 'auto');
         marker.setAttribute('markerUnits', 'userSpaceOnUse');
@@ -307,20 +307,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const targetNode = state.nodes.find(node => node.id === edge.target.nodeId);
             if (sourceNode && targetNode) {
                 const sourceSocket = sourceNode.sockets[edge.source.socketId];
-                let targetSocket = targetNode.sockets[edge.target.socketId];
+                const originalTargetSocket = targetNode.sockets[edge.target.socketId];
 
                 const lastPoint = edge.points.length > 0 ? edge.points[edge.points.length - 1] : sourceSocket;
                 
-                const dx = targetSocket.x - lastPoint.x;
-                const dy = targetSocket.y - lastPoint.y;
+                const dx = originalTargetSocket.x - lastPoint.x;
+                const dy = originalTargetSocket.y - lastPoint.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
+                let gappedTargetSocket = originalTargetSocket;
                 if (distance > settings.arrowGap) {
                     const ratio = (distance - settings.arrowGap) / distance;
-                    targetSocket = { 
-                        ...targetSocket, 
-                        x: lastPoint.x + dx * ratio, 
-                        y: lastPoint.y + dy * ratio 
+                    gappedTargetSocket = {
+                        x: lastPoint.x + dx * ratio,
+                        y: lastPoint.y + dy * ratio
                     };
                 }
 
@@ -332,8 +332,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         d += ` L ${midX} ${lastPointStep.y} L ${midX} ${point.y}`;
                         lastPointStep = point;
                     });
-                    const midX = lastPointStep.x + (targetSocket.x - lastPointStep.x) / 2;
-                    d += ` L ${midX} ${lastPointStep.y} L ${midX} ${targetSocket.y} L ${targetSocket.x} ${targetSocket.y}`;
+                    const midX = lastPointStep.x + (originalTargetSocket.x - lastPointStep.x) / 2;
+                    d += ` L ${midX} ${lastPointStep.y} L ${midX} ${originalTargetSocket.y} L ${gappedTargetSocket.x} ${gappedTargetSocket.y}`;
                 } else if (edge.type === 'bezier') {
                     let lastPointBezier = sourceSocket;
                     edge.points.forEach(point => {
@@ -345,17 +345,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${point.x} ${point.y}`;
                         lastPointBezier = point;
                     });
-                    const dxBezier = Math.abs(lastPointBezier.x - targetSocket.x) * 0.5;
+                    const dxBezier = Math.abs(lastPointBezier.x - originalTargetSocket.x) * 0.5;
                     const cp1x = lastPointBezier.x + dxBezier;
                     const cp1y = lastPointBezier.y;
-                    const cp2x = targetSocket.x - dxBezier;
-                    const cp2y = targetSocket.y;
-                    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${targetSocket.x} ${targetSocket.y}`;
+                    const cp2x = originalTargetSocket.x - dxBezier;
+                    const cp2y = originalTargetSocket.y;
+                    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${gappedTargetSocket.x} ${gappedTargetSocket.y}`;
                 } else {
                     edge.points.forEach(point => {
                         d += ` L ${point.x} ${point.y}`;
                     });
-                    d += ` L ${targetSocket.x} ${targetSocket.y}`;
+                    d += ` L ${gappedTargetSocket.x} ${gappedTargetSocket.y}`;
                 }
 
                 const edgeElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -571,6 +571,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     handle.setAttribute('class', 'connection-handle-visible');
                     handle.dataset.nodeId = node.id;
                     handle.dataset.socketId = socket.id;
+
+                    const isConnected = state.edges.some(edge => 
+                        (edge.source.nodeId === node.id && edge.source.socketId === socket.id) ||
+                        (edge.target.nodeId === node.id && edge.target.socketId === socket.id)
+                    );
+
+                    if (isConnected) {
+                        handle.classList.add('connected');
+                    }
+
                     nodeGroup.appendChild(handle);
                     
                     const connectionZone = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
