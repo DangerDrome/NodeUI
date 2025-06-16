@@ -54,6 +54,7 @@ class GraphEditor {
                 toggleBtn: document.getElementById('left-panel-toggle'),
                 fileTree: document.getElementById('file-tree'),
                 loadFolderBtn: document.getElementById('load-folder-btn'),
+                refreshFileTreeBtn: document.getElementById('refresh-file-tree-btn'),
                 resizer: document.getElementById('left-panel-resizer'),
             },
             bottomPanel: {
@@ -158,6 +159,7 @@ class GraphEditor {
             snapLines: [],
             fileHandles: new Map(),
             treeData: null,
+            rootDirectoryHandle: null,
         };
 
         this.mainGroup = null;
@@ -334,6 +336,7 @@ class GraphEditor {
         this.dom.leftPanel.toggleBtn.addEventListener('click', this._toggleLeftPanel.bind(this));
         this.dom.leftPanel.resizer.addEventListener('mousedown', this._startResizeLeftPanel.bind(this));
         this.dom.leftPanel.loadFolderBtn.addEventListener('click', () => this._loadFolder());
+        this.dom.leftPanel.refreshFileTreeBtn.addEventListener('click', () => this._refreshFileTree());
         document.getElementById('import-graph-btn').addEventListener('click', () => this._importGraph());
         document.getElementById('export-graph-btn').addEventListener('click', () => this._exportGraph());
         this.dom.bottomPanel.toggleBtn.addEventListener('click', this._toggleBottomPanel.bind(this));
@@ -432,7 +435,7 @@ class GraphEditor {
         panel.classList.toggle('open');
         const isOpen = panel.classList.contains('open');
         icon.setAttribute('data-lucide', isOpen ? 'chevron-left' : 'chevron-right');
-        lucide.createIcons();
+        lucide.createIcons({ nodes: [this.dom.leftPanel.toggleBtn] });
     }
 
     _toggleRightPanel() {
@@ -442,7 +445,7 @@ class GraphEditor {
 
         const icon = this.dom.rightPanel.toggleBtn.querySelector('i');
         icon.setAttribute('data-lucide', isOpen ? 'chevron-right' : 'chevron-left');
-        lucide.createIcons();
+        lucide.createIcons({ nodes: [this.dom.rightPanel.toggleBtn] });
         
         if (isOpen) {
             this._loadSettingsToUI();
@@ -455,7 +458,7 @@ class GraphEditor {
         panel.classList.toggle('open');
         const isOpen = panel.classList.contains('open');
         icon.setAttribute('data-lucide', isOpen ? 'chevron-down' : 'chevron-up');
-        lucide.createIcons();
+        lucide.createIcons({ nodes: [this.dom.bottomPanel.toggleBtn] });
     }
 
     _setupContextMenuListeners() {
@@ -879,12 +882,6 @@ class GraphEditor {
             .filter(node => visibleNodeIds.has(node.id))
             .sort((a, b) => this._compareNodesForRender(a, b));
 
-        // Performance optimization: Temporarily hide other panels
-        // to prevent lucide.createIcons() from scanning them.
-        const panels = [this.dom.leftPanel.panel, this.dom.rightPanel.panel, this.dom.bottomPanel.panel];
-        const originalDisplays = panels.map(p => p.style.display);
-        panels.forEach(p => p.style.display = 'none');
-
         sortedNodes.forEach(node => {
             const nodeGroup = this._createSVGElement('g', { class: 'node-group' });
 
@@ -899,11 +896,11 @@ class GraphEditor {
             
             this.mainGroup.appendChild(nodeGroup);
         });
-        lucide.createIcons();
-        this._updatePropertiesPanel();
 
-        // Restore panel displays
-        panels.forEach((p, i) => p.style.display = originalDisplays[i]);
+        // By scoping createIcons to the mainGroup, we avoid a full-document scan,
+        // which becomes very slow when a large file tree is loaded.
+        lucide.createIcons({ nodes: [this.mainGroup] });
+        this._updatePropertiesPanel();
     }
     
     _renderEdges() {
@@ -951,6 +948,8 @@ class GraphEditor {
                 });
             }
         });
+
+        lucide.createIcons({ nodes: [this.dom.leftPanel.toggleBtn] });
     }
 
     _calculateEdgePath(edge, sourceSocket, originalTargetSocket) {
@@ -2699,6 +2698,24 @@ class GraphEditor {
             this._zoomToFit();
         } else {
              alert('Invalid JSON format for graph data.');
+        }
+    }
+
+    async _refreshFileTree() {
+        if (!this.state.rootDirectoryHandle) {
+            this._log('No folder loaded to refresh.');
+            return;
+        }
+        this._log('Refreshing file tree...');
+        try {
+            this.state.fileHandles.clear();
+            const treeData = await this._buildFileTree(this.state.rootDirectoryHandle);
+            this.state.treeData = treeData;
+            this.treeView.render([treeData]);
+            this._log('File tree refreshed.');
+        } catch (err) {
+            this._log(`Error refreshing file tree: ${err.message}`);
+            console.error(err);
         }
     }
 }

@@ -32,24 +32,23 @@ class TreeView {
         const nodeContent = document.createElement('div');
         nodeContent.className = 'tree-node-content';
         
-        let iconName = 'file';
+        let iconName;
+        let prefixHTML = '';
+
         if (isFolder) {
             iconName = 'folder';
+            prefixHTML = `<i data-lucide="chevron-right" class="chevron-icon"></i>`;
         } else {
+            iconName = 'file';
             switch (nodeData.type) {
-                case 'json':
-                    iconName = 'file-json';
-                    break;
-                case 'image':
-                    iconName = 'image';
-                    break;
-                case 'video':
-                    iconName = 'video';
-                    break;
+                case 'json': iconName = 'file-json'; break;
+                case 'image': iconName = 'image'; break;
+                case 'video': iconName = 'video'; break;
             }
+            prefixHTML = `<span class="chevron-placeholder"></span>`;
         }
         
-        nodeContent.innerHTML = `<i data-lucide="${iconName}"></i><span>${nodeData.name}</span>`;
+        nodeContent.innerHTML = `${prefixHTML}<i data-lucide="${iconName}"></i><span>${nodeData.name}</span>`;
         li.appendChild(nodeContent);
 
         if (isFolder) {
@@ -85,10 +84,12 @@ class TreeView {
     // Toggle folder open/closed state
     _toggleFolder(folderElement) {
         folderElement.classList.toggle('collapsed');
-        const icon = folderElement.querySelector('.tree-node-content > i');
-        const iconName = folderElement.classList.contains('collapsed') ? 'folder' : 'folder-open';
-        icon.setAttribute('data-lucide', iconName);
-        lucide.createIcons();
+        const chevron = folderElement.querySelector('.chevron-icon');
+        if (chevron) {
+            const isCollapsed = folderElement.classList.contains('collapsed');
+            chevron.setAttribute('data-lucide', isCollapsed ? 'chevron-right' : 'chevron-down');
+            lucide.createIcons();
+        }
     }
 
     // Handle file selection
