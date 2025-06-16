@@ -59,6 +59,7 @@ class GraphEditor {
                 loadFolderBtn: document.getElementById('load-folder-btn'),
                 refreshFileTreeBtn: document.getElementById('refresh-file-tree-btn'),
                 resizer: document.getElementById('left-panel-resizer'),
+                dragOverlay: document.getElementById('left-panel-drag-overlay'),
             },
             bottomPanel: {
                 panel: document.getElementById('bottom-panel'),
@@ -156,6 +157,8 @@ class GraphEditor {
             fileHandles: new Map(),
             treeData: null,
             rootDirectoryHandle: null,
+            virtualFileHandles: null,
+            resolvedUrlCache: new Map(),
         };
 
         this.mainGroup = null;
@@ -173,7 +176,9 @@ class GraphEditor {
     /**
      * Initializes the graph editor.
      */
-    init() {
+    async init() {
+        await this._initDB();
+        await this._loadFromDB();
         this._initCanvas();
         this._initTreeView();
         this._initNodeTypes();
@@ -243,6 +248,77 @@ class GraphEditor {
     // =================================================================================================
     // Initialization
     // =================================================================================================
+
+    /**
+     * Initializes the IndexedDB database.
+     */
+    async _initDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('NodeUIDB', 1);
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('files')) {
+                    db.createObjectStore('files', { keyPath: 'id' });
+                }
+                if (!db.objectStoreNames.contains('graphState')) {
+                    db.createObjectStore('graphState', { keyPath: 'key' });
+                }
+            };
+
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                this._log('Database initialized.');
+                resolve();
+            };
+
+            request.onerror = (event) => {
+                console.error('Database error:', event.target.error);
+                this._log('Error initializing database.');
+                reject(event.target.error);
+            };
+        });
+    }
+
+    async _loadFromDB() {
+        const graphState = await this._getDB('graphState', 'currentGraph');
+        if (graphState) {
+            this.state.nodes = graphState.nodes;
+            this.state.edges = graphState.edges;
+            this.state.nodeIdCounter = graphState.nodeIdCounter;
+            this.state.treeData = graphState.treeData;
+            this._log('Loaded graph state from database.');
+        }
+
+        const files = await this._getAllDB('files');
+        if (files && files.length > 0) {
+            this.state.virtualFileHandles = new Map();
+            files.forEach(fileRecord => {
+                this.state.virtualFileHandles.set(fileRecord.id, fileRecord.file);
+            });
+            this._log(`Loaded ${files.length} files from database.`);
+        }
+    }
+
+    async _getDB(storeName, key) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(storeName, 'readonly');
+            const store = transaction.objectStore(storeName);
+            const request = store.get(key);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async _getAllDB(storeName) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(storeName, 'readonly');
+            const store = transaction.objectStore(storeName);
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
 
     /**
      * Initializes the SVG canvas, definitions, and grid.
@@ -357,7 +433,6 @@ class GraphEditor {
         });
         this.dom.leftPanel.toggleBtn.addEventListener('click', this._toggleLeftPanel.bind(this));
         this.dom.leftPanel.resizer.addEventListener('mousedown', this._startResizeLeftPanel.bind(this));
-        this.dom.leftPanel.loadFolderBtn.addEventListener('click', () => this._loadFolder());
         this.dom.leftPanel.refreshFileTreeBtn.addEventListener('click', () => this._refreshFileTree());
         document.getElementById('import-graph-btn').addEventListener('click', () => this._importGraph());
         document.getElementById('export-graph-btn').addEventListener('click', () => this._exportGraph());
@@ -377,6 +452,7 @@ class GraphEditor {
         this.dom.themeToggleBtn.addEventListener('click', this._toggleTheme.bind(this));
         this.dom.settingsBtn.addEventListener('click', () => this._toggleSettingsPanel());
         this.dom.edgeTypeSelect.addEventListener('change', this._handleChangeEdgeType.bind(this));
+        this.dom.leftPanel.loadFolderBtn.addEventListener('click', () => this._loadFolder());
 
         // Context Menu
         this._setupContextMenuListeners();
@@ -415,6 +491,43 @@ class GraphEditor {
             e.stopPropagation();
             this.dom.graphContainer.classList.remove('dragover');
 
+            // Handle internal file tree drag
+            const nodeuiFilesData = e.dataTransfer.getData('application/nodeuifiles');
+            if (nodeuiFilesData) {
+                try {
+                    const files = JSON.parse(nodeuiFilesData);
+                    if (files.length === 0) return;
+
+                    const dropPoint = this._getSVGCoords(e);
+                    
+                    if (files.length === 1) {
+                        await this._activateFile(files[0].id, dropPoint);
+                    } else {
+                        const PADDING = 300;
+                        const nodeWidth = this.settings.defaultMarkdownNodeWidth;
+                        const nodeHeight = this.settings.defaultMarkdownNodeHeight;
+                        
+                        const numFiles = files.length;
+                        const cols = Math.ceil(Math.sqrt(numFiles));
+                        
+                        for (let i = 0; i < files.length; i++) {
+                            const file = files[i];
+                            const row = Math.floor(i / cols);
+                            const col = i % cols;
+                    
+                            const x = dropPoint.x + col * (nodeWidth + PADDING);
+                            const y = dropPoint.y + row * (nodeHeight + PADDING);
+                            
+                            await this._activateFile(file.id, { x, y });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Could not handle dropped file(s) from tree:', error);
+                    this._log('Error dropping file(s) from tree.');
+                }
+                return;
+            }
+
             // This is different from the file tree drop, we handle files directly
             let file;
             if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
@@ -433,56 +546,75 @@ class GraphEditor {
     }
 
     _setupFileTreeDragAndDrop() {
-        const fileTreeContainer = this.dom.leftPanel.panel;
+        const dropZone = this.dom.leftPanel.panel;
+        const overlay = this.dom.leftPanel.dragOverlay;
 
-        fileTreeContainer.addEventListener('dragover', (e) => {
+        const showOverlay = () => overlay.style.display = 'flex';
+        const hideOverlay = () => overlay.style.display = 'none';
+
+        let dragEnterCounter = 0;
+
+        dropZone.addEventListener('dragenter', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            this.dom.leftPanel.fileTree.classList.add('drag-over');
-        });
 
-        fileTreeContainer.addEventListener('dragleave', (e) => {
-            if (e.relatedTarget && fileTreeContainer.contains(e.relatedTarget)) {
-                return;
-            }
-            e.preventDefault();
-            e.stopPropagation();
-            this.dom.leftPanel.fileTree.classList.remove('drag-over');
-        });
-
-        fileTreeContainer.addEventListener('drop', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.dom.leftPanel.fileTree.classList.remove('drag-over');
+            const isInternalDrag = e.dataTransfer.types.includes('application/nodeuifile');
+            const hasFiles = e.dataTransfer.types.includes('Files');
             
-            if (!e.dataTransfer || !e.dataTransfer.items) {
-                this._log('Browser does not support DataTransfer.items');
-                return;
+            if (!isInternalDrag && hasFiles) {
+                if (dragEnterCounter === 0) {
+                    showOverlay();
+                }
+                dragEnterCounter++;
             }
+        });
 
-            for (const item of e.dataTransfer.items) {
-                if (typeof item.getAsFileSystemHandle === 'function') {
-                    try {
-                        const handle = await item.getAsFileSystemHandle();
-                        if (handle.kind === 'file' && handle.name.endsWith('.json')) {
-                            this._log(`Loading dropped file: ${handle.name}`);
-                            const file = await handle.getFile();
-                            const content = await file.text();
-                            const data = JSON.parse(content);
-                            this._loadGraphData(data, file.name);
-                            return;
-                        } else if (handle.kind === 'directory') {
-                            this._log(`Loading dropped folder: ${handle.name}`);
-                            this.state.fileHandles.clear();
-                            const treeData = await this._buildFileTree(handle);
-                            this.state.treeData = treeData;
-                            this.treeView.render([treeData]);
-                            return;
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            dragEnterCounter--;
+            if (dragEnterCounter === 0) {
+                hideOverlay();
+            }
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        dropZone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            hideOverlay();
+            dragEnterCounter = 0;
+            
+            if (!e.dataTransfer) return;
+
+            const isInternalDrag = e.dataTransfer.types.includes('application/nodeuifile');
+            if (isInternalDrag) return;
+
+            const files = e.dataTransfer.files;
+            if (files && files.length > 0) {
+                let filesAdded = 0;
+                for (const file of files) {
+                    const extension = `.${file.name.split('.').pop().toLowerCase()}`;
+                    
+                    if (this.allowedExtensions.includes(extension)) {
+                        let fileType = 'file';
+                        for (const type in this.fileTypes) {
+                            if (this.fileTypes[type].includes(extension)) {
+                                fileType = type;
+                                break;
+                            }
                         }
-                    } catch (err) {
-                        console.error("Error handling dropped item:", err);
-                        this._log(`Error handling drop: ${err.message}`);
+                        this._addFileToTree(file, fileType);
+                        filesAdded++;
                     }
+                }
+                if (filesAdded > 0) {
+                    this._log(`Added ${filesAdded} file(s) to the project.`);
                 }
             }
         });
@@ -564,6 +696,7 @@ class GraphEditor {
             if (this.state.contextNode && this.state.contextNode.preEditTitle !== this.state.contextNode.title) {
                 this._saveStateForUndo('Rename Node');
                 delete this.state.contextNode.preEditTitle;
+                this._saveGraphStateToDB();
             }
         });
     }
@@ -717,16 +850,25 @@ class GraphEditor {
         this._updateNodeSockets(newNode);
         this.state.nodes.push(newNode);
         this._log(`Added ${type} ${newNode.id}`);
+        this._saveGraphStateToDB();
         this._render();
         return newNode;
     }
 
     _removeNode(nodeToRemove) {
         this._saveStateForUndo('Remove Node');
-        this.domCache.delete(nodeToRemove.id);
+        
+        // --- Cache Cleanup Hook ---
+        const nodeDef = this.nodeTypes.get(nodeToRemove.type);
+        if (nodeDef && nodeDef.onNodeRemoved) {
+            nodeDef.onNodeRemoved(nodeToRemove);
+        }
+        // -------------------------
+
         this.state.nodes = this.state.nodes.filter(node => node.id !== nodeToRemove.id);
         this.state.edges = this.state.edges.filter(edge => edge.source.nodeId !== nodeToRemove.id && edge.target.nodeId !== nodeToRemove.id);
         this._log(`Removed node ${nodeToRemove.id}`);
+        this._saveGraphStateToDB();
         this._render();
     }
 
@@ -744,6 +886,7 @@ class GraphEditor {
             this._saveStateForUndo('Create Edge');
             this.state.edges.push({ source: sourceSocket, target: targetSocket, type: this.dom.edgeTypeSelect.value, points: [] });
             this._log(`Created edge between node ${sourceSocket.nodeId} and node ${targetSocket.nodeId}`);
+            this._saveGraphStateToDB();
         }
     }
 
@@ -837,6 +980,7 @@ class GraphEditor {
         this.state.edges.push(...newEdges);
 
         this._log(`Pasted ${newNodes.length} nodes and ${newEdges.length} edges.`);
+        this._saveGraphStateToDB();
         this._render();
     }
     
@@ -877,6 +1021,7 @@ class GraphEditor {
         this._deleteSelected(false);
         
         this._log(`Cut ${nodesCutCount} nodes and ${edgesCutCount} edges.`);
+        this._saveGraphStateToDB();
     }
     
     _groupSelectedNodes() {
@@ -913,6 +1058,7 @@ class GraphEditor {
         this.state.selectedEdgeIndexes = [];
 
         this._log(`Grouped ${selectedNodes.length} nodes into new group ${newGroup.id}.`);
+        this._saveGraphStateToDB();
         this._render();
     }
 
@@ -1190,7 +1336,7 @@ class GraphEditor {
         
         const nodeBody = document.createElement('div');
         nodeBody.className = 'node-body';
-
+        
         nodeContent.innerHTML = `
             <div class="node-header">
                 <i class="node-icon" data-lucide="${icon}"></i>
@@ -1203,27 +1349,8 @@ class GraphEditor {
         
         // --- Custom Node Rendering ---
         const nodeDef = this.nodeTypes.get(node.type);
-        const isVideoNode = node.type === 'markdown-node' && node.properties.content?.trim().startsWith('<video');
 
-        if (isVideoNode) {
-            const cached = this.domCache.get(node.id);
-            // If we have a cached container and the content hasn't changed, reuse it.
-            if (cached && cached.content === node.properties.content) {
-                nodeBody.appendChild(cached.container);
-            } else {
-                // Otherwise, render it and cache it.
-                const container = document.createElement('div');
-                container.className = 'markdown-content';
-                container.innerHTML = node.properties.content;
-                
-                nodeBody.appendChild(container);
-                this.domCache.set(node.id, { container: container, content: node.properties.content });
-            }
-        } else if (nodeDef && nodeDef.render) {
-            // If a node was a video and is no longer, clear its cache.
-            if (this.domCache.has(node.id)) {
-                this.domCache.delete(node.id);
-            }
+        if (nodeDef && nodeDef.render) {
             nodeDef.render(node, nodeBody, this);
         }
         // -------------------------
@@ -1234,7 +1361,7 @@ class GraphEditor {
             lockIndicator.innerHTML = `<i data-lucide="lock"></i>`;
             nodeContent.appendChild(lockIndicator);
         }
-
+        
         const nodeTitleEl = nodeContent.querySelector('.node-title');
         nodeTitleEl.style.pointerEvents = 'all';
         nodeTitleEl.addEventListener('contextmenu', (e) => {
@@ -1510,6 +1637,10 @@ class GraphEditor {
         if (this.state.interaction.cutting) this._stopCutting();
         if (this.state.interaction.selecting) this._stopSelecting();
 
+        if (this.state.interaction.resizing || this.state.interaction.draggingRoutingPoint) {
+            this._saveGraphStateToDB();
+        }
+        
         this._resetInteractionState();
         this._render();
     }
@@ -1564,7 +1695,7 @@ class GraphEditor {
         if (this.fileTypes.json.includes(extension)) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                const data = JSON.parse(event.target.result);
+                    const data = JSON.parse(event.target.result);
                 this._loadGraphData(data, file.name);
             };
             reader.readAsText(file);
@@ -1574,7 +1705,7 @@ class GraphEditor {
                 const newNode = this._addNode(pt.x, pt.y, 'markdown-node');
                 newNode.properties.content = event.target.result;
                 newNode.title = file.name;
-                this._render();
+                        this._render();
             };
             reader.readAsText(file);
         } else if (this.fileTypes.image.includes(extension)) {
@@ -1693,6 +1824,9 @@ class GraphEditor {
     }
     
     _stopDragging() {
+        if (this.state.interaction.didDrag) {
+            this._saveGraphStateToDB();
+        }
         this.state.draggedNodes.forEach(node => {
             const oldParent = this.state.nodes.find(g => g.id === node.parent);
             const newParent = this.state.nodes.find(g =>
@@ -1968,6 +2102,7 @@ class GraphEditor {
                     this._saveStateForUndo('Cut Edges');
                     this._log(`Cut ${edgesToDelete.size} edges`);
                     this.state.edges = this.state.edges.filter((_, index) => !edgesToDelete.has(index));
+                    this._saveGraphStateToDB();
                 }
             }
         }
@@ -2138,6 +2273,7 @@ class GraphEditor {
         const newType = e.target.value;
         this.state.edges.forEach(edge => { edge.type = newType; });
         this._log(`Changed all edges to ${newType} style`);
+        this._saveGraphStateToDB();
         this._render();
     }
     
@@ -2165,7 +2301,7 @@ class GraphEditor {
         if (this.state.selectedEdgeIndexes.length === 0 && this.state.selectedNodeIds.length === 0) return;
         
         if (saveUndo) {
-            this._saveStateForUndo('Delete Selection');
+        this._saveStateForUndo('Delete Selection');
         }
         
         if (this.state.selectedEdgeIndexes.length > 0) {
@@ -2176,10 +2312,24 @@ class GraphEditor {
         if (this.state.selectedNodeIds.length > 0) {
             if (saveUndo) this._log(`Deleted ${this.state.selectedNodeIds.length} nodes`);
             const selectedIdsSet = new Set(this.state.selectedNodeIds);
-            selectedIdsSet.forEach(id => this.domCache.delete(id));
+            
+            // --- Cache Cleanup Hook ---
+            this.state.nodes.forEach(node => {
+                if (selectedIdsSet.has(node.id)) {
+                    const nodeDef = this.nodeTypes.get(node.type);
+                    if (nodeDef && nodeDef.onNodeRemoved) {
+                        nodeDef.onNodeRemoved(node);
+                    }
+                }
+            });
+            // -------------------------
+
             this.state.nodes = this.state.nodes.filter(node => !selectedIdsSet.has(node.id));
             this.state.edges = this.state.edges.filter(edge => !selectedIdsSet.has(edge.source.nodeId) && !selectedIdsSet.has(edge.target.nodeId));
             this.state.selectedNodeIds = [];
+        }
+        if (saveUndo) {
+            this._saveGraphStateToDB();
         }
         this._render();
     }
@@ -2194,15 +2344,18 @@ class GraphEditor {
             }
         });
         this.state.selectedEdgeIndexes = [];
+        this._saveGraphStateToDB();
         this._render();
     }
     
     _addRoutingPoint(e, target) {
+        this._saveStateForUndo('Add Routing Point');
         const edgeIndex = parseInt(target.dataset.index);
         const edge = this.state.edges[edgeIndex];
         const svgP = this._getSVGCoords(e);
         edge.points.push({ x: svgP.x, y: svgP.y });
         this._log(`Added routing point to edge ${edgeIndex}`);
+        this._saveGraphStateToDB();
         this._render();
     }
 
@@ -2227,6 +2380,8 @@ class GraphEditor {
             items = this._getEdgeContextMenuItems();
         } else if (type === 'canvas' || type === 'connecting') {
             items = this._getCanvasContextMenuItems(type === 'connecting');
+        } else if (type === 'custom' && contextData.items) {
+            items = contextData.items;
         }
 
         if (items.length === 0) return;
@@ -2242,7 +2397,7 @@ class GraphEditor {
             this._render();
         }
     }
-
+    
     _getDefaultNodeContextMenuItems(node) {
         const items = [
             {
@@ -2310,6 +2465,7 @@ class GraphEditor {
             this.state.contextNode.locked = !this.state.contextNode.locked;
             this._log(`Toggled lock state for node ${this.state.contextNode.id}`);
             this.state.contextNode = null;
+            this._saveGraphStateToDB();
             this._render();
         }
         this._hideContextMenu();
@@ -2321,6 +2477,7 @@ class GraphEditor {
             this.state.edges.splice(this.state.contextEdge, 1);
             this._log(`Deleted edge ${this.state.contextEdge}`);
             this.state.contextEdge = null;
+            this._saveGraphStateToDB();
         }
         this._hideContextMenu();
     }
@@ -2340,6 +2497,7 @@ class GraphEditor {
             this._saveStateForUndo('Add Routing Point');
             edge.points.push({ x, y });
             this._log(`Added routing point to edge ${this.state.contextEdge}`);
+            this._saveGraphStateToDB();
             this._render();
         }
         this.state.contextEdge = null;
@@ -2443,6 +2601,7 @@ class GraphEditor {
                 if (this.state.contextNode.color !== color) {
                     this._saveStateForUndo('Change Node Color');
                     this.state.contextNode.color = color;
+                    this._saveGraphStateToDB();
                     this._render();
                 }
             });
@@ -2662,7 +2821,10 @@ class GraphEditor {
 
     _initTreeView() {
         this.treeView = new TreeView(this.dom.leftPanel.fileTree);
-        this.treeView.render([]); // Render an empty tree initially
+        
+        // Render with data from DB if it exists
+        const initialData = this.state.treeData ? [this.state.treeData] : [];
+        this.treeView.render(initialData);
 
         this.dom.leftPanel.fileTree.addEventListener('file-selected', (e) => {
             this._log(`File selected: ${e.detail.id}`);
@@ -2670,6 +2832,19 @@ class GraphEditor {
 
         this.dom.leftPanel.fileTree.addEventListener('file-activated', (e) => {
             this._activateFile(e.detail.id);
+        });
+
+        this.dom.leftPanel.fileTree.addEventListener('file-contextmenu', (e) => {
+            const { id, isFolder, x, y } = e.detail;
+            if (isFolder || !id) return;
+            
+            const items = [{
+                label: 'Delete File',
+                icon: 'trash-2',
+                callback: () => this._deleteFileFromTree(id)
+            }];
+            
+            this._showContextMenu(x, y, 'custom', { items });
         });
     }
 
@@ -2683,6 +2858,8 @@ class GraphEditor {
         try {
             const directoryHandle = await window.showDirectoryPicker();
             this.state.fileHandles.clear();
+            this.state.resolvedUrlCache.clear();
+            this.state.rootDirectoryHandle = directoryHandle;
             const treeData = await this._buildFileTree(directoryHandle);
             this.state.treeData = treeData;
             this.treeView.render([treeData]);
@@ -2735,7 +2912,7 @@ class GraphEditor {
     }
 
     async _loadFile(fileId) {
-        const handle = this.state.fileHandles.get(fileId);
+        const handle = this.state.fileHandles.get(fileId) || (this.state.virtualFileHandles && this.state.virtualFileHandles.get(fileId));
         if (!handle) {
             this._log(`File handle not found for ${fileId}`);
             return;
@@ -2749,7 +2926,13 @@ class GraphEditor {
         }
 
         try {
-            const file = await handle.getFile();
+            const getFileObject = async (h) => {
+                if (typeof h.getFile === 'function') {
+                    return await h.getFile();
+                }
+                return h;
+            };
+            const file = await getFileObject(handle);
             const content = await file.text();
             const data = JSON.parse(content);
             this._loadGraphData(data, file.name);
@@ -2946,65 +3129,54 @@ class GraphEditor {
         lucide.createIcons({ nodes: [this.dom.contextMenu.list] });
     }
 
-    async _activateFile(fileId) {
-        const handle = this.state.fileHandles.get(fileId);
+    async _activateFile(fileId, position = null) {
+        const handle = this.state.fileHandles.get(fileId) || (this.state.virtualFileHandles && this.state.virtualFileHandles.get(fileId));
         if (!handle) {
             this._log(`File handle not found for ${fileId}`);
             return;
         }
 
+        const getFileObject = async (h) => {
+            if (typeof h.getFile === 'function') {
+                return await h.getFile();
+            }
+            return h;
+        };
+
+        const { x, y } = position || { 
+            x: this.state.viewbox.x + this.state.viewbox.w / 2, 
+            y: this.state.viewbox.y + this.state.viewbox.h / 2 
+        };
+
         const parts = handle.name.split('.');
         const extension = parts.length > 1 ? `.${parts.pop().toLowerCase()}` : '';
 
         if (this.fileTypes.markdown.includes(extension)) {
-            try {
-                const file = await handle.getFile();
-                const content = await file.text();
-                
-                const { x, y, w, h } = this.state.viewbox;
-                const newNode = this._addNode(x + w / 2, y + h / 2, 'markdown-node');
-                
-                newNode.properties.content = content;
-                newNode.title = file.name;
-
-                this._log(`Opened ${file.name} as a markdown node.`);
-                this._render();
-            } catch (err) {
-                this._log(`Error reading markdown file: ${err.message}`);
-                console.error(err);
-            }
+            const newNode = this._addNode(x, y, 'markdown-node');
+            newNode.properties.content = `file-id://${fileId}`;
+            newNode.title = handle.name;
+            this._saveGraphStateToDB();
+            this._log(`Opened ${handle.name} as a markdown node.`);
+            this._render();
         } else if (this.fileTypes.image.includes(extension)) {
-            try {
-                const file = await handle.getFile();
-                const objectURL = URL.createObjectURL(file);
-                
-                const { x, y, w, h } = this.state.viewbox;
-                const newNode = this._addNode(x + w / 2, y + h / 2, 'markdown-node');
-                
-                newNode.properties.content = `![image](${objectURL})`;
-                newNode.title = file.name;
-                newNode.width = 740;
-                newNode.height = 540;
-
-                this._log(`Opened ${file.name} as an image node.`);
-                this._render();
-            } catch (err) {
-                this._log(`Error reading image file: ${err.message}`);
-                console.error(err);
-            }
+            const newNode = this._addNode(x, y, 'markdown-node');
+            newNode.properties.content = `![image](file-id://${fileId})`;
+            newNode.title = handle.name;
+            newNode.width = 740;
+            newNode.height = 540;
+            this._saveGraphStateToDB();
+            this._log(`Opened ${handle.name} as an image node.`);
+            this._render();
         } else if (this.fileTypes.video.includes(extension)) {
             try {
-                const file = await handle.getFile();
-                const objectURL = URL.createObjectURL(file);
+                const file = await getFileObject(handle);
+                const newNode = this._addNode(x, y, 'markdown-node');
                 
-                const { x, y, w, h } = this.state.viewbox;
-                const newNode = this._addNode(x + w / 2, y + h / 2, 'markdown-node');
-                
-                newNode.properties.content = `<video controls width="100%"><source src="${objectURL}" type="${file.type}"></video>`;
+                newNode.properties.content = `<video controls width="100%"><source src="file-id://${fileId}" type="${file.type}"></video>`;
                 newNode.title = file.name;
                 newNode.width = 740;
                 newNode.height = 540;
-
+                this._saveGraphStateToDB();
                 this._log(`Opened ${file.name} as a video node.`);
                 this._render();
             } catch (err) {
@@ -3028,47 +3200,183 @@ class GraphEditor {
                 try {
                     const data = JSON.parse(event.target.result);
                     this._loadGraphData(data, file.name);
+                    this._addFileToTree(file, 'json');
                 } catch (error) {
                     this._log(`Error parsing JSON file: ${error.message}`);
                 }
             };
             reader.readAsText(file);
         } else if (this.fileTypes.markdown.includes(extension)) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const newNode = this._addNode(pt.x, pt.y, 'markdown-node');
-                newNode.properties.content = event.target.result;
-                newNode.title = file.name;
-                this._render();
-            };
-            reader.readAsText(file);
+            this._addFileToTree(file, 'markdown');
+            const newNode = this._addNode(pt.x, pt.y, 'markdown-node');
+            newNode.properties.content = `file-id://${file.name}`;
+            newNode.title = file.name;
+            this._saveGraphStateToDB();
+            this._render();
         } else if (this.fileTypes.image.includes(extension)) {
-            const objectURL = URL.createObjectURL(file);
+            this._addFileToTree(file, 'image');
             const newNode = this._addNode(pt.x, pt.y, 'markdown-node');
             
-            newNode.properties.content = `![image](${objectURL})`;
+            newNode.properties.content = `![image](file-id://${file.name})`;
             newNode.title = file.name;
             newNode.width = 740;
             newNode.height = 540;
-
+            this._saveGraphStateToDB();
+            this._log(`Opened ${file.name} as an image node.`);
             this._render();
         } else if (this.fileTypes.video.includes(extension)) {
-            const objectURL = URL.createObjectURL(file);
+            this._addFileToTree(file, 'video');
             const newNode = this._addNode(pt.x, pt.y, 'markdown-node');
 
-            newNode.properties.content = `<video controls width="100%"><source src="${objectURL}" type="${file.type}"></video>`;
+            newNode.properties.content = `<video controls width="100%"><source src="file-id://${file.name}" type="${file.type}"></video>`;
             newNode.title = file.name;
             newNode.width = 740;
             newNode.height = 540;
-
+            this._saveGraphStateToDB();
+            this._log(`Opened ${file.name} as a video node.`);
             this._render();
         } else {
             this._log(`Unsupported file type dropped on canvas: ${file.name}`);
         }
     }
+
+    _addFileToTree(file, fileType) {
+        if (!this.state.treeData) {
+            this.state.treeData = {
+                id: 'root',
+                name: 'Project Files',
+                children: [],
+                isVirtual: true,
+            };
+            this.state.fileHandles.clear(); // Clear out old handles from directory-based loading
+        }
+
+        const fileId = file.name;
+        
+        const targetFolder = this.state.treeData;
+        if (targetFolder.children.some(child => child.id === fileId)) {
+            this._log(`File "${file.name}" already exists in the root directory.`);
+            return;
+        }
+
+        targetFolder.children.push({
+            id: fileId,
+            name: file.name,
+            type: fileType
+        });
+        
+        if (!this.state.virtualFileHandles) {
+            this.state.virtualFileHandles = new Map();
+        }
+        this.state.virtualFileHandles.set(fileId, file);
+        
+        const expandedIds = this.treeView.getExpansionState();
+        this.treeView.render([this.state.treeData], expandedIds);
+        
+        // Save to IndexedDB
+        this._putDB('files', { id: fileId, file: file, type: fileType });
+        this._saveGraphStateToDB(); // Also save the tree structure
+    }
+
+    async _saveGraphStateToDB() {
+        try {
+            const state = {
+                key: 'currentGraph',
+                nodes: this.state.nodes,
+                edges: this.state.edges,
+                nodeIdCounter: this.state.nodeIdCounter,
+                treeData: this.state.treeData
+            };
+            await this._putDB('graphState', state);
+            this._log('Graph state saved to database.');
+        } catch (error) {
+            console.error('Failed to save graph state:', error);
+            this._log('Error saving graph state to database.');
+        }
+    }
+
+    async _putDB(storeName, item) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(storeName, 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.put(item);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async _deleteDB(storeName, key) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(storeName, 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.delete(key);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    _deleteFileFromTree(fileId) {
+        if (!this.state.treeData || !this.state.treeData.children) return;
+
+        const removeChildRecursive = (children) => {
+            const index = children.findIndex(child => child.id === fileId);
+            if (index > -1) {
+                children.splice(index, 1);
+                return true;
+            }
+            for (const child of children) {
+                if (child.children && removeChildRecursive(child.children)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        if (removeChildRecursive(this.state.treeData.children)) {
+            if (this.state.virtualFileHandles && this.state.virtualFileHandles.has(fileId)) {
+                this.state.virtualFileHandles.delete(fileId);
+            }
+            
+            const expandedIds = this.treeView.getExpansionState();
+            
+            this._deleteDB('files', fileId);
+            this._saveGraphStateToDB();
+            this.treeView.render([this.state.treeData], expandedIds);
+            this._log(`Deleted file: ${fileId}`);
+        }
+    }
+
+    async _resolveFileIdToUrl(fileId) {
+        if (this.state.resolvedUrlCache.has(fileId)) {
+            return this.state.resolvedUrlCache.get(fileId);
+        }
+
+        const handle = this.state.fileHandles.get(fileId) || (this.state.virtualFileHandles && this.state.virtualFileHandles.get(fileId));
+        if (!handle) {
+            console.warn(`Could not resolve file ID: ${fileId}`);
+            return 'about:blank#error';
+        }
+
+        const getFileObject = async (h) => {
+            if (typeof h.getFile === 'function') {
+                return await h.getFile();
+            }
+            return h;
+        };
+
+        try {
+            const file = await getFileObject(handle);
+            const url = URL.createObjectURL(file);
+            this.state.resolvedUrlCache.set(fileId, url);
+            return url;
+        } catch (err) {
+            console.error(`Error creating object URL for ${fileId}:`, err);
+            return 'about:blank#error';
+        }
+    }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const editor = new GraphEditor('graph-svg');
-    editor.init();
+    await editor.init();
 }); 

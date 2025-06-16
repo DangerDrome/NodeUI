@@ -13,8 +13,8 @@
             <div class="panel-header">
                 <h3><i data-lucide="folder"></i> Files</h3>
                 <div class="header-buttons">
-                    <button id="refresh-file-tree-btn" class="panel-button" title="Refresh"><i data-lucide="refresh-cw"></i></button>
                     <button id="load-folder-btn" class="panel-button" title="Load Folder"><i data-lucide="folder-open"></i></button>
+                    <button id="refresh-file-tree-btn" class="panel-button" title="Refresh"><i data-lucide="refresh-cw"></i></button>
                 </div>
             </div>
             <div id="file-tree"></div>
@@ -27,6 +27,9 @@
             <i data-lucide="chevron-right"></i>
         </button>
         <div id="left-panel-resizer" class="panel-resizer"></div>
+        <div id="left-panel-drag-overlay" class="drag-overlay">
+            <i data-lucide="upload-cloud" class="drag-overlay-icon"></i>
+        </div>
     </div>
     <div id="bottom-panel" class="side-panel bottom">
         <button id="bottom-panel-toggle" class="panel-toggle">
@@ -51,7 +54,7 @@
     <div id="graph-container">
         <svg id="graph-svg"></svg>
         <div id="selection-box"></div>
-        <div id="drag-overlay">
+        <div id="graph-drag-overlay" class="drag-overlay">
             <i data-lucide="upload-cloud" class="drag-overlay-icon"></i>
         </div>
     </div>
