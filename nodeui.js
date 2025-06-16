@@ -1829,17 +1829,22 @@ class GraphEditor {
         
         const display = (el, condition) => el.style.display = condition ? 'block' : 'none';
 
-        display(addNode, type === 'canvas' || type === 'connecting');
-        display(addGroup, type === 'canvas' || type === 'connecting');
-        display(toggleSnap, true);
-        display(toggleSnapObj, true);
+        const isConnecting = type === 'connecting';
+
+        display(addNode, type === 'canvas' || isConnecting);
+        display(addGroup, type === 'canvas' || isConnecting);
+        display(toggleSnap, !isConnecting);
+        display(toggleSnapObj, !isConnecting);
         display(deleteNode, type === 'node');
         display(disableNode, type === 'node');
         display(group, type === 'node' && this.state.selectedNodeIds.length > 1);
         display(deleteEdge, type === 'edge');
+        display(addRoutingPoint, type === 'edge');
 
-        toggleSnap.querySelector('span').textContent = `Snapping: ${this.state.interaction.snapping ? 'On' : 'Off'}`;
-        toggleSnapObj.querySelector('span').textContent = `Snap To Objects: ${this.state.interaction.snapToObjects ? 'On' : 'Off'}`;
+        if (!isConnecting) {
+            toggleSnap.querySelector('span').textContent = `Snapping: ${this.state.interaction.snapping ? 'On' : 'Off'}`;
+            toggleSnapObj.querySelector('span').textContent = `Snap To Objects: ${this.state.interaction.snapToObjects ? 'On' : 'Off'}`;
+        }
 
         Object.assign(menu.style, { display: 'block', left: `${x}px`, top: `${y}px` });
     }
