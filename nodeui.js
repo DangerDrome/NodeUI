@@ -45,6 +45,9 @@ class GraphEditor {
             leftPanel: {
                 panel: document.getElementById('left-panel'),
                 toggleBtn: document.getElementById('left-panel-toggle'),
+                fileTree: document.getElementById('file-tree'),
+                loadFolderBtn: document.getElementById('load-folder-btn'),
+                resizer: document.getElementById('left-panel-resizer'),
             },
             bottomPanel: {
                 panel: document.getElementById('bottom-panel'),
@@ -146,11 +149,13 @@ class GraphEditor {
             redoStack: [],
             rewiringEdge: null,
             snapLines: [],
+            fileHandles: new Map(),
         };
 
         this.mainGroup = null;
         this.gridRect = null;
         this.zoomTimer = null;
+        this.treeView = null;
     }
 
     // =================================================================================================
@@ -162,6 +167,7 @@ class GraphEditor {
      */
     init() {
         this._initCanvas();
+        this._initTreeView();
         this._updateDefaultColors();
         this._setupEventListeners();
         this._render();
@@ -318,6 +324,8 @@ class GraphEditor {
             this._addNode(x + w / 2, y + h / 2);
         });
         this.dom.leftPanel.toggleBtn.addEventListener('click', this._toggleLeftPanel.bind(this));
+        this.dom.leftPanel.resizer.addEventListener('mousedown', this._startResizeLeftPanel.bind(this));
+        this.dom.leftPanel.loadFolderBtn.addEventListener('click', () => this._loadFolder());
         this.dom.bottomPanel.toggleBtn.addEventListener('click', this._toggleBottomPanel.bind(this));
         this.dom.rightPanel.toggleBtn.addEventListener('click', this._toggleRightPanel.bind(this));
         this.dom.addGroupBtn.addEventListener('click', () => {
@@ -2338,6 +2346,109 @@ class GraphEditor {
         this._render();
         this._updateView();
         this._log('Settings reset to default');
+    }
+
+    _initTreeView() {
+        this.treeView = new TreeView(this.dom.leftPanel.fileTree);
+        this.treeView.render([]); // Render an empty tree initially
+
+        this.dom.leftPanel.fileTree.addEventListener('file-selected', (e) => {
+            this._log(`File selected: ${e.detail.id}`);
+            this._loadFile(e.detail.id);
+        });
+    }
+
+    async _loadFolder() {
+        if (!window.showDirectoryPicker) {
+            this._log('File System Access API is not supported in this browser.');
+            alert('Your browser does not support the File System Access API.');
+            return;
+        }
+
+        try {
+            const directoryHandle = await window.showDirectoryPicker();
+            this.state.fileHandles.clear();
+            const treeData = await this._buildFileTree(directoryHandle);
+            this.treeView.render([treeData]);
+            this._log(`Loaded directory: ${directoryHandle.name}`);
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                this._log(`Error loading directory: ${err.message}`);
+                console.error(err);
+            } else {
+                this._log('Directory selection cancelled.');
+            }
+        }
+    }
+
+    async _buildFileTree(directoryHandle) {
+        const children = [];
+        for await (const entry of directoryHandle.values()) {
+            if (entry.kind === 'file' && entry.name.endsWith('.json')) {
+                this.state.fileHandles.set(entry.name, entry);
+                children.push({
+                    id: entry.name,
+                    name: entry.name,
+                    children: []
+                });
+            } else if (entry.kind === 'directory') {
+                children.push(await this._buildFileTree(entry));
+            }
+        }
+        return {
+            id: directoryHandle.name,
+            name: directoryHandle.name,
+            children: children.sort((a,b) => (a.children.length > 0 === b.children.length > 0) ? a.name.localeCompare(b.name) : (a.children.length > 0 ? -1 : 1))
+        };
+    }
+
+    async _loadFile(fileId) {
+        const handle = this.state.fileHandles.get(fileId);
+        if (!handle) {
+            this._log(`File handle not found for ${fileId}`);
+            return;
+        }
+
+        try {
+            const file = await handle.getFile();
+            const content = await file.text();
+            const data = JSON.parse(content);
+            
+            if (data.nodes && data.edges) {
+                this.state.nodes = data.nodes;
+                this.state.edges = data.edges;
+                this.state.nodeIdCounter = Math.max(0, ...this.state.nodes.map(n => n.id)) + 1;
+                this._log(`Loaded graph from ${file.name}`);
+                this._render();
+                this._zoomToFit();
+            } else {
+                alert('Invalid JSON format for graph data.');
+            }
+        } catch (err) {
+            this._log(`Error loading file: ${err.message}`);
+            console.error(err);
+        }
+    }
+
+    _startResizeLeftPanel(e) {
+        e.preventDefault();
+        const startX = e.clientX;
+        const startWidth = this.dom.leftPanel.panel.offsetWidth;
+
+        const doDrag = (e) => {
+            const newWidth = startWidth + e.clientX - startX;
+            const minWidth = 300;
+            const maxWidth = 800;
+            this.dom.leftPanel.panel.style.width = `${Math.max(minWidth, Math.min(newWidth, maxWidth))}px`;
+        };
+
+        const stopDrag = () => {
+            document.documentElement.removeEventListener('mousemove', doDrag, false);
+            document.documentElement.removeEventListener('mouseup', stopDrag, false);
+        };
+
+        document.documentElement.addEventListener('mousemove', doDrag, false);
+        document.documentElement.addEventListener('mouseup', stopDrag, false);
     }
 }
 

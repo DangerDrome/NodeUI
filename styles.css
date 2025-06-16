@@ -441,7 +441,6 @@ body {
     box-sizing: border-box;
     max-height: 100vh;
     padding: 40px;
-    overflow-y: hidden;
     align-items: center;
 }
 
@@ -513,9 +512,32 @@ input, textarea {
 
 .panel-content {
     flex-grow: 1;
-    overflow-y: hidden;
+    overflow-y: auto;
     width: 100%;
     padding: 20px;
+}
+
+#left-panel .panel-content {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+#left-panel .panel-header {
+    padding: 20px 20px 10px;
+    margin-bottom: 0;
+    background: var(--controls-bg-color);
+}
+
+#left-panel #file-tree {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px 20px 20px;
+}
+
+#left-panel .panel-header .panel-button {
+    margin-right: 35px;
+    margin-bottom: 10px;
 }
 
 #settings-panel .property label {
@@ -529,7 +551,6 @@ input, textarea {
     top: 0;
     left: 0;
     height: 100vh;
-    width: 250px;
     background-color: var(--controls-bg-color);
     z-index: 10;
     display: flex;
@@ -629,4 +650,77 @@ input, textarea {
     display: flex;
     align-items: center;
     gap: 8px;
+    margin: 0;
+}
+
+/* Tree View */
+.tree-view {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    cursor: pointer;
+}
+
+.tree-view ul {
+    list-style: none;
+    padding-left: 20px;
+}
+
+.tree-view li {
+    padding: 2px 0;
+}
+
+.tree-view .tree-node-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.tree-view .tree-node-content:hover {
+    background-color: var(--context-menu-hover-bg-color);
+}
+
+.tree-view .file.selected > .tree-node-content {
+    background-color: var(--node-selected-stroke-color);
+    color: var(--background-color);
+}
+
+.tree-view .folder.collapsed > ul {
+    display: none;
+}
+
+.panel-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    cursor: ew-resize;
+    z-index: 11;
+}
+
+#left-panel {
+    width: 300px;
+    min-width: 300px;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--background-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--controls-bg-color);
+    border-radius: 6px;
+    border: 3px solid var(--background-color);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--node-stroke-color);
 }

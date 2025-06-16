@@ -10,12 +10,16 @@
 <body class="grayscale-theme">
     <div id="left-panel" class="side-panel">
         <div class="panel-content">
-            <h3><i data-lucide="folder"></i> Files</h3>
-            <!-- Node library content will go here -->
+            <div class="panel-header">
+                <h3><i data-lucide="folder"></i> Files</h3>
+                <button id="load-folder-btn" class="panel-button"><i data-lucide="folder-open"></i></button>
+            </div>
+            <div id="file-tree"></div>
         </div>
         <button id="left-panel-toggle" class="panel-toggle">
             <i data-lucide="chevron-right"></i>
         </button>
+        <div id="left-panel-resizer" class="panel-resizer"></div>
     </div>
     <div id="bottom-panel" class="side-panel bottom">
         <button id="bottom-panel-toggle" class="panel-toggle">
@@ -141,6 +145,7 @@
     <script>
         lucide.createIcons();
     </script>
+    <script src="TreeView.js"></script>
     <!-- <script src="script.js"></script> -->
     <script src="nodeui.js"></script>
 </body>
