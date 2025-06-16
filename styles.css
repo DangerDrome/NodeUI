@@ -439,7 +439,7 @@ body {
     flex-direction: column;
     box-sizing: border-box;
     max-height: 100vh;
-    padding: 20px;
+    padding: 40px;
     overflow-y: hidden;
     align-items: center;
 }
@@ -458,7 +458,8 @@ body {
 
 #settings-panel label {
     display: inline-block;
-    width: 180px;
+    width: 280px;
+    flex-shrink: 0;
 }
 
 .property {
@@ -604,7 +605,7 @@ input, textarea {
     transform: translateX(100%);
     border-right: none;
     border-left: 1px solid var(--graph-border-color);
-    width: 350px;
+    width: 450px;
 }
 
 .side-panel.right.open {
