@@ -2895,6 +2895,25 @@ class GraphEditor {
                 this._log(`Error reading markdown file: ${err.message}`);
                 console.error(err);
             }
+        } else if (this.fileTypes.image.includes(extension)) {
+            try {
+                const file = await handle.getFile();
+                const objectURL = URL.createObjectURL(file);
+                
+                const { x, y, w, h } = this.state.viewbox;
+                const newNode = this._addNode(x + w / 2, y + h / 2, 'markdown-node');
+                
+                newNode.properties.content = `![image](${objectURL})`;
+                newNode.title = file.name;
+                newNode.width = 740;
+                newNode.height = 540;
+
+                this._log(`Opened ${file.name} as an image node.`);
+                this._render();
+            } catch (err) {
+                this._log(`Error reading image file: ${err.message}`);
+                console.error(err);
+            }
         } else if (this.fileTypes.json.includes(extension)) {
             await this._loadFile(fileId);
         } else {
