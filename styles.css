@@ -884,3 +884,8 @@ img[alt=Screenshot] {
 .markdown-content a:hover {
     text-decoration: underline;
 }
+
+#graph-container.dragover {
+    outline: 2px dashed var(--accent-color);
+    outline-offset: -10px;
+}

@@ -394,8 +394,41 @@ class GraphEditor {
         }, true);
         
         // Drag and Drop
-        this._setupDragAndDropListeners();
         this._setupFileTreeDragAndDrop();
+
+        // Canvas drag and drop
+        this.dom.graphContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.dom.graphContainer.classList.add('dragover');
+        });
+
+        this.dom.graphContainer.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.dom.graphContainer.classList.remove('dragover');
+        });
+
+        this.dom.graphContainer.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.dom.graphContainer.classList.remove('dragover');
+
+            // This is different from the file tree drop, we handle files directly
+            let file;
+            if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+                const item = e.dataTransfer.items[0];
+                if (item.kind === 'file') {
+                    file = item.getAsFile();
+                }
+            } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                file = e.dataTransfer.files[0];
+            }
+
+            if (file) {
+                this._handleDroppedFileOnCanvas(file, e.clientX, e.clientY);
+            }
+        });
     }
 
     _setupFileTreeDragAndDrop() {
@@ -1500,19 +1533,41 @@ class GraphEditor {
     }
     
     _handleFileDrop(e) {
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            const file = files[0];
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+
+        const pt = this._getSVGCoords(e);
+        const extension = `.${file.name.split('.').pop().toLowerCase()}`;
+
+        if (this.fileTypes.json.includes(extension)) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                try {
-                    const data = JSON.parse(event.target.result);
-                    this._loadGraphData(data, file.name);
-                } catch (error) {
-                    alert('Error parsing JSON file.');
-                }
+                const data = JSON.parse(event.target.result);
+                this._loadGraphData(data, file.name);
             };
             reader.readAsText(file);
+        } else if (this.fileTypes.markdown.includes(extension)) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const newNode = this._addNode(pt.x, pt.y, 'markdown-node');
+                newNode.properties.content = event.target.result;
+                newNode.title = file.name;
+                this._render();
+            };
+            reader.readAsText(file);
+        } else if (this.fileTypes.image.includes(extension)) {
+            const objectURL = URL.createObjectURL(file);
+            const newNode = this._addNode(pt.x, pt.y, 'markdown-node');
+            
+            newNode.properties.content = `![image](${objectURL})`;
+            newNode.title = file.name;
+            newNode.width = 740;
+            newNode.height = 540;
+
+            this._render();
+        } else {
+            this._log(`Unsupported file type dropped: ${file.name}`);
+            alert('Unsupported file type.');
         }
     }
 
@@ -2918,6 +2973,45 @@ class GraphEditor {
             await this._loadFile(fileId);
         } else {
             this._log(`Cannot open file type: ${handle.name}`);
+        }
+    }
+
+    async _handleDroppedFileOnCanvas(file, clientX, clientY) {
+        const extension = `.${file.name.split('.').pop().toLowerCase()}`;
+        const pt = this._screenToSVGCoords(clientX, clientY, this.dom.svg.getBoundingClientRect());
+
+        if (this.fileTypes.json.includes(extension)) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    this._loadGraphData(data, file.name);
+                } catch (error) {
+                    this._log(`Error parsing JSON file: ${error.message}`);
+                }
+            };
+            reader.readAsText(file);
+        } else if (this.fileTypes.markdown.includes(extension)) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const newNode = this._addNode(pt.x, pt.y, 'markdown-node');
+                newNode.properties.content = event.target.result;
+                newNode.title = file.name;
+                this._render();
+            };
+            reader.readAsText(file);
+        } else if (this.fileTypes.image.includes(extension)) {
+            const objectURL = URL.createObjectURL(file);
+            const newNode = this._addNode(pt.x, pt.y, 'markdown-node');
+            
+            newNode.properties.content = `![image](${objectURL})`;
+            newNode.title = file.name;
+            newNode.width = 740;
+            newNode.height = 540;
+
+            this._render();
+        } else {
+            this._log(`Unsupported file type dropped on canvas: ${file.name}`);
         }
     }
 }
