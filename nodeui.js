@@ -1420,19 +1420,85 @@ class GraphEditor {
         const dx = this.state.mousePosition.x - this.state.dragStart.x;
         const dy = this.state.mousePosition.y - this.state.dragStart.y;
 
-        let { x, y, width, height } = this.state.originalNode;
+        const { x, y, width, height } = this.state.originalNode;
         const dir = this.state.resizeDirection;
 
-        if (dir.includes('n')) { height -= dy; y += dy / 2; }
-        if (dir.includes('s')) { height += dy; y += dy / 2; }
-        if (dir.includes('w')) { width -= dx; x += dx / 2; }
-        if (dir.includes('e')) { width += dx; x += dx / 2; }
+        // Calculate potential new boundaries based on deltas
+        let newLeft = x - width / 2;
+        let newRight = x + width / 2;
+        let newTop = y - height / 2;
+        let newBottom = y + height / 2;
 
-        if (width > this.settings.gridSize && height > this.settings.gridSize) {
-            node.x = x;
-            node.y = y;
-            node.width = width;
-            node.height = height;
+        if (dir.includes('e')) newRight += dx;
+        if (dir.includes('w')) newLeft += dx;
+        if (dir.includes('s')) newBottom += dy;
+        if (dir.includes('n')) newTop += dy;
+
+        let snapLineX = null;
+        let snapLineY = null;
+        let didSnapX = false;
+        let didSnapY = false;
+
+        // Object snapping has priority
+        if (this.state.interaction.snapToObjects) {
+            const snapThreshold = 10;
+            const snapTargets = this._getSnapTargets(node.id);
+            let minDx = snapThreshold;
+            let minDy = snapThreshold;
+
+            if (dir.includes('e') || dir.includes('w')) {
+                const edgeToSnap = dir.includes('e') ? newRight : newLeft;
+                snapTargets.x.forEach(target => {
+                    const d = Math.abs(edgeToSnap - target);
+                    if (d < minDx) {
+                        minDx = d;
+                        const adjustment = target - edgeToSnap;
+                        if (dir.includes('e')) newRight += adjustment;
+                        if (dir.includes('w')) newLeft += adjustment;
+                        snapLineX = target;
+                    }
+                });
+                if (minDx < snapThreshold) didSnapX = true;
+            }
+            if (dir.includes('s') || dir.includes('n')) {
+                const edgeToSnap = dir.includes('s') ? newBottom : newTop;
+                 snapTargets.y.forEach(target => {
+                    const d = Math.abs(edgeToSnap - target);
+                    if (d < minDy) {
+                        minDy = d;
+                        const adjustment = target - edgeToSnap;
+                        if (dir.includes('s')) newBottom += adjustment;
+                        if (dir.includes('n')) newTop += adjustment;
+                        snapLineY = target;
+                    }
+                });
+                if (minDy < snapThreshold) didSnapY = true;
+            }
+        }
+        
+        this._updateSnapLines({ snapLineX, snapLineY });
+
+        // Grid snapping (if object snap didn't occur on that axis)
+        if (this.state.interaction.snapping) {
+            if (!didSnapX) {
+                if (dir.includes('e')) newRight = Math.round(newRight / this.settings.gridSize) * this.settings.gridSize;
+                if (dir.includes('w')) newLeft = Math.round(newLeft / this.settings.gridSize) * this.settings.gridSize;
+            }
+            if (!didSnapY) {
+                if (dir.includes('s')) newBottom = Math.round(newBottom / this.settings.gridSize) * this.settings.gridSize;
+                if (dir.includes('n')) newTop = Math.round(newTop / this.settings.gridSize) * this.settings.gridSize;
+            }
+        }
+
+        let newWidth = newRight - newLeft;
+        let newHeight = newBottom - newTop;
+
+        if (newWidth >= this.settings.gridSize && newHeight >= this.settings.gridSize) {
+            node.width = newWidth;
+            node.height = newHeight;
+            node.x = newLeft + newWidth / 2;
+            node.y = newTop + newHeight / 2;
+    
             this._updateNodeSockets(node);
             this._render();
         }
