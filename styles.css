@@ -97,7 +97,7 @@ body.grayscale-theme {
     --button-hover-bg-color: var(--node-hover-fill-color);
     --selection-box-bg-color: rgba(87, 244, 134, 0.2);
     --selection-box-border-color: #57f486;
-    --snap-line-color: #c7b2b2;
+    --snap-line-color: #a8a29e7a;
     --cut-line-color: #f87171;
     --swatch-1: #444444;
     --swatch-2: #a8a29e9a;
