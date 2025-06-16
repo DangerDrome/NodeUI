@@ -17,15 +17,17 @@ class GraphEditor {
             defaultNodeHeight: 200,
             defaultGroupWidth: 600,
             defaultGroupHeight: 400,
-            propertiesPanelWidth: 250,
-            connectionZoneRadius: 20,
+            propertiesPanelWidth: 300,
+            propertiesPanelOffset: 50,
+            connectionZoneRadius: 50,
             edgeStrokeWidth: 4,
-            bezierOffset: 100,
-            bezierStraightLineDistance: 20,
-            socketOffset: 10,
+            edgeStartOffset: 5,
+            bezierOffset: 50,
+            bezierStraightLineDistance: 5,
+            connectionHandleOffset: 20,
             arrowSize: 15,
             arrowWidth: 15,
-            arrowOffset: 0,
+            arrowOffset: -10,
             arrowGap: 0,
         };
 
@@ -78,8 +80,11 @@ class GraphEditor {
                 defaultGroupWidth: document.getElementById('default-group-width'),
                 defaultGroupHeight: document.getElementById('default-group-height'),
                 propertiesPanelWidth: document.getElementById('default-properties-width'),
+                propertiesPanelOffset: document.getElementById('properties-panel-offset'),
                 connectionZoneRadius: document.getElementById('connection-zone-radius'),
+                connectionHandleOffset: document.getElementById('connection-handle-offset'),
                 edgeStrokeWidth: document.getElementById('edge-stroke-width'),
+                edgeStartOffset: document.getElementById('edge-start-offset'),
                 resetBtn: document.getElementById('reset-settings-btn')
             },
         };
@@ -430,8 +435,11 @@ class GraphEditor {
         setupListener(this.dom.settingsPanel.defaultGroupWidth, 'defaultGroupWidth');
         setupListener(this.dom.settingsPanel.defaultGroupHeight, 'defaultGroupHeight');
         setupListener(this.dom.settingsPanel.propertiesPanelWidth, 'propertiesPanelWidth', true);
+        setupListener(this.dom.settingsPanel.propertiesPanelOffset, 'propertiesPanelOffset', true);
         setupListener(this.dom.settingsPanel.connectionZoneRadius, 'connectionZoneRadius', true);
+        setupListener(this.dom.settingsPanel.connectionHandleOffset, 'connectionHandleOffset', true);
         setupListener(this.dom.settingsPanel.edgeStrokeWidth, 'edgeStrokeWidth', true);
+        setupListener(this.dom.settingsPanel.edgeStartOffset, 'edgeStartOffset', true);
     }
 
     _setupDragAndDropListeners() {
@@ -671,15 +679,15 @@ class GraphEditor {
      */
     _updateNodeSockets(node) {
         const { x, y, width, height } = node;
-        const { socketOffset } = this.settings;
+        const { connectionHandleOffset } = this.settings;
         const halfWidth = width / 2;
         const halfHeight = height / 2;
         
         node.sockets = [
-            { id: 0, x, y: y - halfHeight - socketOffset }, // Top
-            { id: 1, x, y: y + halfHeight + socketOffset }, // Bottom
-            { id: 2, x: x - halfWidth - socketOffset, y },   // Left
-            { id: 3, x: x + halfWidth + socketOffset, y },    // Right
+            { id: 0, x, y: y - halfHeight - connectionHandleOffset }, // Top
+            { id: 1, x, y: y + halfHeight + connectionHandleOffset }, // Bottom
+            { id: 2, x: x - halfWidth - connectionHandleOffset, y },   // Left
+            { id: 3, x: x + halfWidth + connectionHandleOffset, y },    // Right
         ];
     }
     
@@ -774,11 +782,14 @@ class GraphEditor {
     }
 
     _calculateEdgePath(edge, sourceSocket, originalTargetSocket) {
-        const { arrowGap, bezierStraightLineDistance } = this.settings;
+        const { arrowGap, bezierStraightLineDistance, edgeStartOffset } = this.settings;
+        
+        const startPoint = this._getStraightPoint(sourceSocket, edge.source.socketId, edgeStartOffset);
+
         let gappedTargetSocket = { ...originalTargetSocket };
 
         // Calculate gap for arrowhead
-        const lastPoint = edge.points.length > 0 ? edge.points[edge.points.length - 1] : sourceSocket;
+        const lastPoint = edge.points.length > 0 ? edge.points[edge.points.length - 1] : startPoint;
         let controlPointForGap = lastPoint;
 
         if (edge.type === 'bezier') {
@@ -797,10 +808,10 @@ class GraphEditor {
             gappedTargetSocket.y = controlPointForGap.y + dy * ratio;
         }
 
-        let d = `M ${sourceSocket.x} ${sourceSocket.y}`;
+        let d = `M ${startPoint.x} ${startPoint.y}`;
 
         if (edge.type === 'step') {
-            let lastPointStep = sourceSocket;
+            let lastPointStep = startPoint;
             [...edge.points, gappedTargetSocket].forEach(point => {
                 const midX = lastPointStep.x + (point.x - lastPointStep.x) / 2;
                 d += ` L ${midX} ${lastPointStep.y} L ${midX} ${point.y}`;
@@ -808,7 +819,7 @@ class GraphEditor {
             });
              d += ` L ${gappedTargetSocket.x} ${gappedTargetSocket.y}`;
         } else if (edge.type === 'bezier') {
-            const straightSourcePoint = this._getStraightPoint(sourceSocket, edge.source.socketId, bezierStraightLineDistance);
+            const straightSourcePoint = this._getStraightPoint(startPoint, edge.source.socketId, bezierStraightLineDistance);
             const straightTargetPoint = this._getStraightPoint(gappedTargetSocket, edge.target.socketId, bezierStraightLineDistance);
             d += ` L ${straightSourcePoint.x} ${straightSourcePoint.y}`;
 
@@ -1964,10 +1975,11 @@ class GraphEditor {
         const screenY = (nodeTop - this.state.viewbox.y) * (svgRect.height / this.state.viewbox.h) + svgRect.top;
 
         const panel = this.dom.propertiesPanel.panel;
-        panel.style.width = `${this.settings.defaultPropertiesWidth}px`;
+        panel.style.width = `${this.settings.propertiesPanelWidth}px`;
         panel.style.display = 'flex';
         panel.style.left = `${screenX}px`;
         panel.style.top = `${screenY}px`;
+        panel.style.transform = `translate(-50%, -100%) translateY(-${this.settings.propertiesPanelOffset}px)`;
     }
 
     _populateColorSwatches(currentColor) {
