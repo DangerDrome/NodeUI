@@ -95,8 +95,8 @@ body.grayscale-theme {
     --button-bg-color: var(--node-fill-color);
     --button-border-color: var(--node-stroke-color);
     --button-hover-bg-color: var(--node-hover-fill-color);
-    --selection-box-bg-color: rgba(87, 244, 134, 0.2);
-    --selection-box-border-color: #57f486;
+    --selection-box-bg-color: rgba(87, 244, 134, 0.08);
+    --selection-box-border-color: #4ade80ac;
     --snap-line-color: #a8a29e7a;
     --cut-line-color: #f87171;
     --swatch-1: #444444;
@@ -162,10 +162,11 @@ body {
 
 #selection-box {
     position: absolute;
-    border: 1px dashed var(--selection-box-border-color);
+    border: 2px dashed var(--selection-box-border-color);
     background-color: var(--selection-box-bg-color);
     display: none;
     pointer-events: none;
+    border-radius: 6px;
 }
 
 #graph-svg {
@@ -622,4 +623,10 @@ input, textarea {
 
 .side-panel.right.open .panel-toggle i {
     transform: rotate(180deg);
+}
+
+#left-panel .panel-content h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
