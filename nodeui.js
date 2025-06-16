@@ -133,7 +133,7 @@ class GraphEditor {
                 mouseDown: false,
                 didDrag: false,
                 rewiring: false,
-                snapping: true,
+                snapping: false,
                 snapToObjects: true,
             },
             dragStart: { x: 0, y: 0 },
