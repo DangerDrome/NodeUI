@@ -885,7 +885,34 @@ img[alt=Screenshot] {
     text-decoration: underline;
 }
 
-#graph-container.dragover {
-    outline: 2px dashed var(--accent-color);
-    outline-offset: -10px;
+.markdown-content video {
+    max-width: 100%;
+    display: block;
 }
+
+#drag-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 5;
+    /* background-color: var(--background-color); */
+}
+
+#graph-container.dragover #drag-overlay {
+    display: flex;
+}
+
+.drag-overlay-icon {
+    width: 128px;
+    height: 128px;
+    color: var(--text-color);
+    opacity: 0.5;
+}
+
+

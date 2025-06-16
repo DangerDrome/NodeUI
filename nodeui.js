@@ -2969,6 +2969,25 @@ class GraphEditor {
                 this._log(`Error reading image file: ${err.message}`);
                 console.error(err);
             }
+        } else if (this.fileTypes.video.includes(extension)) {
+            try {
+                const file = await handle.getFile();
+                const objectURL = URL.createObjectURL(file);
+                
+                const { x, y, w, h } = this.state.viewbox;
+                const newNode = this._addNode(x + w / 2, y + h / 2, 'markdown-node');
+                
+                newNode.properties.content = `<video controls width="100%"><source src="${objectURL}" type="${file.type}"></video>`;
+                newNode.title = file.name;
+                newNode.width = 740;
+                newNode.height = 540;
+
+                this._log(`Opened ${file.name} as a video node.`);
+                this._render();
+            } catch (err) {
+                this._log(`Error reading video file: ${err.message}`);
+                console.error(err);
+            }
         } else if (this.fileTypes.json.includes(extension)) {
             await this._loadFile(fileId);
         } else {
@@ -3005,6 +3024,16 @@ class GraphEditor {
             const newNode = this._addNode(pt.x, pt.y, 'markdown-node');
             
             newNode.properties.content = `![image](${objectURL})`;
+            newNode.title = file.name;
+            newNode.width = 740;
+            newNode.height = 540;
+
+            this._render();
+        } else if (this.fileTypes.video.includes(extension)) {
+            const objectURL = URL.createObjectURL(file);
+            const newNode = this._addNode(pt.x, pt.y, 'markdown-node');
+
+            newNode.properties.content = `<video controls width="100%"><source src="${objectURL}" type="${file.type}"></video>`;
             newNode.title = file.name;
             newNode.width = 740;
             newNode.height = 540;
