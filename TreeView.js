@@ -44,6 +44,7 @@ class TreeView {
                 case 'json': iconName = 'file-json'; break;
                 case 'image': iconName = 'image'; break;
                 case 'video': iconName = 'video'; break;
+                case 'markdown': iconName = 'file-text'; break;
             }
             prefixHTML = `<span class="chevron-placeholder"></span>`;
         }
@@ -77,6 +78,17 @@ class TreeView {
                 this._toggleFolder(li);
             } else if (li.classList.contains('file')) {
                 this._selectFile(li);
+            }
+        });
+
+        this.container.addEventListener('dblclick', e => {
+            const li = e.target.closest('li.file');
+            if (li && this.container.contains(li)) {
+                this.container.dispatchEvent(new CustomEvent('file-activated', {
+                    detail: { id: li.dataset.id },
+                    bubbles: true,
+                    composed: true
+                }));
             }
         });
     }

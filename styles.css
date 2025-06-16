@@ -36,6 +36,10 @@
     --swatch-6: #4ade80;
     --swatch-7: #60a5fa;
     --swatch-8: #818cf8;
+    --scrollbar-track-bg: #f1f1f1;
+    --scrollbar-thumb-bg: #ccc;
+    --scrollbar-thumb-hover-bg: #bbb;
+    --accent-color: #007bff;
 }
 
 body.dark-theme {
@@ -75,6 +79,11 @@ body.dark-theme {
     --swatch-6: #86efac;
     --swatch-7: #93c5fd;
     --swatch-8: #a5b4fc;
+    --scrollbar-track-bg: #2c2c2c;
+    --scrollbar-thumb-bg: #555;
+    --scrollbar-thumb-hover-bg: #666;
+    --scrollbar-thumb-border: #2a2a2a;
+    --accent-color: #4da6ff;
 }
 
 body.grayscale-theme {
@@ -103,13 +112,18 @@ body.grayscale-theme {
     --snap-line-color: #a8a29e7a;
     --cut-line-color: #f87171;
     --swatch-1: #444444;
-    --swatch-2: #a8a29e9a;
+    --swatch-2: #0404039a;
     --swatch-3: #f87171af;
     --swatch-4: #fb923c94;
     --swatch-5: #facc156c;
     --swatch-6: #4ade80ac;
     --swatch-7: #60cefaab;
     --swatch-8: #da81f89c;
+    --scrollbar-track-bg: #2a2a2a;
+    --scrollbar-thumb-bg: #444444;
+    --scrollbar-thumb-hover-bg: #444444;
+    --scrollbar-thumb-border: #2a2a2a;
+    --accent-color: #444444;
 }
 
 body {
@@ -799,23 +813,23 @@ input, textarea {
 }
 
 #left-panel {
-    width: 300px;
-    min-width: 300px;
+    width: 450px;
+    min-width: 450px;
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-    width: 12px;
+    width: 15px;
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--background-color);
+    background: var(--scrollbar-track-bg);
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: var(--controls-bg-color);
+    background-color: var(--scrollbar-thumb-bg);
     border-radius: 6px;
-    border: 3px solid var(--background-color);
+    border: 2px solid var(--scrollbar-track-bg);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -852,4 +866,21 @@ input, textarea {
 
 .markdown-content p {
     margin-top: 0;
+}
+
+img[alt=image] {
+    width: 640px;
+}
+
+img[alt=Screenshot] {
+    width: 640px;
+}
+
+.markdown-content a {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+
+.markdown-content a:hover {
+    text-decoration: underline;
 }

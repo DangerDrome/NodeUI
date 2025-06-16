@@ -43,6 +43,7 @@ class GraphEditor {
             json: ['.json'],
             image: ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'],
             video: ['.mp4', '.webm', '.mov', '.avi'],
+            markdown: ['.md', '.markdown'],
         };
         this.allowedExtensions = Object.values(this.fileTypes).flat();
 
@@ -2587,7 +2588,10 @@ class GraphEditor {
 
         this.dom.leftPanel.fileTree.addEventListener('file-selected', (e) => {
             this._log(`File selected: ${e.detail.id}`);
-            this._loadFile(e.detail.id);
+        });
+
+        this.dom.leftPanel.fileTree.addEventListener('file-activated', (e) => {
+            this._activateFile(e.detail.id);
         });
     }
 
@@ -2862,6 +2866,40 @@ class GraphEditor {
             this.dom.contextMenu.list.appendChild(li);
         });
         lucide.createIcons({ nodes: [this.dom.contextMenu.list] });
+    }
+
+    async _activateFile(fileId) {
+        const handle = this.state.fileHandles.get(fileId);
+        if (!handle) {
+            this._log(`File handle not found for ${fileId}`);
+            return;
+        }
+
+        const parts = handle.name.split('.');
+        const extension = parts.length > 1 ? `.${parts.pop().toLowerCase()}` : '';
+
+        if (this.fileTypes.markdown.includes(extension)) {
+            try {
+                const file = await handle.getFile();
+                const content = await file.text();
+                
+                const { x, y, w, h } = this.state.viewbox;
+                const newNode = this._addNode(x + w / 2, y + h / 2, 'markdown-node');
+                
+                newNode.properties.content = content;
+                newNode.title = file.name;
+
+                this._log(`Opened ${file.name} as a markdown node.`);
+                this._render();
+            } catch (err) {
+                this._log(`Error reading markdown file: ${err.message}`);
+                console.error(err);
+            }
+        } else if (this.fileTypes.json.includes(extension)) {
+            await this._loadFile(fileId);
+        } else {
+            this._log(`Cannot open file type: ${handle.name}`);
+        }
     }
 }
 
