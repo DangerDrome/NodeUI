@@ -37,6 +37,13 @@ class GraphEditor {
 
         this.defaultColors = [];
 
+        this.fileTypes = {
+            json: ['.json'],
+            image: ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'],
+            video: ['.mp4', '.webm', '.mov', '.avi'],
+        };
+        this.allowedExtensions = Object.values(this.fileTypes).flat();
+
         // =================================================================================================
         // DOM Elements
         // =================================================================================================
@@ -150,6 +157,7 @@ class GraphEditor {
             rewiringEdge: null,
             snapLines: [],
             fileHandles: new Map(),
+            treeData: null,
         };
 
         this.mainGroup = null;
@@ -359,6 +367,63 @@ class GraphEditor {
         
         // Drag and Drop
         this._setupDragAndDropListeners();
+        this._setupFileTreeDragAndDrop();
+    }
+
+    _setupFileTreeDragAndDrop() {
+        const fileTreeContainer = this.dom.leftPanel.panel;
+
+        fileTreeContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.dom.leftPanel.fileTree.classList.add('drag-over');
+        });
+
+        fileTreeContainer.addEventListener('dragleave', (e) => {
+            if (e.relatedTarget && fileTreeContainer.contains(e.relatedTarget)) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            this.dom.leftPanel.fileTree.classList.remove('drag-over');
+        });
+
+        fileTreeContainer.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.dom.leftPanel.fileTree.classList.remove('drag-over');
+            
+            if (!e.dataTransfer || !e.dataTransfer.items) {
+                this._log('Browser does not support DataTransfer.items');
+                return;
+            }
+
+            for (const item of e.dataTransfer.items) {
+                if (typeof item.getAsFileSystemHandle === 'function') {
+                    try {
+                        const handle = await item.getAsFileSystemHandle();
+                        if (handle.kind === 'file' && handle.name.endsWith('.json')) {
+                            this._log(`Loading dropped file: ${handle.name}`);
+                            const file = await handle.getFile();
+                            const content = await file.text();
+                            const data = JSON.parse(content);
+                            this._loadGraphData(data, file.name);
+                            return;
+                        } else if (handle.kind === 'directory') {
+                            this._log(`Loading dropped folder: ${handle.name}`);
+                            this.state.fileHandles.clear();
+                            const treeData = await this._buildFileTree(handle);
+                            this.state.treeData = treeData;
+                            this.treeView.render([treeData]);
+                            return;
+                        }
+                    } catch (err) {
+                        console.error("Error handling dropped item:", err);
+                        this._log(`Error handling drop: ${err.message}`);
+                    }
+                }
+            }
+        });
     }
 
     _toggleLeftPanel() {
@@ -814,6 +879,12 @@ class GraphEditor {
             .filter(node => visibleNodeIds.has(node.id))
             .sort((a, b) => this._compareNodesForRender(a, b));
 
+        // Performance optimization: Temporarily hide other panels
+        // to prevent lucide.createIcons() from scanning them.
+        const panels = [this.dom.leftPanel.panel, this.dom.rightPanel.panel, this.dom.bottomPanel.panel];
+        const originalDisplays = panels.map(p => p.style.display);
+        panels.forEach(p => p.style.display = 'none');
+
         sortedNodes.forEach(node => {
             const nodeGroup = this._createSVGElement('g', { class: 'node-group' });
 
@@ -830,6 +901,9 @@ class GraphEditor {
         });
         lucide.createIcons();
         this._updatePropertiesPanel();
+
+        // Restore panel displays
+        panels.forEach((p, i) => p.style.display = originalDisplays[i]);
     }
     
     _renderEdges() {
@@ -2424,6 +2498,7 @@ class GraphEditor {
             const directoryHandle = await window.showDirectoryPicker();
             this.state.fileHandles.clear();
             const treeData = await this._buildFileTree(directoryHandle);
+            this.state.treeData = treeData;
             this.treeView.render([treeData]);
             this._log(`Loaded directory: ${directoryHandle.name}`);
         } catch (err) {
@@ -2436,24 +2511,40 @@ class GraphEditor {
         }
     }
 
-    async _buildFileTree(directoryHandle) {
+    async _buildFileTree(directoryHandle, path = []) {
         const children = [];
         for await (const entry of directoryHandle.values()) {
-            if (entry.kind === 'file' && entry.name.endsWith('.json')) {
-                this.state.fileHandles.set(entry.name, entry);
-                children.push({
-                    id: entry.name,
-                    name: entry.name,
-                    children: []
-                });
+            const currentPath = [...path, entry.name];
+            const id = currentPath.join('/');
+            
+            const parts = entry.name.split('.');
+            const extension = parts.length > 1 ? `.${parts.pop().toLowerCase()}` : '';
+
+            if (entry.kind === 'file' && this.allowedExtensions.includes(extension)) {
+                let fileType = 'file';
+                for (const type in this.fileTypes) {
+                    if (this.fileTypes[type].includes(extension)) {
+                        fileType = type;
+                        break;
+                    }
+                }
+                this.state.fileHandles.set(id, entry);
+                children.push({ id, name: entry.name, type: fileType });
             } else if (entry.kind === 'directory') {
-                children.push(await this._buildFileTree(entry));
+                children.push(await this._buildFileTree(entry, currentPath));
             }
         }
         return {
-            id: directoryHandle.name,
-            name: directoryHandle.name,
-            children: children.sort((a,b) => (a.children.length > 0 === b.children.length > 0) ? a.name.localeCompare(b.name) : (a.children.length > 0 ? -1 : 1))
+            id: path.join('/'),
+            name: path.length > 0 ? path[path.length - 1] : directoryHandle.name,
+            children: children.sort((a, b) => {
+                const aIsFolder = a.children != null;
+                const bIsFolder = b.children != null;
+                if (aIsFolder === bIsFolder) {
+                    return a.name.localeCompare(b.name);
+                }
+                return aIsFolder ? -1 : 1;
+            })
         };
     }
 
@@ -2461,6 +2552,13 @@ class GraphEditor {
         const handle = this.state.fileHandles.get(fileId);
         if (!handle) {
             this._log(`File handle not found for ${fileId}`);
+            return;
+        }
+
+        const parts = handle.name.split('.');
+        const extension = parts.length > 1 ? `.${parts.pop().toLowerCase()}` : '';
+        if (!this.fileTypes.json.includes(extension)) {
+            this._log(`Cannot open non-JSON file: ${handle.name}`);
             return;
         }
 
@@ -2534,32 +2632,39 @@ class GraphEditor {
     }
     
     async _importGraph() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json,application/json';
-        input.onchange = e => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const data = JSON.parse(event.target.result);
-                    this._loadGraphData(data, file.name);
-                } catch (error) {
-                    this._log(`Error importing file: ${error.message}`);
-                    alert('Error parsing JSON file.');
-                }
-            };
-            reader.readAsText(file);
-        };
-        input.click();
+        if (!window.showOpenFilePicker) {
+            this._log('File System Access API is not supported in your browser.');
+            alert('Your browser does not support this feature.');
+            return;
+        }
+        try {
+            const [fileHandle] = await window.showOpenFilePicker({
+                types: [{
+                    description: 'JSON Files',
+                    accept: { 'application/json': ['.json'] },
+                }],
+                excludeAcceptAllOption: true,
+                multiple: false,
+            });
+            const file = await fileHandle.getFile();
+            const content = await file.text();
+            const data = JSON.parse(content);
+            this._loadGraphData(data, file.name);
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                this._log(`Error opening file: ${err.message}`);
+                console.error(err);
+            } else {
+                this._log('File selection cancelled.');
+            }
+        }
     }
 
     _exportGraph() {
         const data = {
             nodes: this.state.nodes,
             edges: this.state.edges,
+            tree: this.state.treeData,
         };
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
         const downloadAnchorNode = document.createElement('a');
@@ -2579,6 +2684,17 @@ class GraphEditor {
             this.state.nodeIdCounter = Math.max(0, ...this.state.nodes.map(n => n.id)) + 1;
             
             this._log(`Loaded graph from ${sourceName}`);
+            
+            if (data.tree) {
+                this.state.treeData = data.tree;
+                this.treeView.render([this.state.treeData]);
+                this.state.fileHandles.clear();
+                this._log('File tree restored. Please use "Load Folder" to re-enable file access.');
+            } else {
+                this.state.treeData = null;
+                this.treeView.render([]);
+            }
+
             this._render();
             this._zoomToFit();
         } else {

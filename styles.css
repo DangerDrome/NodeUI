@@ -694,6 +694,11 @@ input, textarea {
     padding: 2px 0;
 }
 
+.tree-view.drag-over {
+    background-color: var(--context-menu-hover-bg-color);
+    border-radius: 8px;
+}
+
 .tree-view .tree-node-content {
     display: flex;
     align-items: center;

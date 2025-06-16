@@ -3,6 +3,7 @@ class TreeView {
         this.container = container;
         this.tree = null;
         this.selectedFile = null;
+        this._addEventListeners();
     }
 
     // Public method to render the tree with given data
@@ -17,7 +18,6 @@ class TreeView {
         this.container.innerHTML = '';
         this.container.appendChild(this.tree);
         
-        this._addEventListeners();
         lucide.createIcons();
     }
 
@@ -26,13 +26,29 @@ class TreeView {
         const li = document.createElement('li');
         li.dataset.id = nodeData.id;
         
-        const isFolder = nodeData.children && nodeData.children.length > 0;
+        const isFolder = Array.isArray(nodeData.children);
         li.className = isFolder ? 'folder collapsed' : 'file';
 
         const nodeContent = document.createElement('div');
         nodeContent.className = 'tree-node-content';
         
-        const iconName = isFolder ? 'folder' : 'file-json';
+        let iconName = 'file';
+        if (isFolder) {
+            iconName = 'folder';
+        } else {
+            switch (nodeData.type) {
+                case 'json':
+                    iconName = 'file-json';
+                    break;
+                case 'image':
+                    iconName = 'image';
+                    break;
+                case 'video':
+                    iconName = 'video';
+                    break;
+            }
+        }
+        
         nodeContent.innerHTML = `<i data-lucide="${iconName}"></i><span>${nodeData.name}</span>`;
         li.appendChild(nodeContent);
 

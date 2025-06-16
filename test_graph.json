@@ -1,0 +1,470 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "x": 400,
+      "y": 460,
+      "width": 300,
+      "height": 200,
+      "locked": false,
+      "title": "Node 1",
+      "icon": "box",
+      "type": "default",
+      "color": "#444444",
+      "sockets": [
+        {
+          "id": 0,
+          "x": 400,
+          "y": 340
+        },
+        {
+          "id": 1,
+          "x": 400,
+          "y": 580
+        },
+        {
+          "id": 2,
+          "x": 230,
+          "y": 460
+        },
+        {
+          "id": 3,
+          "x": 570,
+          "y": 460
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "x": 1120,
+      "y": 760,
+      "width": 300,
+      "height": 200,
+      "locked": false,
+      "title": "Node 2",
+      "icon": "box",
+      "type": "default",
+      "color": "#444444",
+      "sockets": [
+        {
+          "id": 0,
+          "x": 1120,
+          "y": 640
+        },
+        {
+          "id": 1,
+          "x": 1120,
+          "y": 880
+        },
+        {
+          "id": 2,
+          "x": 950,
+          "y": 760
+        },
+        {
+          "id": 3,
+          "x": 1290,
+          "y": 760
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "x": 1100,
+      "y": 280,
+      "width": 300,
+      "height": 200,
+      "locked": false,
+      "title": "Node 3",
+      "icon": "box",
+      "type": "default",
+      "color": "#444444",
+      "sockets": [
+        {
+          "id": 0,
+          "x": 1100,
+          "y": 160
+        },
+        {
+          "id": 1,
+          "x": 1100,
+          "y": 400
+        },
+        {
+          "id": 2,
+          "x": 930,
+          "y": 280
+        },
+        {
+          "id": 3,
+          "x": 1270,
+          "y": 280
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": {
+        "nodeId": 1,
+        "socketId": 3
+      },
+      "target": {
+        "nodeId": 2,
+        "socketId": 2
+      },
+      "type": "bezier",
+      "points": []
+    },
+    {
+      "source": {
+        "nodeId": 1,
+        "socketId": 3
+      },
+      "target": {
+        "nodeId": 3,
+        "socketId": 2
+      },
+      "type": "bezier",
+      "points": []
+    }
+  ],
+  "tree": {
+    "id": "",
+    "name": "NodeUI",
+    "children": [
+      {
+        "id": ".git",
+        "name": ".git",
+        "children": [
+          {
+            "id": ".git/branches",
+            "name": "branches",
+            "children": []
+          },
+          {
+            "id": ".git/hooks",
+            "name": "hooks",
+            "children": []
+          },
+          {
+            "id": ".git/info",
+            "name": "info",
+            "children": []
+          },
+          {
+            "id": ".git/logs",
+            "name": "logs",
+            "children": [
+              {
+                "id": ".git/logs/refs",
+                "name": "refs",
+                "children": [
+                  {
+                    "id": ".git/logs/refs/heads",
+                    "name": "heads",
+                    "children": []
+                  },
+                  {
+                    "id": ".git/logs/refs/remotes",
+                    "name": "remotes",
+                    "children": [
+                      {
+                        "id": ".git/logs/refs/remotes/origin",
+                        "name": "origin",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": ".git/objects",
+            "name": "objects",
+            "children": [
+              {
+                "id": ".git/objects/03",
+                "name": "03",
+                "children": []
+              },
+              {
+                "id": ".git/objects/05",
+                "name": "05",
+                "children": []
+              },
+              {
+                "id": ".git/objects/0e",
+                "name": "0e",
+                "children": []
+              },
+              {
+                "id": ".git/objects/12",
+                "name": "12",
+                "children": []
+              },
+              {
+                "id": ".git/objects/14",
+                "name": "14",
+                "children": []
+              },
+              {
+                "id": ".git/objects/16",
+                "name": "16",
+                "children": []
+              },
+              {
+                "id": ".git/objects/19",
+                "name": "19",
+                "children": []
+              },
+              {
+                "id": ".git/objects/29",
+                "name": "29",
+                "children": []
+              },
+              {
+                "id": ".git/objects/2a",
+                "name": "2a",
+                "children": []
+              },
+              {
+                "id": ".git/objects/39",
+                "name": "39",
+                "children": []
+              },
+              {
+                "id": ".git/objects/49",
+                "name": "49",
+                "children": []
+              },
+              {
+                "id": ".git/objects/4c",
+                "name": "4c",
+                "children": []
+              },
+              {
+                "id": ".git/objects/50",
+                "name": "50",
+                "children": []
+              },
+              {
+                "id": ".git/objects/55",
+                "name": "55",
+                "children": []
+              },
+              {
+                "id": ".git/objects/57",
+                "name": "57",
+                "children": []
+              },
+              {
+                "id": ".git/objects/65",
+                "name": "65",
+                "children": []
+              },
+              {
+                "id": ".git/objects/68",
+                "name": "68",
+                "children": []
+              },
+              {
+                "id": ".git/objects/69",
+                "name": "69",
+                "children": []
+              },
+              {
+                "id": ".git/objects/6b",
+                "name": "6b",
+                "children": []
+              },
+              {
+                "id": ".git/objects/6c",
+                "name": "6c",
+                "children": []
+              },
+              {
+                "id": ".git/objects/76",
+                "name": "76",
+                "children": []
+              },
+              {
+                "id": ".git/objects/78",
+                "name": "78",
+                "children": []
+              },
+              {
+                "id": ".git/objects/81",
+                "name": "81",
+                "children": []
+              },
+              {
+                "id": ".git/objects/83",
+                "name": "83",
+                "children": []
+              },
+              {
+                "id": ".git/objects/89",
+                "name": "89",
+                "children": []
+              },
+              {
+                "id": ".git/objects/8b",
+                "name": "8b",
+                "children": []
+              },
+              {
+                "id": ".git/objects/8c",
+                "name": "8c",
+                "children": []
+              },
+              {
+                "id": ".git/objects/90",
+                "name": "90",
+                "children": []
+              },
+              {
+                "id": ".git/objects/92",
+                "name": "92",
+                "children": []
+              },
+              {
+                "id": ".git/objects/97",
+                "name": "97",
+                "children": []
+              },
+              {
+                "id": ".git/objects/98",
+                "name": "98",
+                "children": []
+              },
+              {
+                "id": ".git/objects/a6",
+                "name": "a6",
+                "children": []
+              },
+              {
+                "id": ".git/objects/a7",
+                "name": "a7",
+                "children": []
+              },
+              {
+                "id": ".git/objects/ab",
+                "name": "ab",
+                "children": []
+              },
+              {
+                "id": ".git/objects/ac",
+                "name": "ac",
+                "children": []
+              },
+              {
+                "id": ".git/objects/b4",
+                "name": "b4",
+                "children": []
+              },
+              {
+                "id": ".git/objects/b7",
+                "name": "b7",
+                "children": []
+              },
+              {
+                "id": ".git/objects/c1",
+                "name": "c1",
+                "children": []
+              },
+              {
+                "id": ".git/objects/c6",
+                "name": "c6",
+                "children": []
+              },
+              {
+                "id": ".git/objects/d9",
+                "name": "d9",
+                "children": []
+              },
+              {
+                "id": ".git/objects/db",
+                "name": "db",
+                "children": []
+              },
+              {
+                "id": ".git/objects/e0",
+                "name": "e0",
+                "children": []
+              },
+              {
+                "id": ".git/objects/e3",
+                "name": "e3",
+                "children": []
+              },
+              {
+                "id": ".git/objects/ee",
+                "name": "ee",
+                "children": []
+              },
+              {
+                "id": ".git/objects/f2",
+                "name": "f2",
+                "children": []
+              },
+              {
+                "id": ".git/objects/fc",
+                "name": "fc",
+                "children": []
+              },
+              {
+                "id": ".git/objects/ff",
+                "name": "ff",
+                "children": []
+              },
+              {
+                "id": ".git/objects/info",
+                "name": "info",
+                "children": []
+              },
+              {
+                "id": ".git/objects/pack",
+                "name": "pack",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": ".git/refs",
+            "name": "refs",
+            "children": [
+              {
+                "id": ".git/refs/heads",
+                "name": "heads",
+                "children": []
+              },
+              {
+                "id": ".git/refs/remotes",
+                "name": "remotes",
+                "children": [
+                  {
+                    "id": ".git/refs/remotes/origin",
+                    "name": "origin",
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": ".git/refs/tags",
+                "name": "tags",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "test_graph.json",
+        "name": "test_graph.json",
+        "type": "json"
+      }
+    ]
+  }
+}
