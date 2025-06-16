@@ -14,7 +14,8 @@ const MarkdownNode = {
     
     // Default properties for the node's data object
     properties: {
-        content: '# New Note\n\nStart typing your markdown here.'
+        content: '# New Note\n\nStart typing your markdown here.',
+        isEditing: false
     },
 
     /**
@@ -24,79 +25,53 @@ const MarkdownNode = {
      * @param {GraphEditor} graphEditor - The instance of the main graph editor.
      */
     render: function(node, nodeBodyEl, graphEditor) {
-        nodeBodyEl.style.padding = '0'; // Use custom padding inside
+        nodeBodyEl.style.padding = '5px';
 
-        const toolbar = document.createElement('div');
-        toolbar.className = 'markdown-toolbar';
-        
-        const toggleButton = document.createElement('button');
-        toggleButton.className = 'panel-button';
-
-        const editor = document.createElement('textarea');
-        editor.className = 'markdown-editor';
-        editor.value = node.properties.content || '';
-        editor.style.display = 'none';
-
-        const markdownContainer = document.createElement('div');
-        markdownContainer.className = 'markdown-content';
-        if (window.marked) {
-            markdownContainer.innerHTML = marked.parse(node.properties.content || '');
-        }
-
-        // --- Toggling Logic ---
         const setEditMode = (isEditing) => {
-            if (isEditing) {
-                markdownContainer.style.display = 'none';
-                editor.style.display = 'block';
-                toggleButton.innerHTML = `<i data-lucide="eye"></i>`;
-                editor.focus();
-            } else {
-                if (graphEditor && node.properties.content !== editor.value) {
+            if (node.properties.isEditing && !isEditing) {
+                const editor = nodeBodyEl.querySelector('.markdown-editor');
+                if (editor && node.properties.content !== editor.value) {
                     node.properties.content = editor.value;
                     graphEditor._saveStateForUndo('Edit Markdown Note');
                 }
-                markdownContainer.innerHTML = marked.parse(editor.value);
-                markdownContainer.style.display = 'block';
-                editor.style.display = 'none';
-                toggleButton.innerHTML = `<i data-lucide="edit-3"></i>`;
             }
-            lucide.createIcons({ nodes: [toggleButton] });
+            if (node.properties.isEditing !== isEditing) {
+                node.properties.isEditing = isEditing;
+                graphEditor._render();
+            }
         };
-        
-        // --- Event Handlers ---
-        toggleButton.addEventListener('mousedown', e => e.stopPropagation());
-        toggleButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isCurrentlyEditing = editor.style.display !== 'none';
-            setEditMode(!isCurrentlyEditing);
-        });
 
-        markdownContainer.addEventListener('dblclick', (e) => {
-            e.stopPropagation();
-            setEditMode(true);
-        });
+        if (node.properties.isEditing) {
+            const editor = document.createElement('textarea');
+            editor.className = 'markdown-editor';
+            editor.value = node.properties.content || '';
+            nodeBodyEl.appendChild(editor);
 
-        editor.addEventListener('blur', () => {
-            setEditMode(false);
-        });
-        
-        markdownContainer.addEventListener('mousedown', e => e.stopPropagation());
-        editor.addEventListener('mousedown', e => e.stopPropagation());
-        editor.addEventListener('keydown', (e) => {
-            e.stopPropagation();
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                setEditMode(false);
-                editor.blur();
+            editor.addEventListener('mousedown', e => e.stopPropagation());
+            editor.addEventListener('keydown', (e) => {
+                e.stopPropagation();
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    editor.blur();
+                }
+            });
+
+            editor.addEventListener('blur', () => setEditMode(false));
+            
+            setTimeout(() => editor.focus(), 0);
+        } else {
+            const markdownContainer = document.createElement('div');
+            markdownContainer.className = 'markdown-content';
+            if (window.marked) {
+                markdownContainer.innerHTML = marked.parse(node.properties.content || '');
             }
-        });
-        
-        // --- Assemble ---
-        toolbar.appendChild(toggleButton);
-        nodeBodyEl.appendChild(toolbar);
-        nodeBodyEl.appendChild(editor);
-        nodeBodyEl.appendChild(markdownContainer);
-
-        setEditMode(false); // Initial state
+            nodeBodyEl.appendChild(markdownContainer);
+            
+            markdownContainer.addEventListener('mousedown', e => e.stopPropagation());
+            markdownContainer.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                setEditMode(true);
+            });
+        }
     },
 
     /**
@@ -107,17 +82,18 @@ const MarkdownNode = {
      * @returns {Array<object>} A list of context menu item definitions.
      */
     getContextMenuItems: function(node, graphEditor, contextData) {
-        const nodeElement = contextData.nodeElement;
-        if (!nodeElement) return [];
-
-        const editor = nodeElement.querySelector('.markdown-editor');
-        const isEditing = editor && editor.style.display !== 'none';
+        const isEditing = node.properties.isEditing;
 
         const toggleEdit = () => {
-            const toggleButton = nodeElement.querySelector('.markdown-toolbar button');
-            if (toggleButton) {
-                toggleButton.click();
+            if (isEditing) {
+                const editor = contextData.nodeElement.querySelector('.markdown-editor');
+                 if (editor && node.properties.content !== editor.value) {
+                    node.properties.content = editor.value;
+                    graphEditor._saveStateForUndo('Edit Markdown Note');
+                }
             }
+            node.properties.isEditing = !isEditing;
+            graphEditor._render();
         };
 
         return [
@@ -132,9 +108,11 @@ const MarkdownNode = {
                 callback: () => {
                     if (confirm('Are you sure you want to clear the content?')) {
                         node.properties.content = '';
-                        editor.value = '';
-                        markdownContainer.innerHTML = marked.parse('');
+                        if (isEditing) {
+                            node.properties.isEditing = false;
+                        }
                         graphEditor._saveStateForUndo('Clear Markdown Note');
+                        graphEditor._render();
                     }
                 }
             }
@@ -146,8 +124,7 @@ const MarkdownNode = {
      * @param {object} node - The node data object that has just been created.
      */
     onNodeCreated: function(node) {
-        // You could, for example, set a unique default title
-        // node.title = `Note - ${new Date().toLocaleTimeString()}`;
+        node.properties.isEditing = false;
     }
 };
 

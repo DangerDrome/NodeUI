@@ -847,9 +847,3 @@ input, textarea {
 .markdown-content p {
     margin-top: 0;
 }
-
-.markdown-toolbar {
-    display: flex;
-    justify-content: flex-end;
-    padding: 0 5px 5px;
-}
