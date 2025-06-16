@@ -326,6 +326,8 @@ class GraphEditor {
         this.dom.leftPanel.toggleBtn.addEventListener('click', this._toggleLeftPanel.bind(this));
         this.dom.leftPanel.resizer.addEventListener('mousedown', this._startResizeLeftPanel.bind(this));
         this.dom.leftPanel.loadFolderBtn.addEventListener('click', () => this._loadFolder());
+        document.getElementById('import-graph-btn').addEventListener('click', () => this._importGraph());
+        document.getElementById('export-graph-btn').addEventListener('click', () => this._exportGraph());
         this.dom.bottomPanel.toggleBtn.addEventListener('click', this._toggleBottomPanel.bind(this));
         this.dom.rightPanel.toggleBtn.addEventListener('click', this._toggleRightPanel.bind(this));
         this.dom.addGroupBtn.addEventListener('click', () => {
@@ -1370,15 +1372,7 @@ class GraphEditor {
             reader.onload = (event) => {
                 try {
                     const data = JSON.parse(event.target.result);
-                    if (data.nodes && data.edges) {
-                        this.state.nodes = data.nodes;
-                        this.state.edges = data.edges;
-                        this.state.nodeIdCounter = Math.max(0, ...this.state.nodes.map(n => n.id)) + 1;
-                        this._log('Loaded graph from file');
-                        this._render();
-                    } else {
-                        alert('Invalid JSON format for graph data.');
-                    }
+                    this._loadGraphData(data, file.name);
                 } catch (error) {
                     alert('Error parsing JSON file.');
                 }
@@ -2474,17 +2468,7 @@ class GraphEditor {
             const file = await handle.getFile();
             const content = await file.text();
             const data = JSON.parse(content);
-            
-            if (data.nodes && data.edges) {
-                this.state.nodes = data.nodes;
-                this.state.edges = data.edges;
-                this.state.nodeIdCounter = Math.max(0, ...this.state.nodes.map(n => n.id)) + 1;
-                this._log(`Loaded graph from ${file.name}`);
-                this._render();
-                this._zoomToFit();
-            } else {
-                alert('Invalid JSON format for graph data.');
-            }
+            this._loadGraphData(data, file.name);
         } catch (err) {
             this._log(`Error loading file: ${err.message}`);
             console.error(err);
@@ -2510,6 +2494,96 @@ class GraphEditor {
 
         document.documentElement.addEventListener('mousemove', doDrag, false);
         document.documentElement.addEventListener('mouseup', stopDrag, false);
+    }
+
+    _zoomToFit() {
+        if (this.state.nodes.length === 0) return;
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        this.state.nodes.forEach(node => {
+            minX = Math.min(minX, node.x - node.width / 2);
+            minY = Math.min(minY, node.y - node.height / 2);
+            maxX = Math.max(maxX, node.x + node.width / 2);
+            maxY = Math.max(maxY, node.y + node.height / 2);
+        });
+
+        if (minX === Infinity) return;
+
+        const padding = 100;
+        const selectionWidth = maxX - minX;
+        const selectionHeight = maxY - minY;
+
+        const svgRect = this.dom.svg.getBoundingClientRect();
+        const zoomX = svgRect.width / (selectionWidth + padding * 2);
+        const zoomY = svgRect.height / (selectionHeight + padding * 2);
+        let zoomLevel = Math.min(zoomX, zoomY);
+
+        zoomLevel = Math.max(this.settings.minZoom, Math.min(this.settings.maxZoom, zoomLevel));
+        
+        this.state.viewbox.w = svgRect.width / zoomLevel;
+        this.state.viewbox.h = svgRect.height / zoomLevel;
+
+        const centerX = minX + selectionWidth / 2;
+        const centerY = minY + selectionHeight / 2;
+        
+        this.state.viewbox.x = centerX - this.state.viewbox.w / 2;
+        this.state.viewbox.y = centerY - this.state.viewbox.h / 2;
+
+        this._updateView();
+    }
+    
+    async _importGraph() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,application/json';
+        input.onchange = e => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    this._loadGraphData(data, file.name);
+                } catch (error) {
+                    this._log(`Error importing file: ${error.message}`);
+                    alert('Error parsing JSON file.');
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
+    _exportGraph() {
+        const data = {
+            nodes: this.state.nodes,
+            edges: this.state.edges,
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href",     dataStr);
+        downloadAnchorNode.setAttribute("download", "graph.json");
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        this._log('Graph exported as graph.json');
+    }
+
+    _loadGraphData(data, sourceName = 'file') {
+        if (data && Array.isArray(data.nodes) && Array.isArray(data.edges)) {
+            this._saveStateForUndo(`Load from ${sourceName}`);
+            this.state.nodes = data.nodes;
+            this.state.edges = data.edges;
+            this.state.nodeIdCounter = Math.max(0, ...this.state.nodes.map(n => n.id)) + 1;
+            
+            this._log(`Loaded graph from ${sourceName}`);
+            this._render();
+            this._zoomToFit();
+        } else {
+             alert('Invalid JSON format for graph data.');
+        }
     }
 }
 
