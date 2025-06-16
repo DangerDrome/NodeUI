@@ -121,6 +121,7 @@ body {
     -webkit-user-select: none; /* Safari */
     -ms-user-select: none; /* IE 10+ and Edge */
     -moz-user-select: none; /* Firefox */
+    overflow: hidden;
 }
 
 #controls {
@@ -444,7 +445,7 @@ body {
     display: none;
     margin: 20px;
     max-height: 80vh;
-    overflow-y: auto;
+    overflow-y: hidden;
     align-items: center;
     margin-bottom: 0;
 }
@@ -517,7 +518,7 @@ input, textarea {
 
 .panel-content {
     flex-grow: 1;
-    overflow-y: auto;
+    overflow-y: hidden;
 }
 
 .panel-footer {
