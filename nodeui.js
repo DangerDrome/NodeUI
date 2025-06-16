@@ -67,6 +67,7 @@ class GraphEditor {
             },
             addNodeBtn: document.getElementById('add-node-btn'),
             addGroupBtn: document.getElementById('add-group-btn'),
+            addMarkdownNodeBtn: document.getElementById('add-markdown-node-btn'),
             zoomInBtn: document.getElementById('zoom-in-btn'),
             zoomOutBtn: document.getElementById('zoom-out-btn'),
             zoomToSelectionBtn: document.getElementById('zoom-to-selection-btn'),
@@ -77,15 +78,7 @@ class GraphEditor {
             selectionBox: document.getElementById('selection-box'),
             contextMenu: {
                 menu: document.getElementById('context-menu'),
-                addNode: document.getElementById('add-node-option'),
-                addGroup: document.getElementById('add-group-option-context'),
-                toggleSnap: document.getElementById('toggle-snap-option'),
-                toggleSnapObj: document.getElementById('toggle-snap-obj-option'),
-                group: document.getElementById('group-option'),
-                deleteNode: document.getElementById('delete-node-option'),
-                lockNode: document.getElementById('lock-node-option'),
-                deleteEdge: document.getElementById('delete-edge-option'),
-                addRoutingPoint: document.getElementById('add-routing-point-option'),
+                list: document.querySelector('#context-menu ul'),
             },
             infoBar: document.getElementById('info-bar'),
             propertiesPanel: {
@@ -166,6 +159,7 @@ class GraphEditor {
         this.gridRect = null;
         this.zoomTimer = null;
         this.treeView = null;
+        this.nodeTypes = new Map();
     }
 
     // =================================================================================================
@@ -178,6 +172,7 @@ class GraphEditor {
     init() {
         this._initCanvas();
         this._initTreeView();
+        this._initNodeTypes();
         this._updateDefaultColors();
         this._setupEventListeners();
         this._render();
@@ -310,6 +305,29 @@ class GraphEditor {
         this.dom.svg.appendChild(marker);
     }
 
+    _initNodeTypes() {
+        // Register built-in types
+        this.registerNodeType({
+            type: 'default',
+            title: 'Node',
+            icon: 'box',
+            properties: {}
+        });
+        this.registerNodeType({
+            type: 'group',
+            title: 'Group',
+            icon: 'box-select',
+            properties: {}
+        });
+
+        // Register custom node types defined in other files
+        if (window.nodeDefinitions) {
+            window.nodeDefinitions.forEach(nodeDef => {
+                this.registerNodeType(nodeDef);
+            });
+        }
+    }
+
     /**
      * Sets up all event listeners for the application.
      */
@@ -344,6 +362,10 @@ class GraphEditor {
         this.dom.addGroupBtn.addEventListener('click', () => {
             const { x, y, w, h } = this.state.viewbox;
             this._addNode(x + w / 2, y + h / 2, 'group');
+        });
+        this.dom.addMarkdownNodeBtn.addEventListener('click', () => {
+            const { x, y, w, h } = this.state.viewbox;
+            this._addNode(x + w / 2, y + h / 2, 'markdown-node');
         });
         this.dom.zoomInBtn.addEventListener('click', () => this._zoom(0.8));
         this.dom.zoomOutBtn.addEventListener('click', () => this._zoom(1.2));
@@ -465,6 +487,7 @@ class GraphEditor {
         const handlers = {
             'add-node-option': () => this._handleContextMenuAddNode(),
             'add-group-option-context': () => this._handleContextMenuAddNode('group'),
+            'add-markdown-node-option-context': () => this._handleContextMenuAddNode('markdown-node'),
             'delete-node-option': () => this._handleContextMenuDeleteNode(),
             'lock-node-option': () => this._handleContextMenuLockNode(),
             'delete-edge-option': () => this._handleContextMenuDeleteEdge(),
@@ -614,6 +637,9 @@ class GraphEditor {
 
     _addNode(x, y, type = 'default') {
         this._saveStateForUndo(`Add ${type}`);
+
+        const nodeDef = this.nodeTypes.get(type) || this.nodeTypes.get('default');
+
         const snappedX = this.state.interaction.snapping ? Math.round(x / this.settings.gridSize) * this.settings.gridSize : x;
         const snappedY = this.state.interaction.snapping ? Math.round(y / this.settings.gridSize) * this.settings.gridSize : y;
         
@@ -629,14 +655,19 @@ class GraphEditor {
             width,
             height,
             locked: false,
-            title: isGroup ? `Group ${this.state.nodeIdCounter}` : `Node ${this.state.nodeIdCounter}`,
-            icon: isGroup ? 'box-select' : 'box',
+            title: `${nodeDef.title} ${this.state.nodeIdCounter}`,
+            icon: nodeDef.icon,
             type: type,
+            properties: JSON.parse(JSON.stringify(nodeDef.properties || {})),
             children: isGroup ? [] : undefined,
             parent: undefined,
             color: getComputedStyle(document.body).getPropertyValue('--node-fill-color').trim(),
             sockets: [],
         };
+
+        if (nodeDef.onNodeCreated) {
+            nodeDef.onNodeCreated(newNode);
+        }
 
         this._updateNodeSockets(newNode);
         this.state.nodes.push(newNode);
@@ -1111,15 +1142,26 @@ class GraphEditor {
         const nodeContent = document.createElement('div');
         nodeContent.className = 'node-content';
         
+        const nodeBody = document.createElement('div');
+        nodeBody.className = 'node-body';
+
         nodeContent.innerHTML = `
             <div class="node-header">
-                <i data-lucide="${icon}"></i>
+                <i class="node-icon" data-lucide="${icon}"></i>
                 <div class="node-title">${title}</div>
             </div>
-            <div class="node-body"></div>
             <div class="node-footer">ID: ${id}</div>
         `;
         
+        nodeContent.insertBefore(nodeBody, nodeContent.querySelector('.node-footer'));
+        
+        // --- Custom Node Rendering ---
+        const nodeDef = this.nodeTypes.get(node.type);
+        if (nodeDef && nodeDef.render) {
+            nodeDef.render(node, nodeBody, this);
+        }
+        // -------------------------
+
         if (node.locked) {
             const lockIndicator = document.createElement('div');
             lockIndicator.className = 'lock-indicator';
@@ -1416,11 +1458,20 @@ class GraphEditor {
     _handleContextMenu(e) {
         e.preventDefault();
         const target = e.target;
-        if (target.classList.contains('node')) {
-            this.state.contextNode = this.state.nodes.find(n => n.id == target.dataset.id);
-            this._showContextMenu(e.clientX, e.clientY, 'node');
-        } else if (target.classList.contains('edge-hitbox')) {
-            this.state.contextEdge = parseInt(target.dataset.index);
+        const nodeGroup = target.closest('.node-group');
+        const edgeHitbox = target.closest('.edge-hitbox');
+    
+        if (nodeGroup) {
+            const nodeRect = nodeGroup.querySelector('.node');
+            if (!nodeRect) return;
+
+            const nodeId = parseInt(nodeRect.dataset.id);
+            this.state.contextNode = this.state.nodes.find(n => n.id === nodeId);
+            if (this.state.contextNode) {
+                this._showContextMenu(e.clientX, e.clientY, 'node', { nodeElement: nodeGroup });
+            }
+        } else if (edgeHitbox) {
+            this.state.contextEdge = parseInt(edgeHitbox.dataset.index);
             this._showContextMenu(e.clientX, e.clientY, 'edge');
         } else {
             this.state.contextNode = null;
@@ -2070,38 +2121,29 @@ class GraphEditor {
     // Context Menu Handlers
     // =================================================================================================
 
-    _showContextMenu(x, y, type) {
-        const { menu, addNode, addGroup, deleteNode, lockNode, deleteEdge, addRoutingPoint, group, toggleSnap, toggleSnapObj } = this.dom.contextMenu;
-        
-        const display = (el, condition) => {
-            if (el) el.style.display = condition ? 'block' : 'none';
-        }
+    _showContextMenu(x, y, type, contextData = {}) {
+        let items = [];
+        if (type === 'node') {
+            const node = this.state.contextNode;
+            const defaultItems = this._getDefaultNodeContextMenuItems(node);
+            const nodeDef = this.nodeTypes.get(node.type);
 
-        const isConnecting = type === 'connecting';
-
-        display(addNode, type === 'canvas' || isConnecting);
-        display(addGroup, type === 'canvas' || isConnecting);
-        display(toggleSnap, type === 'canvas');
-        display(toggleSnapObj, type === 'canvas');
-        display(deleteNode, type === 'node');
-        display(lockNode, type === 'node');
-        display(group, type === 'node' && this.state.selectedNodeIds.length > 1);
-        display(deleteEdge, type === 'edge');
-        display(addRoutingPoint, type === 'edge');
-
-        if (type === 'canvas') {
-            toggleSnap.querySelector('span').textContent = `Snapping: ${this.state.interaction.snapping ? 'On' : 'Off'}`;
-            toggleSnapObj.querySelector('span').textContent = `Snap To Objects: ${this.state.interaction.snapToObjects ? 'On' : 'Off'}`;
-        }
-
-        if (type === 'node' && this.state.contextNode) {
-            const lockNodeSpan = lockNode.querySelector('span');
-            if(lockNodeSpan) {
-                lockNodeSpan.textContent = `Lock: ${this.state.contextNode.locked ? 'On' : 'Off'}`;
+            if (nodeDef && nodeDef.getContextMenuItems) {
+                const customItems = nodeDef.getContextMenuItems(node, this, contextData);
+                items = customItems.concat([{ separator: true }], defaultItems);
+            } else {
+                items = defaultItems;
             }
+        } else if (type === 'edge') {
+            items = this._getEdgeContextMenuItems();
+        } else if (type === 'canvas' || type === 'connecting') {
+            items = this._getCanvasContextMenuItems(type === 'connecting');
         }
 
-        Object.assign(menu.style, { display: 'block', left: `${x}px`, top: `${y}px` });
+        if (items.length === 0) return;
+
+        this._populateContextMenu(items);
+        Object.assign(this.dom.contextMenu.menu.style, { display: 'block', left: `${x}px`, top: `${y}px` });
     }
     
     _hideContextMenu() {
@@ -2111,33 +2153,58 @@ class GraphEditor {
             this._render();
         }
     }
-    
-    _handleContextMenuAddNode(type = 'default') {
-        if (this.state.interaction.connecting) {
-            const newNode = this._addNode(this.state.connectionEndPosition.x, this.state.connectionEndPosition.y, type);
-            const startNode = this.state.nodes.find(n => n.id === this.state.connectionStartSocket.nodeId);
-            const startSocket = startNode.sockets[this.state.connectionStartSocket.socketId];
 
-            const closestSocketInfo = newNode.sockets.reduce((closest, socket) => {
-                const socketPos = { x: newNode.x + socket.x, y: newNode.y + socket.y };
-                const startSocketPos = { x: startNode.x + startSocket.x, y: startNode.y + startSocket.y };
-                const distance = Math.hypot(socketPos.x - startSocketPos.x, socketPos.y - startSocketPos.y);
-                if (distance < closest.minDistance) {
-                    return { socket, minDistance: distance };
-                }
-                return closest;
-            }, { socket: null, minDistance: Infinity });
-
-            this._createEdge(this.state.connectionStartSocket, { nodeId: newNode.id, socketId: closestSocketInfo.socket.id });
-            this._resetConnectionState();
-        } else {
-            const rect = this.dom.svg.getBoundingClientRect();
-            const { left, top } = this.dom.contextMenu.menu.style;
-            const svgP = this._screenToSVGCoords(parseFloat(left), parseFloat(top), rect);
-            this._addNode(svgP.x, svgP.y, type);
+    _getDefaultNodeContextMenuItems(node) {
+        const items = [
+            {
+                label: `Lock: ${node.locked ? 'On' : 'Off'}`,
+                icon: 'lock',
+                callback: () => this._handleContextMenuLockNode()
+            },
+            {
+                label: 'Delete Node',
+                icon: 'trash-2',
+                callback: () => this._handleContextMenuDeleteNode()
+            }
+        ];
+        // Add group option if multiple nodes are selected
+        if (this.state.selectedNodeIds.length > 1) {
+            items.push({
+                label: 'Group Selection',
+                icon: 'group',
+                callback: () => this._handleContextMenuGroup()
+            });
         }
-        this._hideContextMenu();
-        this._render();
+        return items;
+    }
+
+    _getEdgeContextMenuItems() {
+        return [
+            { label: 'Add Routing Point', icon: 'spline', callback: () => this._handleContextMenuAddRoutingPoint() },
+            { label: 'Delete Edge', icon: 'trash-2', callback: () => this._handleContextMenuDeleteEdge() },
+        ];
+    }
+
+    _getCanvasContextMenuItems(isConnecting) {
+        const items = [
+            { label: 'Add Node', icon: 'box', callback: () => this._handleContextMenuAddNode('default') },
+            { label: 'Add Group', icon: 'box-select', callback: () => this._handleContextMenuAddNode('group') },
+            { label: 'Add Markdown Note', icon: 'file-text', callback: () => this._handleContextMenuAddNode('markdown-node') },
+        ];
+        if (!isConnecting) {
+            items.push({ separator: true });
+            items.push({
+                label: `Snapping: ${this.state.interaction.snapping ? 'On' : 'Off'}`,
+                icon: 'grid',
+                callback: () => this._handleContextMenuToggleSnap()
+            });
+            items.push({
+                label: `Snap To Objects: ${this.state.interaction.snapToObjects ? 'On' : 'Off'}`,
+                icon: 'magnet',
+                callback: () => this._handleContextMenuToggleSnapToObjects()
+            });
+        }
+        return items;
     }
 
     _handleContextMenuDeleteNode() {
@@ -2205,6 +2272,34 @@ class GraphEditor {
         this.state.interaction.snapToObjects = !this.state.interaction.snapToObjects;
         this._log(`Snap to objects ${this.state.interaction.snapToObjects ? 'enabled' : 'disabled'}`);
         this._hideContextMenu();
+    }
+
+    _handleContextMenuAddNode(type = 'default') {
+        if (this.state.interaction.connecting) {
+            const newNode = this._addNode(this.state.connectionEndPosition.x, this.state.connectionEndPosition.y, type);
+            const startNode = this.state.nodes.find(n => n.id === this.state.connectionStartSocket.nodeId);
+            const startSocket = startNode.sockets[this.state.connectionStartSocket.socketId];
+
+            const closestSocketInfo = newNode.sockets.reduce((closest, socket) => {
+                const socketPos = { x: newNode.x + socket.x, y: newNode.y + socket.y };
+                const startSocketPos = { x: startNode.x + startSocket.x, y: startNode.y + startSocket.y };
+                const distance = Math.hypot(socketPos.x - startSocketPos.x, socketPos.y - startSocketPos.y);
+                if (distance < closest.minDistance) {
+                    return { socket, minDistance: distance };
+                }
+                return closest;
+            }, { socket: null, minDistance: Infinity });
+
+            this._createEdge(this.state.connectionStartSocket, { nodeId: newNode.id, socketId: closestSocketInfo.socket.id });
+            this._resetConnectionState();
+        } else {
+            const rect = this.dom.svg.getBoundingClientRect();
+            const { left, top } = this.dom.contextMenu.menu.style;
+            const svgP = this._screenToSVGCoords(parseFloat(left), parseFloat(top), rect);
+            this._addNode(svgP.x, svgP.y, type);
+        }
+        this._hideContextMenu();
+        this._render();
     }
 
     // =================================================================================================
@@ -2717,6 +2812,46 @@ class GraphEditor {
             this._log(`Error refreshing file tree: ${err.message}`);
             console.error(err);
         }
+    }
+
+    registerNodeType(nodeDefinition) {
+        if (!nodeDefinition.type) {
+            console.error('Node definition must have a type.', nodeDefinition);
+            return;
+        }
+        this.nodeTypes.set(nodeDefinition.type, nodeDefinition);
+        this._log(`Registered custom node type: ${nodeDefinition.type}`);
+    }
+
+    _populateContextMenu(items) {
+        this.dom.contextMenu.list.innerHTML = '';
+        items.forEach(item => {
+            if (item.separator) {
+                const separator = document.createElement('li');
+                separator.className = 'context-menu-separator';
+                this.dom.contextMenu.list.appendChild(separator);
+                return;
+            }
+    
+            const li = document.createElement('li');
+            if (item.icon) {
+                li.innerHTML = `<i data-lucide="${item.icon}"></i><span>${item.label}</span>`;
+            } else {
+                li.innerHTML = `<span>${item.label}</span>`;
+            }
+
+            if(item.disabled) {
+                li.classList.add('disabled');
+            } else {
+                li.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    item.callback();
+                    this._hideContextMenu();
+                });
+            }
+            this.dom.contextMenu.list.appendChild(li);
+        });
+        lucide.createIcons({ nodes: [this.dom.contextMenu.list] });
     }
 }
 

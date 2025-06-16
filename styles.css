@@ -5,6 +5,7 @@
     --graph-border-color: #CAE8BD;
     --node-fill-color: #B0DB9C;
     --node-stroke-color: #89C977;
+    --node-header-bg-color: #D2F2C5;
     --node-selected-stroke-color: #4682b4;
     --node-hover-fill-color: #A0D28D;
     --edge-stroke-color: #89C977;
@@ -44,6 +45,7 @@ body.dark-theme {
     --graph-border-color: #7E6363;
     --node-fill-color: #A87C7C;
     --node-stroke-color: #8A6363;
+    --node-header-bg-color: #9A6F6F;
     --node-selected-stroke-color: #ffffff;
     --node-hover-fill-color: #9A6F6F;
     --edge-stroke-color: #8A6363;
@@ -82,6 +84,7 @@ body.grayscale-theme {
     --graph-border-color: #3a3a3a;
     --node-fill-color: #444444;
     --node-stroke-color: #666666;
+    --node-header-bg-color: #33333357;
     --node-selected-stroke-color: #57f486;
     --node-hover-fill-color: #555555;
     --edge-stroke-color: #888888;
@@ -301,6 +304,12 @@ body {
     background-color: var(--context-menu-hover-bg-color);
 }
 
+.context-menu-separator {
+    height: 1px;
+    background-color: var(--graph-border-color);
+    margin: 5px 0;
+}
+
 .lock-indicator {
     position: absolute;
     top: 8px;
@@ -324,18 +333,31 @@ body {
 .node-header {
     display: flex;
     align-items: center;
-    padding: 5px;
-    background-color: rgba(0, 0, 0, 0.1);
+    justify-content: center;
+    position: relative;
+    padding: 20px;
+    background-color: var(--node-header-bg-color);
+    border-bottom: 1px solid var(--graph-border-color);
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    cursor: grab;
+}
+
+.node-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .node-title {
     font-weight: bold;
-    margin-left: 5px;
 }
 
 .node-body {
     padding: 5px;
     flex-grow: 1;
+    pointer-events: all;
 }
 
 .node-footer {
@@ -798,4 +820,36 @@ input, textarea {
 
 ::-webkit-scrollbar-thumb:hover {
     background-color: var(--node-stroke-color);
+}
+
+.markdown-content, .markdown-editor {
+    padding: 10px;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.markdown-editor {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border: none;
+    resize: none;
+    width: 100%;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+    margin-top: 0;
+    border-bottom: 1px solid var(--graph-border-color);
+    padding-bottom: 5px;
+}
+
+.markdown-content p {
+    margin-top: 0;
+}
+
+.markdown-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 5px 5px;
 }
