@@ -26,6 +26,7 @@
     --selection-box-border-color: #4682b4;
     --edge-stroke-width: 4px;
     --snap-line-color: #ff00ff;
+    --cut-line-color: #f87171;
     --swatch-1: #444444;
     --swatch-2: #a8a29e;
     --swatch-3: #f87171;
@@ -63,6 +64,7 @@ body.dark-theme {
     --selection-box-bg-color: rgba(255, 255, 255, 0.1);
     --selection-box-border-color: #ffffff;
     --snap-line-color: #00ffff;
+    --cut-line-color: #facc15;
     --swatch-1: #A87C7C;
     --swatch-2: #c7b2b2;
     --swatch-3: #fca5a5;
@@ -95,15 +97,16 @@ body.grayscale-theme {
     --button-hover-bg-color: var(--node-hover-fill-color);
     --selection-box-bg-color: rgba(87, 244, 134, 0.2);
     --selection-box-border-color: #57f486;
-    --snap-line-color: #57f486;
+    --snap-line-color: #c7b2b2;
+    --cut-line-color: #f87171;
     --swatch-1: #444444;
-    --swatch-2: #a8a29e;
-    --swatch-3: #f87171;
-    --swatch-4: #fb923c;
-    --swatch-5: #facc15;
-    --swatch-6: #4ade80;
-    --swatch-7: #60a5fa;
-    --swatch-8: #818cf8;
+    --swatch-2: #a8a29e9a;
+    --swatch-3: #f87171af;
+    --swatch-4: #fb923c94;
+    --swatch-5: #facc156c;
+    --swatch-6: #4ade80ac;
+    --swatch-7: #60cefaab;
+    --swatch-8: #da81f89c;
 }
 
 body {
@@ -251,6 +254,10 @@ body {
     display: none;
 }
 
+.connection-handle-visible.is-target {
+    display: none !important;
+}
+
 .node-group:hover .connection-handle-visible, .connection-handle-visible.connected {
     display: block;
 }
@@ -267,7 +274,7 @@ body {
 }
 
 .cut-line {
-    stroke: red;
+    stroke: var(--cut-line-color);
     stroke-width: 2px;
     stroke-dasharray: 5 5;
     fill: none;

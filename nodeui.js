@@ -30,6 +30,7 @@ class GraphEditor {
             arrowWidth: 15,
             arrowOffset: -10,
             arrowGap: 0,
+            connectionHandleSize: 6,
         };
 
         this.defaultSettings = { ...this.settings };
@@ -87,6 +88,7 @@ class GraphEditor {
                 connectionHandleOffset: document.getElementById('connection-handle-offset'),
                 edgeStrokeWidth: document.getElementById('edge-stroke-width'),
                 edgeStartOffset: document.getElementById('edge-start-offset'),
+                connectionHandleSize: document.getElementById('connection-handle-size'),
                 resetBtn: document.getElementById('reset-settings-btn')
             },
         };
@@ -443,6 +445,7 @@ class GraphEditor {
         setupListener(this.dom.settingsPanel.connectionHandleOffset, 'connectionHandleOffset', true);
         setupListener(this.dom.settingsPanel.edgeStrokeWidth, 'edgeStrokeWidth', true);
         setupListener(this.dom.settingsPanel.edgeStartOffset, 'edgeStartOffset', true);
+        setupListener(this.dom.settingsPanel.connectionHandleSize, 'connectionHandleSize', true);
     }
 
     _setupDragAndDropListeners() {
@@ -996,14 +999,24 @@ class GraphEditor {
     _createConnectionHandles(node, parent) {
         const { id } = node;
         node.sockets.forEach(socket => {
-            const isConnected = this.state.edges.some(edge => 
-                (edge.source.nodeId === id && edge.source.socketId === socket.id) ||
-                (edge.target.nodeId === id && edge.target.socketId === socket.id)
+            const isConnectedAsSource = this.state.edges.some(edge =>
+                edge.source.nodeId === id && edge.source.socketId === socket.id
+            );
+            const isConnectedAsTarget = this.state.edges.some(edge =>
+                edge.target.nodeId === id && edge.target.socketId === socket.id
             );
 
+            const classes = ['connection-handle-visible'];
+            if (isConnectedAsSource) {
+                classes.push('connected');
+            }
+            if (isConnectedAsTarget && !isConnectedAsSource) {
+                classes.push('is-target');
+            }
+
             const handle = this._createSVGElement('circle', {
-                cx: socket.x, cy: socket.y, r: 5,
-                class: `connection-handle-visible ${isConnected ? 'connected' : ''}`,
+                cx: socket.x, cy: socket.y, r: this.settings.connectionHandleSize,
+                class: classes.join(' '),
                 'data-node-id': id,
                 'data-socket-id': socket.id
             });
