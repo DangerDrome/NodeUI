@@ -17,6 +17,7 @@ class GraphEditor {
             defaultNodeHeight: 200,
             defaultGroupWidth: 600,
             defaultGroupHeight: 400,
+            groupPadding: 200,
             propertiesPanelWidth: 300,
             propertiesPanelOffset: 50,
             connectionZoneRadius: 50,
@@ -79,6 +80,7 @@ class GraphEditor {
                 defaultNodeHeight: document.getElementById('default-node-height'),
                 defaultGroupWidth: document.getElementById('default-group-width'),
                 defaultGroupHeight: document.getElementById('default-group-height'),
+                groupPadding: document.getElementById('group-padding'),
                 propertiesPanelWidth: document.getElementById('default-properties-width'),
                 propertiesPanelOffset: document.getElementById('properties-panel-offset'),
                 connectionZoneRadius: document.getElementById('connection-zone-radius'),
@@ -434,6 +436,7 @@ class GraphEditor {
         setupListener(this.dom.settingsPanel.defaultNodeHeight, 'defaultNodeHeight');
         setupListener(this.dom.settingsPanel.defaultGroupWidth, 'defaultGroupWidth');
         setupListener(this.dom.settingsPanel.defaultGroupHeight, 'defaultGroupHeight');
+        setupListener(this.dom.settingsPanel.groupPadding, 'groupPadding');
         setupListener(this.dom.settingsPanel.propertiesPanelWidth, 'propertiesPanelWidth', true);
         setupListener(this.dom.settingsPanel.propertiesPanelOffset, 'propertiesPanelOffset', true);
         setupListener(this.dom.settingsPanel.connectionZoneRadius, 'connectionZoneRadius', true);
@@ -650,7 +653,7 @@ class GraphEditor {
             maxY: Math.max(acc.maxY, node.y + node.height / 2),
         }), { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
         
-        const padding = 40;
+        const padding = this.settings.groupPadding;
         const groupWidth = bounds.maxX - bounds.minX + padding * 2;
         const groupHeight = bounds.maxY - bounds.minY + padding * 2;
         const groupX = bounds.minX + groupWidth / 2 - padding;
