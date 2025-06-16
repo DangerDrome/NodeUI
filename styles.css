@@ -836,6 +836,12 @@ input, textarea {
     width: 100%;
 }
 
+.markdown-editor:focus {
+    outline: 2px solid #444444;
+    border-radius: 4px;
+    outline-offset: -2px;
+}
+
 .markdown-content h1,
 .markdown-content h2,
 .markdown-content h3 {

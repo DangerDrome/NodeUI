@@ -16,16 +16,18 @@ class GraphEditor {
             defaultNodeWidth: 300,
             defaultNodeHeight: 200,
             defaultGroupWidth: 600,
-            defaultGroupHeight: 400,
+            defaultGroupHeight: 500,
+            defaultMarkdownNodeWidth: 400,
+            defaultMarkdownNodeHeight: 300,
             groupPadding: 200,
             propertiesPanelWidth: 300,
             propertiesPanelOffset: 50,
             connectionZoneRadius: 50,
             edgeStrokeWidth: 4,
-            edgeStartOffset: 5,
+            edgeStartOffset: 10,
             bezierOffset: 50,
             bezierStraightLineDistance: 5,
-            connectionHandleOffset: 20,
+            connectionHandleOffset: 15,
             arrowSize: 15,
             arrowWidth: 15,
             arrowOffset: -10,
@@ -643,9 +645,17 @@ class GraphEditor {
         const snappedX = this.state.interaction.snapping ? Math.round(x / this.settings.gridSize) * this.settings.gridSize : x;
         const snappedY = this.state.interaction.snapping ? Math.round(y / this.settings.gridSize) * this.settings.gridSize : y;
         
-        const isGroup = type === 'group';
-        const width = isGroup ? this.settings.defaultGroupWidth : this.settings.defaultNodeWidth;
-        const height = isGroup ? this.settings.defaultGroupHeight : this.settings.defaultNodeHeight;
+        let width, height;
+        if (type === 'group') {
+            width = this.settings.defaultGroupWidth;
+            height = this.settings.defaultGroupHeight;
+        } else if (type === 'markdown-node') {
+            width = this.settings.defaultMarkdownNodeWidth;
+            height = this.settings.defaultMarkdownNodeHeight;
+        } else {
+            width = this.settings.defaultNodeWidth;
+            height = this.settings.defaultNodeHeight;
+        }
         
         this.state.nodeIdCounter++;
         const newNode = {
@@ -659,7 +669,7 @@ class GraphEditor {
             icon: nodeDef.icon,
             type: type,
             properties: JSON.parse(JSON.stringify(nodeDef.properties || {})),
-            children: isGroup ? [] : undefined,
+            children: type === 'group' ? [] : undefined,
             parent: undefined,
             color: getComputedStyle(document.body).getPropertyValue('--node-fill-color').trim(),
             sockets: [],
