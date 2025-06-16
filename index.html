@@ -8,19 +8,33 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="grayscale-theme">
-    <div id="controls">
-        <button id="add-node-btn"><i data-lucide="plus"></i></button>
-        <button id="add-group-btn"><i data-lucide="box-select"></i></button>
-        <button id="zoom-in-btn"><i data-lucide="zoom-in"></i></button>
-        <button id="zoom-out-btn"><i data-lucide="zoom-out"></i></button>
-        <button id="zoom-to-selection-btn"><i data-lucide="scan-search"></i></button>
-        <button id="theme-toggle-btn"><i data-lucide="sun"></i></button>
-        <button id="settings-btn"><i data-lucide="settings"></i></button>
-        <select id="edge-type-select">
-            <option value="straight">Straight</option>
-            <option value="step">Step</option>
-            <option value="bezier" selected>Bezier</option>
-        </select>
+    <div id="left-panel" class="side-panel">
+        <div class="panel-content">
+            <h3>Library</h3>
+            <!-- Node library content will go here -->
+        </div>
+        <button id="left-panel-toggle" class="panel-toggle">
+            <i data-lucide="chevron-right"></i>
+        </button>
+    </div>
+    <div id="bottom-panel" class="side-panel bottom">
+        <button id="bottom-panel-toggle" class="panel-toggle">
+            <i data-lucide="chevron-up"></i>
+        </button>
+        <div id="controls">
+            <button id="add-node-btn"><i data-lucide="plus"></i></button>
+            <button id="add-group-btn"><i data-lucide="box-select"></i></button>
+            <button id="zoom-in-btn"><i data-lucide="zoom-in"></i></button>
+            <button id="zoom-out-btn"><i data-lucide="zoom-out"></i></button>
+            <button id="zoom-to-selection-btn"><i data-lucide="scan-search"></i></button>
+            <button id="theme-toggle-btn"><i data-lucide="sun"></i></button>
+            <button id="settings-btn"><i data-lucide="settings"></i></button>
+            <select id="edge-type-select">
+                <option value="straight">Straight</option>
+                <option value="step">Step</option>
+                <option value="bezier" selected>Bezier</option>
+            </select>
+        </div>
     </div>
     <div id="graph-container">
         <svg id="graph-svg"></svg>
@@ -51,75 +65,77 @@
             <div id="node-color-swatches"></div>
         </div>
     </div>
-    <div id="settings-panel">
-        <div class="panel-header">
-            <h3><i data-lucide="settings"></i> Settings</h3>
-            <button id="close-settings-btn" class="panel-button"><i data-lucide="x"></i></button>
-        </div>
-        <div class="panel-content">
-            <div class="property">
-                <label for="grid-size"><i data-lucide="grid"></i> Grid Size:</label>
-                <input type="number" id="grid-size" min="10" max="100" step="5">
+    <div id="right-panel" class="side-panel right">
+        <button id="right-panel-toggle" class="panel-toggle">
+            <i data-lucide="chevron-left"></i>
+        </button>
+        <div id="settings-panel">
+            <div class="panel-header">
+                <h3><i data-lucide="settings"></i> Settings</h3>
+                <button id="reset-settings-btn" class="panel-button"><i data-lucide="rotate-ccw"></i></button>
             </div>
-            <div class="property">
-                <label for="min-zoom"><i data-lucide="zoom-out"></i> Min Zoom:</label>
-                <input type="number" id="min-zoom" min="0.1" max="1" step="0.1">
+            <div class="panel-content">
+                <div class="property">
+                    <label for="grid-size"><i data-lucide="grid"></i> Grid Size:</label>
+                    <input type="number" id="grid-size" min="10" max="100" step="5">
+                </div>
+                <div class="property">
+                    <label for="min-zoom"><i data-lucide="zoom-out"></i> Min Zoom:</label>
+                    <input type="number" id="min-zoom" min="0.1" max="1" step="0.1">
+                </div>
+                <div class="property">
+                    <label for="max-zoom"><i data-lucide="zoom-in"></i> Max Zoom:</label>
+                    <input type="number" id="max-zoom" min="1" max="5" step="0.5">
+                </div>
+                <div class="property">
+                    <label for="default-node-width"><i data-lucide="move-horizontal"></i> Default Node Width:</label>
+                    <input type="number" id="default-node-width" min="50" max="300" step="10">
+                </div>
+                <div class="property">
+                    <label for="default-node-height"><i data-lucide="move-vertical"></i> Default Node Height:</label>
+                    <input type="number" id="default-node-height" min="30" max="200" step="10">
+                </div>
+                <div class="property">
+                    <label for="default-group-width"><i data-lucide="maximize"></i> Default Group Width:</label>
+                    <input type="number" id="default-group-width" min="100" max="500" step="20">
+                </div>
+                <div class="property">
+                    <label for="default-group-height"><i data-lucide="minimize"></i> Default Group Height:</label>
+                    <input type="number" id="default-group-height" min="80" max="400" step="20">
+                </div>
+                <div class="property">
+                    <label for="group-padding"><i data-lucide="expand"></i> Group Padding:</label>
+                    <input type="number" id="group-padding" min="10" max="200" step="5" value="80">
+                </div>
+                <div class="property">
+                    <label for="default-properties-width"><i data-lucide="panel-right"></i> Properties Panel Width:</label>
+                    <input type="number" id="default-properties-width" min="200" max="500" step="10" value="300">
+                </div>
+                <div class="property">
+                    <label for="properties-panel-offset"><i data-lucide="chevrons-up-down"></i> Properties Panel Offset:</label>
+                    <input type="number" id="properties-panel-offset" min="-50" max="50" step="1" value="15">
+                </div>
+                <div class="property">
+                    <label for="connection-zone-radius"><i data-lucide="circle-dot"></i> Connection Zone Radius:</label>
+                    <input type="number" id="connection-zone-radius" min="10" max="100" step="5">
+                </div>
+                <div class="property">
+                    <label for="connection-handle-offset"><i data-lucide="bring-to-front"></i> Connection Handle Offset:</label>
+                    <input type="number" id="connection-handle-offset" min="0" max="50" step="1" value="10">
+                </div>
+                <div class="property">
+                    <label for="connection-handle-size"><i data-lucide="circle"></i> Connection Handle Size:</label>
+                    <input type="number" id="connection-handle-size" min="2" max="20" step="1" value="5">
+                </div>
+                <div class="property">
+                    <label for="edge-stroke-width"><i data-lucide="pen-tool"></i> Edge Stroke Width:</label>
+                    <input type="number" id="edge-stroke-width" min="1" max="10" step="0.5">
+                </div>
+                <div class="property">
+                    <label for="edge-start-offset"><i data-lucide="git-commit"></i> Edge Start Offset:</label>
+                    <input type="number" id="edge-start-offset" min="0" max="50" step="1" value="0">
+                </div>
             </div>
-            <div class="property">
-                <label for="max-zoom"><i data-lucide="zoom-in"></i> Max Zoom:</label>
-                <input type="number" id="max-zoom" min="1" max="5" step="0.5">
-            </div>
-            <div class="property">
-                <label for="default-node-width"><i data-lucide="move-horizontal"></i> Default Node Width:</label>
-                <input type="number" id="default-node-width" min="50" max="300" step="10">
-            </div>
-            <div class="property">
-                <label for="default-node-height"><i data-lucide="move-vertical"></i> Default Node Height:</label>
-                <input type="number" id="default-node-height" min="30" max="200" step="10">
-            </div>
-            <div class="property">
-                <label for="default-group-width"><i data-lucide="maximize"></i> Default Group Width:</label>
-                <input type="number" id="default-group-width" min="100" max="500" step="20">
-            </div>
-            <div class="property">
-                <label for="default-group-height"><i data-lucide="minimize"></i> Default Group Height:</label>
-                <input type="number" id="default-group-height" min="80" max="400" step="20">
-            </div>
-            <div class="property">
-                <label for="group-padding"><i data-lucide="expand"></i> Group Padding:</label>
-                <input type="number" id="group-padding" min="10" max="200" step="5" value="80">
-            </div>
-            <div class="property">
-                <label for="default-properties-width"><i data-lucide="panel-right"></i> Properties Panel Width:</label>
-                <input type="number" id="default-properties-width" min="200" max="500" step="10" value="300">
-            </div>
-            <div class="property">
-                <label for="properties-panel-offset"><i data-lucide="chevrons-up-down"></i> Properties Panel Offset:</label>
-                <input type="number" id="properties-panel-offset" min="-50" max="50" step="1" value="15">
-            </div>
-            <div class="property">
-                <label for="connection-zone-radius"><i data-lucide="circle-dot"></i> Connection Zone Radius:</label>
-                <input type="number" id="connection-zone-radius" min="10" max="100" step="5">
-            </div>
-            <div class="property">
-                <label for="connection-handle-offset"><i data-lucide="bring-to-front"></i> Connection Handle Offset:</label>
-                <input type="number" id="connection-handle-offset" min="0" max="50" step="1" value="10">
-            </div>
-            <div class="property">
-                <label for="connection-handle-size"><i data-lucide="circle"></i> Connection Handle Size:</label>
-                <input type="number" id="connection-handle-size" min="2" max="20" step="1" value="5">
-            </div>
-            <div class="property">
-                <label for="edge-stroke-width"><i data-lucide="pen-tool"></i> Edge Stroke Width:</label>
-                <input type="number" id="edge-stroke-width" min="1" max="10" step="0.5">
-            </div>
-            <div class="property">
-                <label for="edge-start-offset"><i data-lucide="git-commit"></i> Edge Start Offset:</label>
-                <input type="number" id="edge-start-offset" min="0" max="50" step="1" value="0">
-            </div>
-        </div>
-        <div class="panel-footer">
-            <button id="reset-settings-btn" class="button">Reset to Default</button>
         </div>
     </div>
     <script>

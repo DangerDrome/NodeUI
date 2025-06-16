@@ -42,6 +42,18 @@ class GraphEditor {
         // =================================================================================================
         this.dom = {
             svg: document.getElementById(svgId),
+            leftPanel: {
+                panel: document.getElementById('left-panel'),
+                toggleBtn: document.getElementById('left-panel-toggle'),
+            },
+            bottomPanel: {
+                panel: document.getElementById('bottom-panel'),
+                toggleBtn: document.getElementById('bottom-panel-toggle'),
+            },
+            rightPanel: {
+                panel: document.getElementById('right-panel'),
+                toggleBtn: document.getElementById('right-panel-toggle'),
+            },
             addNodeBtn: document.getElementById('add-node-btn'),
             addGroupBtn: document.getElementById('add-group-btn'),
             zoomInBtn: document.getElementById('zoom-in-btn'),
@@ -73,7 +85,6 @@ class GraphEditor {
             },
             settingsPanel: {
                 panel: document.getElementById('settings-panel'),
-                closeBtn: document.getElementById('close-settings-btn'),
                 gridSize: document.getElementById('grid-size'),
                 minZoom: document.getElementById('min-zoom'),
                 maxZoom: document.getElementById('max-zoom'),
@@ -306,6 +317,9 @@ class GraphEditor {
             const { x, y, w, h } = this.state.viewbox;
             this._addNode(x + w / 2, y + h / 2);
         });
+        this.dom.leftPanel.toggleBtn.addEventListener('click', this._toggleLeftPanel.bind(this));
+        this.dom.bottomPanel.toggleBtn.addEventListener('click', this._toggleBottomPanel.bind(this));
+        this.dom.rightPanel.toggleBtn.addEventListener('click', this._toggleRightPanel.bind(this));
         this.dom.addGroupBtn.addEventListener('click', () => {
             const { x, y, w, h } = this.state.viewbox;
             this._addNode(x + w / 2, y + h / 2, 'group');
@@ -335,6 +349,38 @@ class GraphEditor {
         
         // Drag and Drop
         this._setupDragAndDropListeners();
+    }
+
+    _toggleLeftPanel() {
+        const panel = this.dom.leftPanel.panel;
+        const icon = this.dom.leftPanel.toggleBtn.querySelector('i');
+        panel.classList.toggle('open');
+        const isOpen = panel.classList.contains('open');
+        icon.setAttribute('data-lucide', isOpen ? 'chevron-left' : 'chevron-right');
+        lucide.createIcons();
+    }
+
+    _toggleRightPanel() {
+        const panel = this.dom.rightPanel.panel;
+        panel.classList.toggle('open');
+        const isOpen = panel.classList.contains('open');
+
+        const icon = this.dom.rightPanel.toggleBtn.querySelector('i');
+        icon.setAttribute('data-lucide', isOpen ? 'chevron-right' : 'chevron-left');
+        lucide.createIcons();
+        
+        if (isOpen) {
+            this._loadSettingsToUI();
+        }
+    }
+
+    _toggleBottomPanel() {
+        const panel = this.dom.bottomPanel.panel;
+        const icon = this.dom.bottomPanel.toggleBtn.querySelector('i');
+        panel.classList.toggle('open');
+        const isOpen = panel.classList.contains('open');
+        icon.setAttribute('data-lucide', isOpen ? 'chevron-down' : 'chevron-up');
+        lucide.createIcons();
     }
 
     _setupContextMenuListeners() {
@@ -382,17 +428,12 @@ class GraphEditor {
     }
 
     _toggleSettingsPanel() {
-        const panel = this.dom.settingsPanel.panel;
-        const isVisible = panel.style.display === 'block';
-        panel.style.display = isVisible ? 'none' : 'block';
-        if (!isVisible) {
-            this._loadSettingsToUI();
-        }
+        this._toggleRightPanel();
     }
 
     _loadSettingsToUI() {
         for (const key in this.dom.settingsPanel) {
-            if (key !== 'panel' && key !== 'closeBtn' && this.settings.hasOwnProperty(key)) {
+            if (key !== 'panel' && this.settings.hasOwnProperty(key)) {
                 if (this.dom.settingsPanel[key]) {
                     this.dom.settingsPanel[key].value = this.settings[key];
                 }
@@ -401,7 +442,6 @@ class GraphEditor {
     }
 
     _setupSettingsPanelListeners() {
-        this.dom.settingsPanel.closeBtn.addEventListener('click', () => this._toggleSettingsPanel());
         this.dom.settingsPanel.resetBtn.addEventListener('click', () => this._resetSettingsToDefault());
 
         const setupListener = (element, settingKey, isRender, isUpdateView) => {

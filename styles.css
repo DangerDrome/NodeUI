@@ -125,17 +125,10 @@ body {
 }
 
 #controls {
-    position: absolute;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
     display: flex;
     gap: 10px;
-    padding: 20px;
-    background-color: var(--controls-bg-color);
-    border-radius: 5px;
+    padding: 10px 20px 20px 20px;
     z-index: 10;
-    margin: 20px;
 }
 
 #controls button {
@@ -353,6 +346,30 @@ body {
     height: 20px;
     overflow: hidden;
     white-space: nowrap;
+    z-index: 30;
+}
+
+#close-properties-btn {
+    position: static;
+    order: 3;
+}
+
+.button, .panel-button {
+    background-color: var(--button-bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--button-border-color);
+    border-radius: 5px;
+    padding: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.button:hover, .panel-button:hover {
+    background-color: var(--button-hover-bg-color);
 }
 
 #properties-panel {
@@ -378,24 +395,6 @@ body {
     border-width: 8px;
     border-style: solid;
     border-color: var(--controls-bg-color) transparent transparent transparent;
-}
-
-#close-properties-btn {
-    position: static;
-    order: 3;
-}
-
-.panel-button {
-    background-color: var(--button-bg-color);
-    color: var(--text-color);
-    border: 1px solid var(--button-border-color);
-    border-radius: 5px;
-    padding: 5px;
-    cursor: pointer;
-}
-
-.panel-button:hover {
-    background-color: var(--button-hover-bg-color);
 }
 
 #properties-panel input {
@@ -435,19 +434,14 @@ body {
 }
 
 #settings-panel {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background-color: var(--controls-bg-color);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    max-height: 100vh;
     padding: 20px;
-    border-radius: 5px;
-    z-index: 10;
-    display: none;
-    margin: 20px;
-    max-height: 80vh;
     overflow-y: hidden;
     align-items: center;
-    margin-bottom: 0;
 }
 
 #settings-panel input {
@@ -458,6 +452,8 @@ body {
     padding: 5px;
     margin-bottom: 10px;
     width: 80px;
+    -ms-user-select: text; /* IE 10+ and Edge */
+    -moz-user-select: text; /* Firefox */
 }
 
 #settings-panel label {
@@ -496,17 +492,14 @@ input, textarea {
     -moz-user-select: text; /* Firefox */
 }
 
-#settings-panel.open {
-    display: flex;
-}
-
 .panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--graph-border-color);
     padding-bottom: 10px;
     margin-bottom: 10px;
+    width: 100%;
 }
 
 .panel-header h3 {
@@ -519,18 +512,113 @@ input, textarea {
 .panel-content {
     flex-grow: 1;
     overflow-y: hidden;
-}
-
-.panel-footer {
-    border-top: 1px solid var(--border-color);
-    padding-top: 10px;
-    margin-top: 10px;
-    display: flex;
-    justify-content: flex-end;
+    width: 100%;
+    padding: 20px;
 }
 
 #settings-panel .property label {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.side-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 250px;
+    background-color: var(--controls-bg-color);
+    z-index: 10;
+    display: flex;
+    transition: transform 0.3s ease-in-out;
+    transform: translateX(-100%);
+    border-right: 1px solid var(--graph-border-color);
+}
+
+.side-panel.open {
+    transform: translateX(0);
+}
+
+.panel-toggle {
+    position: absolute;
+    top: 50%;
+    right: -24px;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 48px;
+    background-color: var(--controls-bg-color);
+    border: 1px solid var(--graph-border-color);
+    border-left: none;
+    border-radius: 0 5px 5px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    color: var(--text-color);
+}
+
+.side-panel.open .panel-toggle i {
+    transform: rotate(180deg);
+}
+
+.side-panel.bottom {
+    top: auto;
+    bottom: 30px;
+    left: 50%;
+    transform: translate(-50%, 100%);
+    height: auto;
+    width: auto;
+    flex-direction: column;
+    border-right: none;
+    border-top: 1px solid var(--graph-border-color);
+    border-radius: 8px 8px 0 0;
+    padding-top: 10px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.side-panel.bottom.open {
+    transform: translate(-50%, 0);
+}
+
+.side-panel.bottom .panel-toggle {
+    top: -24px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: 48px;
+    height: 24px;
+    border-bottom: none;
+    border-radius: 5px 5px 0 0;
+}
+
+.side-panel.bottom.open .panel-toggle i {
+    transform: rotate(180deg);
+}
+
+.side-panel.right {
+    left: auto;
+    right: 0;
+    transform: translateX(100%);
+    border-right: none;
+    border-left: 1px solid var(--graph-border-color);
+    width: 350px;
+}
+
+.side-panel.right.open {
+    transform: translateX(0);
+}
+
+.side-panel.right .panel-toggle {
+    right: auto;
+    left: -24px;
+    border-radius: 5px 0 0 5px;
+    border: 1px solid var(--graph-border-color);
+    border-right: none;
+}
+
+.side-panel.right.open .panel-toggle i {
+    transform: rotate(180deg);
 }
