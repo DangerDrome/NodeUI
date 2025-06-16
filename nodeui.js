@@ -163,6 +163,7 @@ class GraphEditor {
         this.zoomTimer = null;
         this.treeView = null;
         this.nodeTypes = new Map();
+        this.domCache = new Map();
     }
 
     // =================================================================================================
@@ -722,6 +723,7 @@ class GraphEditor {
 
     _removeNode(nodeToRemove) {
         this._saveStateForUndo('Remove Node');
+        this.domCache.delete(nodeToRemove.id);
         this.state.nodes = this.state.nodes.filter(node => node.id !== nodeToRemove.id);
         this.state.edges = this.state.edges.filter(edge => edge.source.nodeId !== nodeToRemove.id && edge.target.nodeId !== nodeToRemove.id);
         this._log(`Removed node ${nodeToRemove.id}`);
@@ -1201,7 +1203,27 @@ class GraphEditor {
         
         // --- Custom Node Rendering ---
         const nodeDef = this.nodeTypes.get(node.type);
-        if (nodeDef && nodeDef.render) {
+        const isVideoNode = node.type === 'markdown-node' && node.properties.content?.trim().startsWith('<video');
+
+        if (isVideoNode) {
+            const cached = this.domCache.get(node.id);
+            // If we have a cached container and the content hasn't changed, reuse it.
+            if (cached && cached.content === node.properties.content) {
+                nodeBody.appendChild(cached.container);
+            } else {
+                // Otherwise, render it and cache it.
+                const container = document.createElement('div');
+                container.className = 'markdown-content';
+                container.innerHTML = node.properties.content;
+                
+                nodeBody.appendChild(container);
+                this.domCache.set(node.id, { container: container, content: node.properties.content });
+            }
+        } else if (nodeDef && nodeDef.render) {
+            // If a node was a video and is no longer, clear its cache.
+            if (this.domCache.has(node.id)) {
+                this.domCache.delete(node.id);
+            }
             nodeDef.render(node, nodeBody, this);
         }
         // -------------------------
@@ -2154,6 +2176,7 @@ class GraphEditor {
         if (this.state.selectedNodeIds.length > 0) {
             if (saveUndo) this._log(`Deleted ${this.state.selectedNodeIds.length} nodes`);
             const selectedIdsSet = new Set(this.state.selectedNodeIds);
+            selectedIdsSet.forEach(id => this.domCache.delete(id));
             this.state.nodes = this.state.nodes.filter(node => !selectedIdsSet.has(node.id));
             this.state.edges = this.state.edges.filter(edge => !selectedIdsSet.has(edge.source.nodeId) && !selectedIdsSet.has(edge.target.nodeId));
             this.state.selectedNodeIds = [];
