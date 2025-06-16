@@ -189,7 +189,7 @@ body {
     cursor: grabbing;
 }
 
-.node.disabled {
+.node.locked {
     fill: #ccc;
     stroke: #999;
 }
@@ -301,11 +301,24 @@ body {
     background-color: var(--context-menu-hover-bg-color);
 }
 
+.lock-indicator {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    color: var(--text-color);
+}
+
+.lock-indicator .lucide {
+    width: 16px;
+    height: 16px;
+}
+
 .node-content {
     display: flex;
     flex-direction: column;
     height: 100%;
     pointer-events: none;
+    position: relative;
 }
 
 .node-header {

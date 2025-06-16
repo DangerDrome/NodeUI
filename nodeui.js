@@ -75,7 +75,7 @@ class GraphEditor {
                 toggleSnapObj: document.getElementById('toggle-snap-obj-option'),
                 group: document.getElementById('group-option'),
                 deleteNode: document.getElementById('delete-node-option'),
-                disableNode: document.getElementById('disable-node-option'),
+                lockNode: document.getElementById('lock-node-option'),
                 deleteEdge: document.getElementById('delete-edge-option'),
                 addRoutingPoint: document.getElementById('add-routing-point-option'),
             },
@@ -396,7 +396,7 @@ class GraphEditor {
             'add-node-option': () => this._handleContextMenuAddNode(),
             'add-group-option-context': () => this._handleContextMenuAddNode('group'),
             'delete-node-option': () => this._handleContextMenuDeleteNode(),
-            'disable-node-option': () => this._handleContextMenuDisableNode(),
+            'lock-node-option': () => this._handleContextMenuLockNode(),
             'delete-edge-option': () => this._handleContextMenuDeleteEdge(),
             'add-routing-point-option': () => this._handleContextMenuAddRoutingPoint(),
             'group-option': () => this._handleContextMenuGroup(),
@@ -405,7 +405,10 @@ class GraphEditor {
         };
 
         Object.entries(handlers).forEach(([id, handler]) => {
-            document.getElementById(id).addEventListener('click', handler.bind(this));
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('click', handler.bind(this));
+            }
         });
     }
     
@@ -555,7 +558,7 @@ class GraphEditor {
             y: snappedY,
             width,
             height,
-            disabled: false,
+            locked: false,
             title: isGroup ? `Group ${this.state.nodeIdCounter}` : `Node ${this.state.nodeIdCounter}`,
             icon: isGroup ? 'box-select' : 'box',
             type: type,
@@ -690,6 +693,45 @@ class GraphEditor {
         this._render();
     }
     
+    _cutSelected() {
+        if (this.state.selectedNodeIds.length === 0) {
+            this._log("Select nodes to cut.");
+            return;
+        }
+
+        this._saveStateForUndo('Cut Selection');
+
+        // Logic from _copySelected to populate clipboard without logging
+        const selectedNodes = this.state.nodes.filter(node => this.state.selectedNodeIds.includes(node.id));
+        const copiedNodes = JSON.parse(JSON.stringify(selectedNodes));
+        const copiedNodeIds = copiedNodes.map(n => n.id);
+
+        const containedEdges = this.state.edges.filter(edge =>
+            copiedNodeIds.includes(edge.source.nodeId) &&
+            copiedNodeIds.includes(edge.target.nodeId)
+        );
+        const copiedEdges = JSON.parse(JSON.stringify(containedEdges));
+
+        const basePosition = copiedNodes.reduce((acc, node) => ({
+            x: Math.min(acc.x, node.x),
+            y: Math.min(acc.y, node.y)
+        }), { x: Infinity, y: Infinity });
+
+        this.state.clipboard = {
+            nodes: copiedNodes,
+            edges: copiedEdges,
+            basePosition,
+        };
+        
+        const nodesCutCount = copiedNodes.length;
+        const edgesCutCount = copiedEdges.length;
+
+        // Call delete without it saving to undo stack or logging
+        this._deleteSelected(false);
+        
+        this._log(`Cut ${nodesCutCount} nodes and ${edgesCutCount} edges.`);
+    }
+    
     _groupSelectedNodes() {
         if (this.state.selectedNodeIds.length <= 1) return;
 
@@ -777,7 +819,7 @@ class GraphEditor {
             this._createNodeRect(node, nodeGroup);
             this._createNodeContent(node, nodeGroup);
 
-            if (!node.disabled) {
+            if (!node.locked) {
                 this._createResizeHandles(node, nodeGroup);
                 this._createConnectionHandles(node, nodeGroup);
             }
@@ -963,10 +1005,10 @@ class GraphEditor {
     }
     
     _createNodeRect(node, parent) {
-        const { x, y, width, height, type, disabled, id, color } = node;
+        const { x, y, width, height, type, locked, id, color } = node;
         const classes = ['node'];
         if (type === 'group') classes.push('group');
-        if (disabled) classes.push('disabled');
+        if (locked) classes.push('locked');
         if (this.state.selectedNodeIds.includes(id)) classes.push('selected');
 
         const rect = this._createSVGElement('rect', {
@@ -1003,6 +1045,13 @@ class GraphEditor {
             <div class="node-footer">ID: ${id}</div>
         `;
         
+        if (node.locked) {
+            const lockIndicator = document.createElement('div');
+            lockIndicator.className = 'lock-indicator';
+            lockIndicator.innerHTML = `<i data-lucide="lock"></i>`;
+            nodeContent.appendChild(lockIndicator);
+        }
+
         const nodeTitleEl = nodeContent.querySelector('.node-title');
         nodeTitleEl.style.pointerEvents = 'all';
         nodeTitleEl.addEventListener('contextmenu', (e) => {
@@ -1112,6 +1161,7 @@ class GraphEditor {
             if (isEditingText) return;
             switch (e.key.toLowerCase()) {
                 case 'c': e.preventDefault(); this._copySelected(); break;
+                case 'x': e.preventDefault(); this._cutSelected(); break;
                 case 'v': e.preventDefault(); this._paste(); break;
                 case 'z': e.preventDefault(); e.shiftKey ? this.redo() : this.undo(); break;
                 case 'y': e.preventDefault(); this.redo(); break;
@@ -1146,7 +1196,7 @@ class GraphEditor {
                 break;
             case 'd':
                 if (this.state.selectedNodeIds.length > 0) {
-                    this._toggleDisableSelected();
+                    this._toggleLockSelected();
                 }
                 break;
             case 'p':
@@ -1369,7 +1419,7 @@ class GraphEditor {
         this._log(`Selected node ${nodeId}`);
         const node = this.state.nodes.find(n => n.id === nodeId);
 
-        if (!node.disabled) {
+        if (!node.locked) {
             this.state.interaction.dragging = true;
             this.state.interaction.didDrag = false;
             this.state.draggedNodes = this.state.selectedNodeIds.map(id => this.state.nodes.find(n => n.id === id));
@@ -1905,18 +1955,20 @@ class GraphEditor {
         this._render();
     }
     
-    _deleteSelected() {
+    _deleteSelected(saveUndo = true) {
         if (this.state.selectedEdgeIndexes.length === 0 && this.state.selectedNodeIds.length === 0) return;
         
-        this._saveStateForUndo('Delete Selection');
+        if (saveUndo) {
+            this._saveStateForUndo('Delete Selection');
+        }
         
         if (this.state.selectedEdgeIndexes.length > 0) {
-            this._log(`Deleted ${this.state.selectedEdgeIndexes.length} edges`);
+            if (saveUndo) this._log(`Deleted ${this.state.selectedEdgeIndexes.length} edges`);
             this.state.edges = this.state.edges.filter((_, index) => !this.state.selectedEdgeIndexes.includes(index));
             this.state.selectedEdgeIndexes = [];
         }
         if (this.state.selectedNodeIds.length > 0) {
-            this._log(`Deleted ${this.state.selectedNodeIds.length} nodes`);
+            if (saveUndo) this._log(`Deleted ${this.state.selectedNodeIds.length} nodes`);
             const selectedIdsSet = new Set(this.state.selectedNodeIds);
             this.state.nodes = this.state.nodes.filter(node => !selectedIdsSet.has(node.id));
             this.state.edges = this.state.edges.filter(edge => !selectedIdsSet.has(edge.source.nodeId) && !selectedIdsSet.has(edge.target.nodeId));
@@ -1925,13 +1977,13 @@ class GraphEditor {
         this._render();
     }
     
-    _toggleDisableSelected() {
-        this._saveStateForUndo('Toggle Disable');
+    _toggleLockSelected() {
+        this._saveStateForUndo('Toggle Lock');
         this.state.selectedNodeIds.forEach(nodeId => {
             const node = this.state.nodes.find(n => n.id === nodeId);
             if (node) {
-                node.disabled = !node.disabled;
-                this._log(`Toggled disabled state for node ${nodeId}`);
+                node.locked = !node.locked;
+                this._log(`Toggled lock state for node ${nodeId}`);
             }
         });
         this.state.selectedEdgeIndexes = [];
@@ -1952,25 +2004,34 @@ class GraphEditor {
     // =================================================================================================
 
     _showContextMenu(x, y, type) {
-        const { menu, addNode, addGroup, deleteNode, disableNode, deleteEdge, addRoutingPoint, group, toggleSnap, toggleSnapObj } = this.dom.contextMenu;
+        const { menu, addNode, addGroup, deleteNode, lockNode, deleteEdge, addRoutingPoint, group, toggleSnap, toggleSnapObj } = this.dom.contextMenu;
         
-        const display = (el, condition) => el.style.display = condition ? 'block' : 'none';
+        const display = (el, condition) => {
+            if (el) el.style.display = condition ? 'block' : 'none';
+        }
 
         const isConnecting = type === 'connecting';
 
         display(addNode, type === 'canvas' || isConnecting);
         display(addGroup, type === 'canvas' || isConnecting);
-        display(toggleSnap, !isConnecting);
-        display(toggleSnapObj, !isConnecting);
+        display(toggleSnap, type === 'canvas');
+        display(toggleSnapObj, type === 'canvas');
         display(deleteNode, type === 'node');
-        display(disableNode, type === 'node');
+        display(lockNode, type === 'node');
         display(group, type === 'node' && this.state.selectedNodeIds.length > 1);
         display(deleteEdge, type === 'edge');
         display(addRoutingPoint, type === 'edge');
 
-        if (!isConnecting) {
+        if (type === 'canvas') {
             toggleSnap.querySelector('span').textContent = `Snapping: ${this.state.interaction.snapping ? 'On' : 'Off'}`;
             toggleSnapObj.querySelector('span').textContent = `Snap To Objects: ${this.state.interaction.snapToObjects ? 'On' : 'Off'}`;
+        }
+
+        if (type === 'node' && this.state.contextNode) {
+            const lockNodeSpan = lockNode.querySelector('span');
+            if(lockNodeSpan) {
+                lockNodeSpan.textContent = `Lock: ${this.state.contextNode.locked ? 'On' : 'Off'}`;
+            }
         }
 
         Object.assign(menu.style, { display: 'block', left: `${x}px`, top: `${y}px` });
@@ -2020,11 +2081,11 @@ class GraphEditor {
         this._hideContextMenu();
     }
     
-    _handleContextMenuDisableNode() {
+    _handleContextMenuLockNode() {
         if (this.state.contextNode) {
-            this._saveStateForUndo('Toggle Disable');
-            this.state.contextNode.disabled = !this.state.contextNode.disabled;
-            this._log(`Toggled disabled state for node ${this.state.contextNode.id}`);
+            this._saveStateForUndo('Toggle Lock');
+            this.state.contextNode.locked = !this.state.contextNode.locked;
+            this._log(`Toggled lock state for node ${this.state.contextNode.id}`);
             this.state.contextNode = null;
             this._render();
         }
