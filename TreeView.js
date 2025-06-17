@@ -4,6 +4,13 @@ class TreeView {
         this.tree = null;
         this.selectedFiles = new Set();
         this.lastSelectedFile = null;
+
+        // For selection box
+        this.isBoxSelecting = false;
+        this.selectionBox = null;
+        this.selectionStartPoint = { x: 0, y: 0 };
+        this.didDrag = false;
+
         this._addEventListeners();
     }
 
@@ -75,13 +82,23 @@ class TreeView {
 
     // Add event listeners for tree interactions
     _addEventListeners() {
-        this.container.addEventListener('click', (e) => {
+        this.container.addEventListener('mousedown', e => {
             const li = e.target.closest('li');
+            // If the click is on the background, not an item, start selection box.
+            if (!li || !this.container.contains(li)) {
+                this._handleBackgroundMouseDown(e);
+            }
+        });
 
+        this.container.addEventListener('click', (e) => {
+            // If we just finished a drag-selection, don't process a click.
+            if (this.didDrag) {
+                this.didDrag = false;
+                return;
+            }
+
+            const li = e.target.closest('li');
             if (!li || !this.container.contains(li)) return;
-            
-            // If the direct target of the click is a UL, we do nothing.
-            // This is to avoid toggling folders when clicking in the empty space of a list.
             if (e.target.tagName === 'UL') return;
 
             if (li.classList.contains('folder')) {
@@ -103,16 +120,32 @@ class TreeView {
         });
 
         this.container.addEventListener('contextmenu', e => {
+            e.preventDefault();
             const li = e.target.closest('li');
+        
+            let detail;
             if (li && this.container.contains(li)) {
-                e.preventDefault();
+                detail = {
+                    id: li.dataset.id,
+                    isFolder: li.classList.contains('folder'),
+                    isBackground: false,
+                    x: e.clientX,
+                    y: e.clientY
+                };
+            } else {
+                // Background click
+                detail = {
+                    id: this.tree?.querySelector('li')?.dataset.id.split('/')[0] || '', // Root ID
+                    isFolder: true, // Treat as a folder for context menu purposes
+                    isBackground: true,
+                    x: e.clientX,
+                    y: e.clientY
+                };
+            }
+        
+            if (detail.id !== null) {
                 this.container.dispatchEvent(new CustomEvent('file-contextmenu', {
-                    detail: {
-                        id: li.dataset.id,
-                        isFolder: li.classList.contains('folder'),
-                        x: e.clientX,
-                        y: e.clientY
-                    },
+                    detail,
                     bubbles: true,
                     composed: true
                 }));
@@ -174,6 +207,125 @@ class TreeView {
         setTimeout(() => document.body.removeChild(dragImageContainer), 0);
     }
 
+    _handleBackgroundMouseDown(e) {
+        // Prevent starting selection on scrollbar
+        if (e.offsetX >= this.container.clientWidth || e.offsetY >= this.container.clientHeight) {
+            return;
+        }
+        
+        e.preventDefault();
+        this.didDrag = false; 
+        this.isBoxSelecting = true;
+
+        if (!e.ctrlKey && !e.metaKey) {
+            this._clearSelection();
+        }
+        
+        const containerRect = this.container.getBoundingClientRect();
+        this.selectionStartPoint = {
+            x: e.clientX - containerRect.left + this.container.scrollLeft,
+            y: e.clientY - containerRect.top + this.container.scrollTop,
+        };
+
+        this.selectionBox = document.createElement('div');
+        this.selectionBox.className = 'tree-selection-box';
+        this.container.appendChild(this.selectionBox);
+
+        const onMouseMove = this._handleSelectionMouseMove.bind(this);
+        const onMouseUp = () => {
+            this._handleSelectionMouseUp(e.ctrlKey || e.metaKey);
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    }
+
+    _handleSelectionMouseMove(e) {
+        if (!this.isBoxSelecting) return;
+        this.didDrag = true;
+        e.preventDefault();
+
+        const containerRect = this.container.getBoundingClientRect();
+        const currentPoint = {
+            x: e.clientX - containerRect.left + this.container.scrollLeft,
+            y: e.clientY - containerRect.top + this.container.scrollTop,
+        };
+
+        const x = Math.min(this.selectionStartPoint.x, currentPoint.x);
+        const y = Math.min(this.selectionStartPoint.y, currentPoint.y);
+        const width = Math.abs(this.selectionStartPoint.x - currentPoint.x);
+        const height = Math.abs(this.selectionStartPoint.y - currentPoint.y);
+
+        this.selectionBox.style.left = `${x}px`;
+        this.selectionBox.style.top = `${y}px`;
+        this.selectionBox.style.width = `${width}px`;
+        this.selectionBox.style.height = `${height}px`;
+
+        const selectionRect = { left: x, top: y, right: x + width, bottom: y + height };
+        const allFiles = this.container.querySelectorAll('li.file');
+
+        allFiles.forEach(fileEl => {
+            const fileRect = {
+                left: fileEl.offsetLeft,
+                top: fileEl.offsetTop,
+                right: fileEl.offsetLeft + fileEl.offsetWidth,
+                bottom: fileEl.offsetTop + fileEl.offsetHeight
+            };
+            
+            const intersects = !(fileRect.right < selectionRect.left || 
+                                 fileRect.left > selectionRect.right || 
+                                 fileRect.bottom < selectionRect.top || 
+                                 fileRect.top > selectionRect.bottom);
+            
+            if (intersects) {
+                if (!this.selectedFiles.has(fileEl)) {
+                    fileEl.classList.add('selected');
+                    this.selectedFiles.add(fileEl);
+                }
+            } else {
+                if (this.selectedFiles.has(fileEl) && !(e.ctrlKey || e.metaKey)) {
+                    fileEl.classList.remove('selected');
+                    this.selectedFiles.delete(fileEl);
+                }
+            }
+        });
+    }
+
+    _handleSelectionMouseUp(isCtrlKey) {
+        if (!this.isBoxSelecting) return;
+        this.isBoxSelecting = false;
+        
+        if (this.selectionBox) {
+            this.selectionBox.remove();
+            this.selectionBox = null;
+        }
+
+        // If it was just a click on the background (no drag), clear selection
+        // unless Ctrl was held.
+        if (!this.didDrag && !isCtrlKey) {
+           this._clearSelection();
+        }
+        
+        this._dispatchSelectionChange();
+    }
+
+    _clearSelection() {
+        this.selectedFiles.forEach(el => el.classList.remove('selected'));
+        this.selectedFiles.clear();
+    }
+
+    _dispatchSelectionChange() {
+        const selectedIds = Array.from(this.selectedFiles).map(el => el.dataset.id);
+        const event = new CustomEvent('file-selection-changed', {
+            detail: { ids: selectedIds },
+            bubbles: true,
+            composed: true
+        });
+        this.container.dispatchEvent(event);
+    }
+
     // Toggle folder open/closed state
     _toggleFolder(folderElement) {
         folderElement.classList.toggle('collapsed');
@@ -226,13 +378,7 @@ class TreeView {
         }
         
         // Dispatch a custom event with all selected IDs.
-        const selectedIds = Array.from(this.selectedFiles).map(el => el.dataset.id);
-        const event = new CustomEvent('file-selection-changed', {
-            detail: { ids: selectedIds },
-            bubbles: true,
-            composed: true
-        });
-        this.container.dispatchEvent(event);
+        this._dispatchSelectionChange();
     }
 
     getExpansionState() {
@@ -244,5 +390,118 @@ class TreeView {
             }
         });
         return expandedFolderIds;
+    }
+
+    promptNewFolder(parentId) {
+        let parentUl;
+        if (parentId === '') {
+            parentUl = this.tree;
+        } else {
+            const parentLi = this.container.querySelector(`li[data-id="${parentId}"]`);
+            if (!parentLi) return;
+            
+            if (parentLi.classList.contains('collapsed')) {
+                this._toggleFolder(parentLi);
+            }
+            parentUl = parentLi.querySelector('ul');
+        }
+    
+        if (!parentUl) return;
+    
+        const tempId = `temp-folder-${Date.now()}`;
+        const li = this._createNode({
+            id: tempId,
+            name: '',
+            children: []
+        }, new Set());
+    
+        parentUl.appendChild(li);
+        this.startRename(tempId, true, parentId);
+    }
+
+    startRename(itemId, isNewItem = false, parentId = null) {
+        const li = this.container.querySelector(`li[data-id="${itemId}"]`);
+        if (!li) return;
+    
+        const contentDiv = li.querySelector('.tree-node-content');
+        const span = contentDiv.querySelector('span');
+        const originalName = span.textContent;
+    
+        // Hide the original span and its icon to make space for the input
+        span.style.display = 'none';
+        const icon = contentDiv.querySelector('i[data-lucide]');
+        if (icon) icon.style.display = 'none';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'tree-rename-input';
+        input.value = originalName;
+        
+        // Insert input after the chevron icon/placeholder
+        const chevron = contentDiv.querySelector('.chevron-icon, .chevron-placeholder');
+        if (chevron) {
+            chevron.after(input);
+        } else {
+            contentDiv.prepend(input);
+        }
+    
+        input.focus();
+        input.select();
+    
+        const finishRename = (isCancelled = false) => {
+            document.removeEventListener('mousedown', onDocumentMouseDown, true);
+            const newName = input.value.trim();
+            
+            if (isNewItem) {
+                li.remove();
+            } else {
+                input.remove();
+                span.style.display = '';
+                if (icon) icon.style.display = '';
+            }
+    
+            if (isCancelled || newName === '') {
+                return; // No change, do nothing
+            }
+            
+            if (isNewItem) {
+                this.container.dispatchEvent(new CustomEvent('folder-created', {
+                    detail: { parentId, newName },
+                    bubbles: true,
+                    composed: true
+                }));
+            } else {
+                if (newName === originalName) {
+                    return;
+                }
+                this.container.dispatchEvent(new CustomEvent('item-renamed', {
+                    detail: { id: itemId, newName },
+                    bubbles: true,
+                    composed: true
+                }));
+            }
+        };
+    
+        const onDocumentMouseDown = (e) => {
+            if (e.target !== input) {
+                finishRename();
+            }
+        };
+
+        input.addEventListener('blur', () => finishRename());
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finishRename();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                finishRename(true);
+            }
+        });
+
+        // Use a timeout to avoid the same click that opened the menu from blurring the input
+        setTimeout(() => {
+            document.addEventListener('mousedown', onDocumentMouseDown, true);
+        }, 100);
     }
 } 

@@ -1640,7 +1640,7 @@ class GraphEditor {
         if (this.state.interaction.resizing || this.state.interaction.draggingRoutingPoint) {
             this._saveGraphStateToDB();
         }
-        
+
         this._resetInteractionState();
         this._render();
     }
@@ -2819,12 +2819,25 @@ class GraphEditor {
         this._log('Settings reset to default');
     }
 
+    _getAllFolderIds(node, ids = new Set()) {
+        if (!node) return ids;
+
+        if (Array.isArray(node.children)) {
+            if (node.id !== undefined) {
+                ids.add(node.id);
+            }
+            node.children.forEach(child => this._getAllFolderIds(child, ids));
+        }
+        return ids;
+    }
+
     _initTreeView() {
         this.treeView = new TreeView(this.dom.leftPanel.fileTree);
         
         // Render with data from DB if it exists
         const initialData = this.state.treeData ? [this.state.treeData] : [];
-        this.treeView.render(initialData);
+        const expandedIds = this._getAllFolderIds(this.state.treeData);
+        this.treeView.render(initialData, expandedIds);
 
         this.dom.leftPanel.fileTree.addEventListener('file-selected', (e) => {
             this._log(`File selected: ${e.detail.id}`);
@@ -2835,16 +2848,55 @@ class GraphEditor {
         });
 
         this.dom.leftPanel.fileTree.addEventListener('file-contextmenu', (e) => {
-            const { id, isFolder, x, y } = e.detail;
-            if (isFolder || !id) return;
+            const { id, isFolder, x, y, isBackground } = e.detail;
             
-            const items = [{
-                label: 'Delete File',
-                icon: 'trash-2',
-                callback: () => this._deleteFileFromTree(id)
-            }];
+            const items = [];
+
+            // 'New Folder' is available when clicking a folder or the background
+            if (isFolder || isBackground) {
+                items.push({
+                    label: 'New Folder',
+                    icon: 'folder-plus',
+                    // if background, parent is root (''), otherwise it's the clicked folder id
+                    callback: () => this.treeView.promptNewFolder(isBackground ? '' : id)
+                });
+            }
+
+            // 'Rename' and 'Delete' are only for existing items
+            if (!isBackground) {
+                // Add separator if 'New Folder' was also added
+                if (items.length > 0) {
+                    items.push({ separator: true });
+                }
+                items.push({
+                    label: 'Rename',
+                    icon: 'edit-3',
+                    callback: () => this.treeView.startRename(id)
+                });
+                
+                if (!isFolder) {
+                    items.push({
+                        label: 'Delete File',
+                        icon: 'trash-2',
+                        callback: () => this._deleteFileFromTree(id)
+                    });
+                }
+            } else if (id === null) {
+                // Don't show a menu for a right click on the background of an empty tree.
+                return;
+            }
             
             this._showContextMenu(x, y, 'custom', { items });
+        });
+
+        this.dom.leftPanel.fileTree.addEventListener('item-renamed', async (e) => {
+            const { id, newName } = e.detail;
+            await this._handleRenameItem(id, newName);
+        });
+
+        this.dom.leftPanel.fileTree.addEventListener('folder-created', (e) => {
+            const { parentId, newName } = e.detail;
+            this._handleCreateFolder(parentId, newName);
         });
     }
 
@@ -2862,7 +2914,8 @@ class GraphEditor {
             this.state.rootDirectoryHandle = directoryHandle;
             const treeData = await this._buildFileTree(directoryHandle);
             this.state.treeData = treeData;
-            this.treeView.render([treeData]);
+            const expandedIds = this._getAllFolderIds(treeData);
+            this.treeView.render([treeData], expandedIds);
             this._log(`Loaded directory: ${directoryHandle.name}`);
         } catch (err) {
             if (err.name !== 'AbortError') {
@@ -3056,7 +3109,8 @@ class GraphEditor {
             
             if (data.tree) {
                 this.state.treeData = data.tree;
-                this.treeView.render([this.state.treeData]);
+                const expandedIds = this._getAllFolderIds(this.state.treeData);
+                this.treeView.render([this.state.treeData], expandedIds);
                 this.state.fileHandles.clear();
                 this._log('File tree restored. Please use "Load Folder" to re-enable file access.');
             } else {
@@ -3081,7 +3135,8 @@ class GraphEditor {
             this.state.fileHandles.clear();
             const treeData = await this._buildFileTree(this.state.rootDirectoryHandle);
             this.state.treeData = treeData;
-            this.treeView.render([treeData]);
+            const expandedIds = this._getAllFolderIds(treeData);
+            this.treeView.render([treeData], expandedIds);
             this._log('File tree refreshed.');
         } catch (err) {
             this._log(`Error refreshing file tree: ${err.message}`);
@@ -3373,6 +3428,168 @@ class GraphEditor {
             console.error(`Error creating object URL for ${fileId}:`, err);
             return 'about:blank#error';
         }
+    }
+
+    async _handleRenameItem(oldId, newName) {
+        this._saveStateForUndo('Rename Item');
+    
+        let itemToRename = null;
+        let parentFolder = null;
+    
+        const findItemRecursive = (folder) => {
+            if (!folder || !folder.children) return;
+            for (const item of folder.children) {
+                if (item.id === oldId) {
+                    itemToRename = item;
+                    parentFolder = folder;
+                    return;
+                }
+                if (item.children) {
+                    findItemRecursive(item);
+                }
+            }
+        };
+        findItemRecursive(this.state.treeData);
+    
+        if (!itemToRename) {
+            this._log(`Error: Could not find item with ID ${oldId} to rename.`);
+            return;
+        }
+    
+        if (parentFolder.children.some(child => child.name === newName && child.id !== oldId)) {
+            this._log(`Error: An item named "${newName}" already exists here.`);
+            alert(`An item named "${newName}" already exists here.`);
+            const expansionState = this.treeView.getExpansionState();
+            this.treeView.render([this.state.treeData], expansionState);
+            return;
+        }
+    
+        const oldPathPrefix = oldId;
+        const newPathPrefix = oldId.substring(0, oldId.lastIndexOf('/') + 1) + newName;
+        const itemsToUpdate = [];
+    
+        const collectItems = (item) => {
+            itemsToUpdate.push(item);
+            if (item.children) {
+                item.children.forEach(collectItems);
+            }
+        };
+        collectItems(itemToRename);
+        
+        const idUpdateMap = new Map();
+    
+        for (const item of itemsToUpdate) {
+            const oldItemId = item.id;
+            const newItemId = oldItemId.replace(oldPathPrefix, newPathPrefix);
+            
+            idUpdateMap.set(oldItemId, newItemId);
+            item.id = newItemId;
+            
+            const virtualHandle = this.state.virtualFileHandles && this.state.virtualFileHandles.get(oldItemId);
+            if (virtualHandle) {
+                this.state.virtualFileHandles.delete(oldItemId);
+                this.state.virtualFileHandles.set(newItemId, virtualHandle);
+                await this._deleteDB('files', oldItemId);
+                await this._putDB('files', { id: newItemId, file: virtualHandle, type: item.type });
+            }
+
+            const realHandle = this.state.fileHandles.get(oldItemId);
+            if (realHandle) {
+                this.state.fileHandles.delete(oldItemId);
+                this.state.fileHandles.set(newItemId, realHandle);
+            }
+        }
+        
+        itemToRename.name = newName;
+    
+        for (const node of this.state.nodes) {
+            if (node.properties && node.properties.content && typeof node.properties.content === 'string') {
+                let newContent = node.properties.content;
+                for (const [oldRefId, newRefId] of idUpdateMap.entries()) {
+                    newContent = newContent.replace(new RegExp(`file-id://${oldRefId}`, 'g'), `file-id://${newRefId}`);
+                }
+                node.properties.content = newContent;
+            }
+        }
+        
+        await this._saveGraphStateToDB();
+        const expansionState = this.treeView.getExpansionState();
+        this.treeView.render([this.state.treeData], expansionState);
+        this._log(`Renamed "${oldId}" to "${newName}".`);
+    }
+
+    async _handleCreateFolder(parentId, newName) {
+        this._saveStateForUndo('Create Folder');
+    
+        let parentFolder = null;
+    
+        if (parentId === '') {
+            if (!this.state.treeData) {
+                 this.state.treeData = {
+                    id: '',
+                    name: 'Project Files',
+                    children: []
+                };
+            }
+            parentFolder = this.state.treeData;
+        } else {
+            const findParentRecursive = (currentFolder) => {
+                if (currentFolder.id === parentId) {
+                    return currentFolder;
+                }
+                if (currentFolder.children) {
+                    for (const child of currentFolder.children) {
+                        if (child.children) {
+                             const found = findParentRecursive(child);
+                             if (found) return found;
+                        }
+                    }
+                }
+                return null;
+            };
+            parentFolder = findParentRecursive(this.state.treeData);
+        }
+    
+        if (!parentFolder) {
+            this._log(`Error: Could not find parent folder with ID ${parentId}.`);
+            return;
+        }
+        
+        if (!parentFolder.children) {
+            parentFolder.children = [];
+        }
+    
+        if (parentFolder.children.some(child => child.name === newName)) {
+            this._log(`Error: An item named "${newName}" already exists here.`);
+            alert(`An item named "${newName}" already exists here.`);
+            return;
+        }
+    
+        const newFolderId = parentId ? `${parentId}/${newName}` : newName;
+        const newFolder = {
+            id: newFolderId,
+            name: newName,
+            children: []
+        };
+    
+        parentFolder.children.push(newFolder);
+        
+        parentFolder.children.sort((a, b) => {
+            const aIsFolder = a.children != null;
+            const bIsFolder = b.children != null;
+            if (aIsFolder === bIsFolder) {
+                return a.name.localeCompare(b.name);
+            }
+            return aIsFolder ? -1 : 1;
+        });
+    
+        (async () => {
+            await this._saveGraphStateToDB();
+            const expansionState = this.treeView.getExpansionState();
+            expansionState.add(parentId); 
+            this.treeView.render([this.state.treeData], expansionState);
+            this._log(`Created folder "${newName}".`);
+        })();
     }
 }
 
