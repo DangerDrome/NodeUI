@@ -35,6 +35,7 @@ class BaseNode {
         this.title = title;
         this.content = content;
         this.type = type;
+        this.color = 'default';
 
         this.element = null; // To hold the DOM element
         this.handles = {}; // To hold handle elements
@@ -50,6 +51,7 @@ class BaseNode {
         this.element = document.createElement('div');
         this.element.id = this.id;
         this.element.className = 'node';
+        this.element.dataset.color = this.color;
         this.element.style.left = `${this.x}px`;
         this.element.style.top = `${this.y}px`;
         this.element.style.width = `${this.width}px`;
@@ -115,5 +117,24 @@ class BaseNode {
             this.handles[position] = handle;
             this.element.appendChild(handle);
         });
+    }
+
+    /**
+     * Updates the node's properties and re-renders its view.
+     * @param {{[key: string]: any}} data The data to update.
+     */
+    update(data) {
+        if (data.title) {
+            this.title = data.title;
+            const titleElement = this.element.querySelector('.node-title-bar .title');
+            if (titleElement) {
+                titleElement.textContent = this.title;
+            }
+        }
+        if (data.color) {
+            this.color = data.color;
+            this.element.dataset.color = this.color;
+        }
+        // Add other property updates here (e.g., color, content)
     }
 } 

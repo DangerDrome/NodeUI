@@ -163,6 +163,8 @@ class NodeUI {
         events.subscribe('node:delete', (nodeId) => this.removeNode(nodeId));
         events.subscribe('edge:delete', (edgeId) => this.removeEdge(edgeId));
         events.subscribe('snap:grid-toggle', () => this.toggleSnapToGrid());
+        events.subscribe('request:node-data', (nodeId) => this.publishNodeData(nodeId));
+        events.subscribe('node:update', (data) => this.updateNode(data));
     }
 
     /**
@@ -1140,12 +1142,37 @@ class NodeUI {
         this.snapToGrid = this.snapToGrid ? false : 20;
         console.log(`Snap to grid is now ${this.snapToGrid ? 'enabled' : 'disabled'}`);
     }
+
+    /**
+     * Publishes the data for a requested node.
+     * @param {string} nodeId The ID of the node to publish.
+     */
+    publishNodeData(nodeId) {
+        const node = this.nodes.get(nodeId);
+        if (node) {
+            // We publish a copy to avoid accidental direct modification
+            this.events.publish('response:node-data', { ...node, element: null, handles: {}});
+        }
+    }
+
+    /**
+     * Updates a node's properties.
+     * @param {{nodeId: string, [key: string]: any}} data The update data.
+     */
+    updateNode(data) {
+        const node = this.nodes.get(data.nodeId);
+        if (node) {
+            node.update(data);
+        }
+    }
 }
 
 // Initialize NodeUI once the DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    const container = document.getElementById('canvas-container');
-    const app = new NodeUI(container);
+    const canvasContainer = document.getElementById('canvas-container');
+    const propertiesContainer = document.getElementById('properties-panel');
+    const app = new NodeUI(canvasContainer);
+    const propertiesPanel = new PropertiesPanel(propertiesContainer, events);
 
     // --- For Testing ---
     // Remove direct instantiation and use the event bus instead

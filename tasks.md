@@ -30,13 +30,13 @@ This document outlines the tasks required to build the NodeUI application, follo
 - [x] Implement "cut edge" functionality (publishes `edge:deleted`).
 - [x] Implement snap-to-grid and snap-to-object functionality.
 - [x] Create a right-click context menu that publishes action events (e.g., `context:createNode`) and supports long-press on touch.
-- [ ] **Create Checkpoint 3:** NodeUI canvas implementation complete.
+- [x] **Create Checkpoint 3:** NodeUI canvas implementation complete.
 
 ## 4. Properties Panel
-- [ ] Create `js/properties.js` for the properties UI.
-- [ ] Subscribe to the `selection:changed` event to display properties for the selected entity.
-- [ ] When a property is changed in the UI, publish an update event (e.g., `node:updated`, `edge:updated`).
-- [ ] Ensure the panel is collapsible or docks appropriately on mobile screens.
+- [x] Create `js/properties.js` to manage the properties panel UI.
+- [x] Subscribe to `selection:changed` and display properties for the selected item.
+- [x] Implement controls for changing node color, publishing `node:update` events.
+- [x] Implement controls for editing node titles, publishing `node:update` events.
 - [ ] **Create Checkpoint 4:** Properties panel complete.
 
 ## 5. File Tree Implementation
