@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NodeUI</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <div id="file-tree-panel" class="panel">
+            <!-- File Tree will be rendered here -->
+        </div>
+        <div id="canvas-container">
+            <!-- Main NodeUI canvas will be rendered here -->
+        </div>
+        <div id="properties-panel" class="panel">
+            <!-- Properties panel will be rendered here -->
+        </div>
+    </div>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- NodeUI Scripts -->
+    <script src="js/events.js"></script>
+    <script src="js/logs.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/nodeui.js"></script>
+    <script src="js/properties.js"></script>
+    <script src="js/filetree.js"></script>
+    <script src="js/database.js"></script>
+    <script src="js/settings.js"></script>
+    
+    <!-- Base Classes -->
+    <script src="js/graph/basenode.js"></script>
+    <script src="js/graph/baseedge.js"></script>
+
+    <!-- Custom Node Renderers -->
+    <script src="js/nodes/markdowneditor.js"></script>
+    <script src="js/nodes/videoplayer.js"></script>
+    <script src="js/nodes/imageviewer.js"></script>
+</body>
+</html> 
