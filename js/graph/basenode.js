@@ -37,6 +37,7 @@ class BaseNode {
         this.type = type;
 
         this.element = null; // To hold the DOM element
+        this.handles = {}; // To hold handle elements
     }
 
     /**
@@ -49,7 +50,8 @@ class BaseNode {
         this.element = document.createElement('div');
         this.element.id = this.id;
         this.element.className = 'node';
-        this.element.style.transform = `translate(${this.x}px, ${this.y}px)`;
+        this.element.style.left = `${this.x}px`;
+        this.element.style.top = `${this.y}px`;
         this.element.style.width = `${this.width}px`;
         this.element.style.height = `${this.height}px`;
 
@@ -62,6 +64,7 @@ class BaseNode {
         parentElement.appendChild(this.element);
         
         this.renderContent(contentArea);
+        this.createHandles();
 
         return this.element;
     }
@@ -96,5 +99,21 @@ class BaseNode {
         // Base implementation does nothing.
         // Subclasses like MarkdownNode or ImageNode will override this.
         contentArea.textContent = 'This is a base node.';
+    }
+
+    /**
+     * Creates connection handles on the node.
+     */
+    createHandles() {
+        const handlePositions = ['top', 'right', 'bottom', 'left'];
+        handlePositions.forEach(position => {
+            const handle = document.createElement('div');
+            handle.className = `node-handle ${position}`;
+            handle.dataset.nodeId = this.id;
+            handle.dataset.handlePosition = position;
+            
+            this.handles[position] = handle;
+            this.element.appendChild(handle);
+        });
     }
 } 

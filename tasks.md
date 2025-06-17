@@ -3,32 +3,33 @@
 This document outlines the tasks required to build the NodeUI application, following an event-driven architecture.
 
 ## 1. Core Architecture & Setup
-- [ ] Create `index.html` with the basic page structure and a responsive viewport meta tag.
-- [ ] Create `styles.css` and implement the base theme using responsive units (rem, em, %) and CSS variables.
-- [ ] Integrate Lucide icons library.
-- [ ] Create `js/events.js` to implement the core Pub/Sub event bus.
-- [ ] Create `js/logs.js` and subscribe to all events (`*`) for debugging.
-- [ ] Create `js/ui.js` for shared UI utility functions (e.g., `createButton`).
-- [ ] Implement a mobile-first layout with media queries for larger screens.
-- [ ] **Create Checkpoint 1:** Core architecture and setup complete.
+- [x] Create `index.html` with the basic page structure and a responsive viewport meta tag.
+- [x] Create `styles.css` and implement the base theme using responsive units (rem, em, %) and CSS variables.
+- [x] Integrate Lucide icons library.
+- [x] Create `js/events.js` to implement the core Pub/Sub event bus.
+- [x] Create `js/logs.js` and subscribe to all events (`*`) for debugging.
+- [x] Create `js/ui.js` for shared UI utility functions (e.g., `createButton`).
+- [x] Implement a mobile-first layout with media queries for larger screens.
+- [x] **Create Checkpoint 1:** Core architecture and setup complete.
 
 ## 2. Graph Entity Base Classes
-- [ ] Create `js/graph/` directory.
-- [ ] Create `js/graph/basenode.js` for the `BaseNode` class.
-- [ ] Create `js/graph/baseedge.js` for the `BaseEdge` class.
-- [ ] **Create Checkpoint 2:** Graph entity base classes complete.
+- [x] Create `js/graph/` directory.
+- [x] Create `js/graph/basenode.js` for the `BaseNode` class.
+- [x] Create `js/graph/baseedge.js` for the `BaseEdge` class.
+- [x] **Create Checkpoint 2:** Graph entity base classes complete.
 
 ## 3. NodeUI Canvas Implementation
-- [ ] Create `js/nodeui.js` to manage the main canvas.
-- [ ] Subscribe to events for node/edge creation, updates, and deletion.
-- [ ] Implement node dragging logic, publishing `node:moved` events (for both mouse and touch).
-- [ ] Implement edge drawing logic, publishing `edge:created` events (for both mouse and touch).
-- [ ] Implement multi-selection logic, publishing `selection:changed` events (for both mouse and touch).
-- [ ] Implement cut/copy/paste, publishing clipboard and entity creation events.
-- [ ] Implement "cut edge" functionality (publishes `edge:deleted`).
-- [ ] Implement the dotted grid background.
-- [ ] Implement snap-to-grid and snap-to-object functionality.
-- [ ] Create a right-click context menu that publishes action events (e.g., `context:createNode`) and supports long-press on touch.
+- [x] Create `js/nodeui.js` to manage the main canvas.
+- [x] Subscribe to events for node/edge creation, updates, and deletion.
+- [x] Implement the dotted grid background.
+- [x] Implement canvas panning and zooming (for both mouse and touch).
+- [x] Implement node dragging logic, publishing `node:moved` events (for both mouse and touch).
+- [x] Implement edge drawing logic, publishing `edge:created` events (for both mouse and touch).
+- [x] Implement multi-selection logic, publishing `selection:changed` events (for both mouse and touch).
+- [x] Implement cut/copy/paste, publishing clipboard and entity creation events.
+- [x] Implement "cut edge" functionality (publishes `edge:deleted`).
+- [x] Implement snap-to-grid and snap-to-object functionality.
+- [x] Create a right-click context menu that publishes action events (e.g., `context:createNode`) and supports long-press on touch.
 - [ ] **Create Checkpoint 3:** NodeUI canvas implementation complete.
 
 ## 4. Properties Panel

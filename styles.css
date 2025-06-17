@@ -62,6 +62,34 @@ body {
     overflow: hidden; /* Prevent nodes from appearing outside the canvas */
 }
 
+#canvas-container.is-cutting {
+    cursor: crosshair;
+}
+
+.node-ui-canvas,
+.node-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* SVG is for edges only, node container handles node events */
+}
+
+.node-container {
+    pointer-events: auto; /* Re-enable pointer events for the node container */
+    cursor: grab;
+    transform-origin: 0 0;
+}
+
+.node-container:active {
+    cursor: grabbing;
+}
+
+.grid-dot {
+    fill: var(--color-border-default);
+}
+
 .node {
     position: absolute;
     background-color: var(--color-bg-panel);
@@ -71,6 +99,12 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+}
+
+.node.is-dragging {
+    border-color: var(--color-accent);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
 }
 
 .node:hover {
@@ -93,6 +127,86 @@ body {
     flex-grow: 1;
     font-size: 14px;
     color: var(--color-text-default);
+}
+
+.node-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: var(--color-accent);
+    border: 2px solid var(--color-bg-panel);
+    border-radius: 50%;
+    z-index: 10;
+    cursor: crosshair;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.node:hover .node-handle {
+    opacity: 1;
+}
+
+.node.is-selected {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px var(--color-accent), 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.node-handle.top {
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.node-handle.right {
+    top: 50%;
+    right: -6px;
+    transform: translateY(-50%);
+}
+
+.node-handle.bottom {
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.node-handle.left {
+    top: 50%;
+    left: -6px;
+    transform: translateY(-50%);
+}
+
+.edge {
+    fill: none;
+    stroke: var(--color-border-default);
+    stroke-width: 2px;
+    stroke-linecap: round;
+}
+
+.edge.edge-drawing {
+    stroke: var(--color-accent);
+    stroke-dasharray: 5, 5;
+}
+
+.cut-line {
+    stroke: var(--color-danger);
+    stroke-width: 2px;
+    stroke-linecap: round;
+    stroke-dasharray: 5, 5;
+}
+
+.snap-guide {
+    stroke: var(--color-danger);
+    stroke-width: 1px;
+    stroke-dasharray: 4, 4;
+}
+
+.selection-box {
+    position: absolute;
+    border: 1px solid var(--color-accent);
+    background-color: rgba(62, 207, 142, 0.1);
+    pointer-events: none; /* Make sure it doesn't interfere with mouse events */
+    z-index: 9999;
+    display: none; /* Hidden by default */
 }
 
 /* Mobile-first: Panels are hidden by default on small screens */

@@ -34,12 +34,13 @@ class BaseEdge {
 
     /**
      * Renders the edge on the canvas.
-     * This method is a placeholder and will be implemented fully when the
-     * main canvas logic is built.
-     * @param {SVGElement} svgCanvas - The main SVG canvas element to draw on.
+     * This creates the SVG path element for the edge.
+     * @param {SVGElement} svgGroup - The main SVG group element to draw on.
      */
-    render(svgCanvas) {
-        // Placeholder for future SVG rendering logic
-        console.log(`Rendering edge ${this.id}`);
+    render(svgGroup) {
+        this.element = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        this.element.id = this.id;
+        this.element.classList.add('edge');
+        svgGroup.appendChild(this.element);
     }
 } 
