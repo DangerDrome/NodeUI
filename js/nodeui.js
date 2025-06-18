@@ -399,6 +399,14 @@ class NodeUI {
         const nodeElement = event.target.closest('.node');
         if (nodeElement) {
             const nodeId = nodeElement.id;
+            const node = this.nodes.get(nodeId);
+
+            // Special handler for left-clicking a routing node's icon to cycle color
+            if (node instanceof RoutingNode && event.target.closest('.node-icon')) {
+                this.cycleNodeColor(nodeId);
+                return; // Prevent starting a drag operation
+            }
+
             this.bringToFront(nodeId); // Bring the node and its hierarchy to the front
 
             // If the node is not part of a multi-selection, clear the selection.
@@ -1957,14 +1965,21 @@ class NodeUI {
         event.preventDefault();
         
         const target = event.target;
+        const nodeElement = target.closest('.node');
         const edgeHitArea = target.closest('.edge-hit-area');
         
         if (edgeHitArea) {
             const edgeId = edgeHitArea.parentElement.querySelector('.edge').id;
             this.showEdgeContextMenu(event.clientX, event.clientY, edgeId);
-        } else if (target.closest('.node')) {
-            // Future: Node-specific context menu
-            this.showCanvasContextMenu(event.clientX, event.clientY);
+        } else if (nodeElement) {
+            const node = this.nodes.get(nodeElement.id);
+            if (node instanceof RoutingNode) {
+                // Directly cycle the input connection on right-click.
+                this.cycleRoutingNodeConnections(node.id);
+            } else {
+                // For other nodes, show the default canvas menu.
+                this.showCanvasContextMenu(event.clientX, event.clientY);
+            }
         } else {
             this.showCanvasContextMenu(event.clientX, event.clientY);
         }
@@ -2777,6 +2792,70 @@ class NodeUI {
             x: position.x - 15, // Center the small node on the cursor
             y: position.y - 15
         });
+    }
+
+    /**
+     * For a given routing node, finds all connected edges and cycles their
+     * connection points clockwise to the next available handle on the routing node itself.
+     * @param {string} routingNodeId The ID of the routing node to cycle.
+     */
+    cycleRoutingNodeConnections(routingNodeId) {
+        const routingNode = this.nodes.get(routingNodeId);
+        if (!routingNode) return;
+
+        const connectedEdges = Array.from(this.edges.values()).filter(
+            edge => edge.startNodeId === routingNodeId || edge.endNodeId === routingNodeId
+        );
+
+        if (connectedEdges.length === 0) return;
+
+        const clockwiseHandles = ['top', 'right', 'bottom', 'left'];
+        const edgeUpdates = [];
+
+        // Step 1: Determine the new handle for each edge based on the current state.
+        connectedEdges.forEach(edge => {
+            const isStartNode = edge.startNodeId === routingNodeId;
+            const oldHandle = isStartNode ? edge.startHandleId : edge.endHandleId;
+            
+            const currentIndex = clockwiseHandles.indexOf(oldHandle);
+            // Cycle to the next handle in the clockwise direction.
+            const newHandle = clockwiseHandles[(currentIndex + 1) % clockwiseHandles.length];
+
+            edgeUpdates.push({ edge, oldHandle, newHandle, isStartNode });
+        });
+
+        // Step 2: Apply all updates. This two-pass process prevents conflicts
+        // where one edge moves to a handle occupied by another edge in the same cycle.
+        edgeUpdates.forEach(({ edge, oldHandle }) => {
+            routingNode.removeConnection(oldHandle, edge.id);
+        });
+
+        edgeUpdates.forEach(({ edge, newHandle, isStartNode }) => {
+            routingNode.addConnection(newHandle, edge.id);
+            if (isStartNode) {
+                edge.startHandleId = newHandle;
+            } else {
+                edge.endHandleId = newHandle;
+            }
+        });
+
+        // --- Cycle Icon ---
+        if (routingNode.element) {
+            const iconEl = routingNode.element.querySelector('.node-icon');
+            if (iconEl) {
+                const icons = ['icon-git-commit', 'icon-refresh-cw', 'icon-plus'];
+                
+                // Remove any of the possible icon classes
+                iconEl.classList.remove(...icons);
+
+                // Increment state and apply the new icon class
+                routingNode.iconState = (routingNode.iconState + 1) % icons.length;
+                iconEl.classList.add(icons[routingNode.iconState]);
+            }
+        }
+
+        // Trigger a visual update for all edges connected to the routing node.
+        this.updateConnectedEdges(routingNodeId);
     }
 }
 

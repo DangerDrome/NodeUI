@@ -15,10 +15,11 @@ class RoutingNode extends BaseNode {
         };
 
         super({ ...defaults, ...options });
+        this.iconState = 0; // To track the current icon for cycling
     }
 
     /**
-     * Overrides the default render method to create a simpler visual.
+     * Overrides the default render method to create a simpler visual with an icon.
      * @param {HTMLElement} parentElement - The parent element to append the node to.
      * @returns {HTMLElement} The created DOM element for the node.
      */
@@ -34,10 +35,10 @@ class RoutingNode extends BaseNode {
         this.element.style.width = `${this.width}px`;
         this.element.style.height = `${this.height}px`;
 
-        const cycleColorIcon = document.createElement('div');
-        cycleColorIcon.className = 'node-cycle-color-icon icon-sun-medium';
+        const icon = document.createElement('div');
+        icon.className = 'node-icon icon-git-commit';
+        this.element.appendChild(icon);
 
-        this.element.appendChild(cycleColorIcon);
         parentElement.appendChild(this.element);
         
         this.createHandles(); // It still needs connection handles
