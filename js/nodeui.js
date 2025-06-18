@@ -547,15 +547,21 @@ class NodeUI {
         if (this.draggingState.isDragging) {
             // Handle dragging for pinned nodes (screen space)
             if (this.draggingState.isDraggingPinned) {
-                const node = this.draggingState.targetNode;
+                const primaryNode = this.draggingState.targetNode;
                 const dx = event.clientX - this.draggingState.startX;
                 const dy = event.clientY - this.draggingState.startY;
 
-                node.x = node.originalX + dx;
-                node.y = node.originalY + dy;
-                node.element.style.left = `${node.x}px`;
-                node.element.style.top = `${node.y}px`;
-                this.updateConnectedEdges(node.id);
+                const nodesToMove = this.getNodesToMove(primaryNode.id);
+                nodesToMove.forEach(nodeId => {
+                    const node = this.nodes.get(nodeId);
+                    if (node) {
+                        node.x = node.originalX + dx;
+                        node.y = node.originalY + dy;
+                        node.element.style.left = `${node.x}px`;
+                        node.element.style.top = `${node.y}px`;
+                        this.updateConnectedEdges(nodeId);
+                    }
+                });
                 return;
             }
             
@@ -1787,18 +1793,26 @@ class NodeUI {
 
         if (this.selectedNodes.size === 0) return;
 
-        // Deep clone the node data, ensuring color is preserved
+        // Deep clone the node data
         this.selectedNodes.forEach(nodeId => {
             const node = this.nodes.get(nodeId);
             if (node) {
-                // Serialize containedNodeIds if it's a GroupNode
+                // Clone the node data, nullifying DOM-related properties
                 const nodeData = { 
                     ...node,
                     element: null, 
                     handles: {},
-                    connections: new Map() // Connections are not copied
+                    connections: new Map()
                 };
 
+                // If the node is pinned, its coordinates are in screen space.
+                // Convert them to world space for consistent clipboard data.
+                if (node.isPinned) {
+                    nodeData.x = (node.x - this.panZoom.offsetX) / this.panZoom.scale;
+                    nodeData.y = (node.y - this.panZoom.offsetY) / this.panZoom.scale;
+                }
+
+                // Serialize containedNodeIds if it's a GroupNode
                 if (node instanceof GroupNode) {
                     nodeData.containedNodeIds = Array.from(node.containedNodeIds);
                 }
@@ -1810,7 +1824,7 @@ class NodeUI {
         // Find and clone ANY edge connected to the selection
         this.edges.forEach(edge => {
             if (this.selectedNodes.has(edge.startNodeId) || this.selectedNodes.has(edge.endNodeId)) {
-                this.clipboard.edges.push({ ...edge, element: null });
+                this.clipboard.edges.push({ ...edge, element: null, groupElement: null, hitArea: null });
             }
         });
         
@@ -1837,12 +1851,12 @@ class NodeUI {
         if (this.clipboard.nodes.length === 0) return;
 
         const idMap = new Map(); // Maps old IDs to new IDs
-        const pasteOffset = 20; // A small offset to avoid direct overlap
+        const nodesToPin = [];   // Keep track of nodes that should be pinned after creation
 
-        // For a more predictable paste, let's use a fixed point if mouse is not over canvas
+        // For a more predictable paste, use the last known mouse position
         const pasteCenter = this.getMousePosition(this.lastMousePosition) || { x: 100, y: 100 };
         
-        // Find the geometric center of the copied nodes
+        // Find the geometric center of the copied nodes (all now in world space)
         let totalX = 0, totalY = 0;
         this.clipboard.nodes.forEach(node => {
             totalX += node.x + node.width / 2;
@@ -1857,10 +1871,12 @@ class NodeUI {
             const newId = crypto.randomUUID();
             idMap.set(oldId, newId);
 
-            // Calculate new position relative to the group's center
+            // Calculate new position relative to the group's center and paste location
             const offsetX = nodeData.x - groupCenterX;
             const offsetY = nodeData.y - groupCenterY;
 
+            // Create a copy, but explicitly set isPinned to false for initial creation.
+            // The real pinned state from nodeData.isPinned will be applied later via updateNode.
             const newNodeData = {
                 id: newId,
                 x: pasteCenter.x + offsetX,
@@ -1871,6 +1887,7 @@ class NodeUI {
                 content: nodeData.content,
                 type: nodeData.type,
                 color: nodeData.color,
+                isPinned: false, // Create as unpinned; will be updated to pinned later
                 containedNodeIds: nodeData.containedNodeIds
             };
 
@@ -1884,18 +1901,18 @@ class NodeUI {
             } else {
                 this.addNode(new BaseNode(newNodeData));
             }
+
+            // If the original node in the clipboard was pinned, mark the new one to be pinned.
+            if (nodeData.isPinned) {
+                nodesToPin.push(newId);
+            }
         });
 
         // Create new edges with updated node IDs and positions
         this.clipboard.edges.forEach(edgeData => {
-            // Determine the start and end node IDs for the new edge.
-            // If an endpoint was part of the copy, use its new ID.
-            // Otherwise, use the original ID to connect to an existing node.
             const newStartNodeId = idMap.get(edgeData.startNodeId) || edgeData.startNodeId;
             const newEndNodeId = idMap.get(edgeData.endNodeId) || edgeData.endNodeId;
 
-            // Only create the new edge if at least one of its endpoints is a new node.
-            // This prevents duplicating edges that connect two un-copied nodes.
             if (idMap.has(edgeData.startNodeId) || idMap.has(edgeData.endNodeId)) {
                 events.publish('edge:create', {
                     startNodeId: newStartNodeId,
@@ -1906,6 +1923,12 @@ class NodeUI {
             }
         });
 
+        // After all nodes are created, apply the pinned state.
+        // This triggers the `reparentNode` logic to move them to the correct container.
+        nodesToPin.forEach(nodeId => {
+            this.updateNode({ nodeId: nodeId, isPinned: true });
+        });
+
         // Select the newly pasted nodes
         this.clearSelection();
         idMap.forEach(newNodeId => this.selectNode(newNodeId));
@@ -1914,7 +1937,7 @@ class NodeUI {
             selectedNodeIds: Array.from(this.selectedNodes)
         });
 
-        console.log(`Pasted ${this.clipboard.nodes.length} nodes and ${this.clipboard.edges.length} edges.`);
+        console.log(`Pasted ${this.clipboard.nodes.length} nodes.`);
     }
 
     // --- Edge Cutting Logic ---
@@ -2291,10 +2314,41 @@ class NodeUI {
         if (node) {
             const oldPinnedState = node.isPinned;
             node.update(data);
+
+            // Handle cascading pin for groups
+            if (node instanceof GroupNode && data.isPinned !== undefined) {
+                const containedNodes = this.getAllContainedNodes(node);
+                containedNodes.forEach(childNode => {
+                    this.updateNode({ nodeId: childNode.id, isPinned: data.isPinned });
+                });
+            }
+
             if (data.isPinned !== undefined && oldPinnedState !== data.isPinned) {
                 this.reparentNode(data.nodeId);
             }
         }
+    }
+
+    /**
+     * Recursively gets all nodes contained within a group, including those in nested groups.
+     * @param {GroupNode} groupNode The parent group.
+     * @returns {Set<BaseNode>} A set of all contained node instances.
+     */
+    getAllContainedNodes(groupNode) {
+        const allNodes = new Set();
+        const queue = [...groupNode.containedNodeIds];
+        
+        while (queue.length > 0) {
+            const nodeId = queue.shift();
+            const node = this.nodes.get(nodeId);
+            if (node) {
+                allNodes.add(node);
+                if (node instanceof GroupNode) {
+                    node.containedNodeIds.forEach(childId => queue.push(childId));
+                }
+            }
+        }
+        return allNodes;
     }
 
     // --- Resize Logic ---

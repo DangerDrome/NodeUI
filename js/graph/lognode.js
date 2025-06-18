@@ -52,9 +52,15 @@ class LogNode extends BaseNode {
      */
     renderContent(contentArea) {
         contentArea.innerHTML = ''; // Clear base content
+        
+        const wrapper = document.createElement('div');
+        wrapper.className = 'log-container-wrapper';
+
         this.logContainer = document.createElement('div');
         this.logContainer.className = 'log-container';
-        contentArea.appendChild(this.logContainer);
+        
+        wrapper.appendChild(this.logContainer);
+        contentArea.appendChild(wrapper);
     }
 
     /**
