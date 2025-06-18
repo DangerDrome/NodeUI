@@ -229,6 +229,8 @@ class NodeUI {
                 this.addNode(new GroupNode(options));
             } else if (options.type === 'RoutingNode') {
                 this.addNode(new RoutingNode(options));
+            } else if (options.type === 'LogNode') {
+                this.addNode(new LogNode(options));
             }
             else {
                 this.addNode(new BaseNode(options));
@@ -289,6 +291,11 @@ class NodeUI {
     removeNode(nodeId) {
         const node = this.nodes.get(nodeId);
         if (!node) return;
+
+        // If the node has a custom destroy method, call it for cleanup
+        if (typeof node.destroy === 'function') {
+            node.destroy();
+        }
 
         // Find and remove all connected edges first
         const edgesToRemove = [];
@@ -1872,6 +1879,8 @@ class NodeUI {
                 this.addNode(new RoutingNode(newNodeData));
             } else if (newNodeData.type === 'GroupNode') {
                 this.addNode(new GroupNode(newNodeData));
+            } else if (newNodeData.type === 'LogNode') {
+                this.addNode(new LogNode(newNodeData));
             } else {
                 this.addNode(new BaseNode(newNodeData));
             }
@@ -2125,6 +2134,11 @@ class NodeUI {
                 type: 'GroupNode',
                 label: 'Create Group',
                 iconClass: 'icon-group'
+            },
+            {
+                type: 'LogNode',
+                label: 'Create Log Node',
+                iconClass: 'icon-terminal'
             }
         ];
 
@@ -2138,6 +2152,8 @@ class NodeUI {
                         newNode = new RoutingNode({ x: worldPos.x, y: worldPos.y });
                     } else if (action.type === 'GroupNode') {
                         newNode = new GroupNode({ x: worldPos.x, y: worldPos.y });
+                    } else if (action.type === 'LogNode') {
+                        newNode = new LogNode({ x: worldPos.x, y: worldPos.y });
                     } else {
                         newNode = new BaseNode({ x: worldPos.x, y: worldPos.y, title: action.label, type: action.type });
                     }
