@@ -43,8 +43,11 @@ class NodeUI {
             targetNode: null,
             startX: 0,
             startY: 0,
+            originalX: 0,
+            originalY: 0,
             originalWidth: 0,
-            originalHeight: 0
+            originalHeight: 0,
+            direction: null
         };
 
         this.selectionState = {
@@ -84,7 +87,8 @@ class NodeUI {
         this.contextMenu = new ContextMenu();
         this.longPressTimer = null;
         this.openPopoverNodeId = null;
-        this.maxZIndex = 1;
+        this.maxGroupZIndex = 0;
+        this.maxNodeZIndex = 10000; // Large offset to separate node/group layers
         this.selectionDebounceTimer = null;
 
         this.panZoom = {
@@ -105,12 +109,11 @@ class NodeUI {
     init() {
         this.container.innerHTML = ''; // Clear any previous content
 
-        // Create the main SVG canvas
-        this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        this.svg.classList.add('node-ui-canvas');
+        // --- Grid Layer (Bottom) ---
+        this.gridSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        this.gridSvg.classList.add('grid-canvas');
 
-        // Create the grid pattern definition
-        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        const gridDefs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
         const pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
         pattern.id = 'grid-pattern';
         pattern.setAttribute('width', '20');
@@ -124,9 +127,20 @@ class NodeUI {
         circle.classList.add('grid-dot');
 
         pattern.appendChild(circle);
-        defs.appendChild(pattern);
+        gridDefs.appendChild(pattern);
+        this.gridSvg.appendChild(gridDefs);
 
-        // --- Arrowhead Marker Definitions ---
+        this.gridRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        this.gridRect.setAttribute('width', '100%');
+        this.gridRect.setAttribute('height', '100%');
+        this.gridRect.setAttribute('fill', 'url(#grid-pattern)');
+        this.gridSvg.appendChild(this.gridRect);
+
+        // --- Edge Layer (Middle) ---
+        this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        this.svg.classList.add('node-ui-canvas');
+
+        const edgeDefs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
         const colors = ['default', 'red', 'green', 'blue', 'yellow', 'purple'];
         
         colors.forEach(color => {
@@ -141,9 +155,9 @@ class NodeUI {
             
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
-            path.style.fill = `var(--color-node-${color}-border)`; // Use the border color for the arrowhead
+            path.style.fill = `var(--color-node-${color}-border)`;
             marker.appendChild(path);
-            defs.appendChild(marker);
+            edgeDefs.appendChild(marker);
         });
 
         const markerDrawing = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
@@ -158,37 +172,33 @@ class NodeUI {
         pathDrawing.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
         pathDrawing.classList.add('arrowhead-drawing');
         markerDrawing.appendChild(pathDrawing);
-        defs.appendChild(markerDrawing);
+        edgeDefs.appendChild(markerDrawing);
         
-        this.svg.appendChild(defs);
+        this.svg.appendChild(edgeDefs);
 
-        // Create the rectangle to display the grid
-        this.gridRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        this.gridRect.setAttribute('width', '100%');
-        this.gridRect.setAttribute('height', '100%');
-        this.gridRect.setAttribute('fill', 'url(#grid-pattern)');
-        this.svg.appendChild(this.gridRect);
-
-        // Create a group for all pannable/zoomable elements
         this.canvasGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         this.svg.appendChild(this.canvasGroup);
         
-        // Create a group for snapping guides
         this.guideGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         this.guideGroup.classList.add('guide-group');
         this.canvasGroup.appendChild(this.guideGroup);
 
-        // Create a container for node DOM elements
+        // --- Node Layers (Top) ---
+        this.groupContainer = document.createElement('div');
+        this.groupContainer.classList.add('group-container');
+
         this.nodeContainer = document.createElement('div');
         this.nodeContainer.classList.add('node-container');
 
-        // Create the selection box element within the node container
         this.selectionState.selectionBox = document.createElement('div');
         this.selectionState.selectionBox.classList.add('selection-box');
         this.nodeContainer.appendChild(this.selectionState.selectionBox);
 
-        this.container.appendChild(this.svg);
-        this.container.appendChild(this.nodeContainer);
+        // --- Final Assembly ---
+        this.container.appendChild(this.gridSvg);         // 1. Grid
+        this.container.appendChild(this.groupContainer);   // 2. Groups
+        this.container.appendChild(this.svg);              // 3. Edges
+        this.container.appendChild(this.nodeContainer);    // 4. Nodes
         
         this.bindEventListeners();
         this.subscribeToEvents();
@@ -224,7 +234,16 @@ class NodeUI {
      * Subscribes to application-wide events from the event bus.
      */
     subscribeToEvents() {
-        events.subscribe('node:create', (options) => this.addNode(new BaseNode(options)));
+        events.subscribe('node:create', (options) => {
+            if (options.type === 'GroupNode') {
+                this.addNode(new GroupNode(options));
+            } else if (options.type === 'RoutingNode') {
+                this.addNode(new RoutingNode(options));
+            }
+            else {
+                this.addNode(new BaseNode(options));
+            }
+        });
         events.subscribe('edge:create', (options) => this.addEdge(new BaseEdge(options)));
         events.subscribe('node:delete', (nodeId) => this.removeNode(nodeId));
         events.subscribe('edge:delete', (edgeId) => this.removeEdge(edgeId));
@@ -243,7 +262,11 @@ class NodeUI {
      */
     addNode(node) {
         this.nodes.set(node.id, node);
-        node.render(this.nodeContainer);
+        if (node instanceof GroupNode) {
+            node.render(this.groupContainer);
+        } else {
+            node.render(this.nodeContainer);
+        }
     }
 
     /**
@@ -330,17 +353,17 @@ class NodeUI {
             this.toggleNodePopover(this.openPopoverNodeId);
         }
 
+        if (event.target.classList.contains('resize-handle')) {
+            const { nodeId, direction } = event.target.dataset;
+            this.startResize(nodeId, event, direction);
+            return;
+        }
         if (this.routingCutState.isRouting) {
             this.startRoutingCut(event);
             return;
         }
         if (this.edgeCutState.isCutting) {
             this.startCuttingLine(event);
-            return;
-        }
-        if (event.target.classList.contains('node-resize-handle')) {
-            const nodeElement = event.target.closest('.node');
-            this.startResize(nodeElement.id, event);
             return;
         }
         if (event.target.classList.contains('node-handle-zone')) {
@@ -376,6 +399,8 @@ class NodeUI {
         const nodeElement = event.target.closest('.node');
         if (nodeElement) {
             const nodeId = nodeElement.id;
+            this.bringToFront(nodeId); // Bring the node and its hierarchy to the front
+
             // If the node is not part of a multi-selection, clear the selection.
             // This allows dragging a single unselected node without clearing the current selection.
             if (!this.selectedNodes.has(nodeId)) {
@@ -452,75 +477,97 @@ class NodeUI {
         }
         
         if (this.resizingState.isResizing) {
-            const { targetNode, startX, startY, originalWidth, originalHeight } = this.resizingState;
+            const { targetNode, startX, startY, originalX, originalY, originalWidth, originalHeight, direction } = this.resizingState;
             const dx = (event.clientX - startX) / this.panZoom.scale;
             const dy = (event.clientY - startY) / this.panZoom.scale;
-
+        
             const minWidth = parseInt(getComputedStyle(this.container).getPropertyValue('--panel-width'));
             const minHeight = parseInt(getComputedStyle(this.container).getPropertyValue('--panel-height'));
-
-            let newWidth = Math.max(minWidth, originalWidth + dx);
-            let newHeight = Math.max(minHeight, originalHeight + dy);
-
-            if (this.snapToObjects) {
-                const snapResult = this.checkForResizeSnapping(targetNode, newWidth, newHeight);
-                newWidth = snapResult.width;
-                newHeight = snapResult.height;
+        
+            let newX = originalX;
+            let newY = originalY;
+            let newWidth = originalWidth;
+            let newHeight = originalHeight;
+        
+            if (direction.includes('e')) {
+                newWidth = Math.max(minWidth, originalWidth + dx);
             }
-
+            if (direction.includes('w')) {
+                const calculatedWidth = originalWidth - dx;
+                if (calculatedWidth > minWidth) {
+                    newWidth = calculatedWidth;
+                    newX = originalX + dx;
+                }
+            }
+            if (direction.includes('s')) {
+                newHeight = Math.max(minHeight, originalHeight + dy);
+            }
+            if (direction.includes('n')) {
+                const calculatedHeight = originalHeight - dy;
+                if (calculatedHeight > minHeight) {
+                    newHeight = calculatedHeight;
+                    newY = originalY + dy;
+                }
+            }
+        
+            targetNode.x = newX;
+            targetNode.y = newY;
             targetNode.width = newWidth;
             targetNode.height = newHeight;
+        
+            targetNode.element.style.left = `${newX}px`;
+            targetNode.element.style.top = `${newY}px`;
             targetNode.element.style.width = `${newWidth}px`;
             targetNode.element.style.height = `${newHeight}px`;
-
+        
             this.updateConnectedEdges(targetNode.id);
             return;
         }
 
         if (this.draggingState.isDragging) {
+            const primaryNode = this.draggingState.targetNode;
+
+            // 1. Calculate base delta from mouse movement
             const dx = (event.clientX - this.draggingState.startX) / this.panZoom.scale;
             const dy = (event.clientY - this.draggingState.startY) / this.panZoom.scale;
 
-            let newX = this.draggingState.targetNode.originalX + dx;
-            let newY = this.draggingState.targetNode.originalY + dy;
+            // 2. Calculate primary node's potential new position
+            let primaryNewX = primaryNode.originalX + dx;
+            let primaryNewY = primaryNode.originalY + dy;
 
+            // 3. Apply snapping to the primary node's position
             if (this.snapToGrid) {
-                newX = Math.round(newX / this.snapToGrid) * this.snapToGrid;
-                newY = Math.round(newY / this.snapToGrid) * this.snapToGrid;
+                primaryNewX = Math.round(primaryNewX / this.snapToGrid) * this.snapToGrid;
+                primaryNewY = Math.round(primaryNewY / this.snapToGrid) * this.snapToGrid;
+            }
+            if (this.snapToObjects) {
+                const snapResult = this.checkForSnapping(primaryNode, primaryNewX, primaryNewY);
+                primaryNewX = snapResult.x;
+                primaryNewY = snapResult.y;
             }
 
-            if (this.snapToObjects) {
-                const snapResult = this.checkForSnapping(this.draggingState.targetNode, newX, newY);
-                newX = snapResult.x;
-                newY = snapResult.y;
-            }
-            
-            if (this.selectedNodes.size > 1 && this.selectedNodes.has(this.draggingState.targetNode.id)) {
-                const deltaX = newX - this.draggingState.targetNode.originalX;
-                const deltaY = newY - this.draggingState.targetNode.originalY;
-                
-                this.selectedNodes.forEach(nodeId => {
-                    const node = this.nodes.get(nodeId);
-                    if(node) {
-                        node.x = node.originalX + deltaX;
-                        node.y = node.originalY + deltaY;
-                        node.element.style.left = `${node.x}px`;
-                        node.element.style.top = `${node.y}px`;
-                        this.updateConnectedEdges(node.id);
-                    }
-                });
-            } else {
-                this.draggingState.targetNode.x = newX;
-                this.draggingState.targetNode.y = newY;
-                this.draggingState.targetNode.element.style.left = `${newX}px`;
-                this.draggingState.targetNode.element.style.top = `${newY}px`;
-                this.updateConnectedEdges(this.draggingState.targetNode.id);
-            }
+            // 4. The final delta for ALL nodes is based on the primary node's snapped movement
+            const finalDeltaX = primaryNewX - primaryNode.originalX;
+            const finalDeltaY = primaryNewY - primaryNode.originalY;
+
+            const nodesToMove = this.getNodesToMove(primaryNode.id);
+
+            // 5. Apply the consistent delta to all nodes in the group/selection
+            nodesToMove.forEach(nodeId => {
+                const node = this.nodes.get(nodeId);
+                if (node) {
+                    node.x = node.originalX + finalDeltaX;
+                    node.y = node.originalY + finalDeltaY;
+                    node.element.style.left = `${node.x}px`;
+                    node.element.style.top = `${node.y}px`;
+                    this.updateConnectedEdges(nodeId);
+                }
+            });
 
             // Record shake history
             const now = Date.now();
             if (now - this.draggingState.lastShakeTime > 50) { // Sample every 50ms
-                this.draggingState.shakeHistory.push({x: newX, y: newY});
+                this.draggingState.shakeHistory.push({x: primaryNewX, y: primaryNewY});
                 if (this.draggingState.shakeHistory.length > 10) {
                     this.draggingState.shakeHistory.shift(); // Keep history to a manageable size
                 }
@@ -528,7 +575,7 @@ class NodeUI {
             }
 
             // Check for shake in real-time
-            this.checkForShake(this.draggingState.targetNode);
+            this.checkForShake(primaryNode);
 
             // Clear previous droppable state
             if (this.draggingState.droppableEdge) {
@@ -539,7 +586,7 @@ class NodeUI {
             // Check for new droppable edge
             let foundDroppable = false;
             for (const edge of this.edges.values()) {
-                if (this.isPointOnEdge(this.draggingState.targetNode, edge)) {
+                if (this.isPointOnEdge(primaryNode, edge)) {
                     edge.element.classList.add('is-droppable');
                     this.draggingState.droppableEdge = edge.element;
                     foundDroppable = true;
@@ -861,28 +908,38 @@ class NodeUI {
         // Use event.metaKey for Command key on macOS
         const isModKey = event.ctrlKey || event.metaKey;
         const targetIsInput = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
+        const key = event.key.toLowerCase();
 
-        if (isModKey && event.key === 'a') {
+        if (isModKey && key === 'a') {
             event.preventDefault();
             this.selectAll();
-        } else if (isModKey && event.key === 'c') {
+        } else if (isModKey && key === 'c') {
             event.preventDefault();
             this.copySelection();
-        } else if (isModKey && event.key === 'x') {
+        } else if (isModKey && key === 'x') {
             event.preventDefault();
             this.cutSelection();
-        } else if (isModKey && event.key === 'v') {
+        } else if (isModKey && key === 'v') {
             event.preventDefault();
             this.paste();
-        } else if (event.key === 'c' && !isModKey && !targetIsInput) {
+        } else if (key === 'g' && !isModKey && !targetIsInput) {
+            event.preventDefault();
+            this.groupSelection();
+        } else if (key === 'n' && !isModKey && !targetIsInput) {
+            event.preventDefault();
+            this.createNodeAtMousePosition();
+        } else if (key === 'm' && !isModKey && !targetIsInput) {
+            event.preventDefault();
+            this.createRoutingNodeAtMousePosition();
+        } else if ((key === 'c' || key === 'y') && !isModKey && !targetIsInput) {
             event.preventDefault();
             this.edgeCutState.isCutting = true;
             this.container.classList.add('is-cutting');
-        } else if (event.key === 'r' && !isModKey && !targetIsInput) {
+        } else if (key === 'r' && !isModKey && !targetIsInput) {
             event.preventDefault();
             this.routingCutState.isRouting = true;
             this.container.classList.add('is-routing');
-        } else if ((event.key === 'Delete' || event.key === 'Backspace') && !targetIsInput) {
+        } else if ((key === 'delete' || key === 'backspace') && !targetIsInput) {
             if (this.selectedNodes.size > 0 || this.selectedEdges.size > 0) {
                 event.preventDefault();
                 this.selectedNodes.forEach(nodeId => {
@@ -901,15 +958,15 @@ class NodeUI {
      * @param {KeyboardEvent} event 
      */
     onKeyUp(event) {
-        if (event.key === 'c') {
+        const key = event.key.toLowerCase();
+        if (key === 'c' || key === 'y') {
             this.edgeCutState.isCutting = false;
             this.container.classList.remove('is-cutting');
-            // If a cut line is still present, remove it
+            // If a cut line is still present (e.g., key released before mouseup), clean it up without cutting.
             if (this.edgeCutState.cutLine) {
-                this.edgeCutState.cutLine.remove();
-                this.edgeCutState.cutLine = null;
+                this.endCuttingLine(false);
             }
-        } else if (event.key === 'r') {
+        } else if (key === 'r') {
             this.routingCutState.isRouting = false;
             this.container.classList.remove('is-routing');
         }
@@ -934,17 +991,15 @@ class NodeUI {
         this.draggingState.startX = clientX;
         this.draggingState.startY = clientY;
         
-        // If we are dragging a group of selected nodes, we need to store their original positions
-        if (this.selectedNodes.size > 1 && this.selectedNodes.has(nodeId)) {
-            this.selectedNodes.forEach(selectedNodeId => {
-                const selectedNode = this.nodes.get(selectedNodeId);
-                selectedNode.originalX = selectedNode.x;
-                selectedNode.originalY = selectedNode.y;
-            });
-        } else {
-            node.originalX = node.x;
-            node.originalY = node.y;
-        }
+        const nodesToMove = this.getNodesToMove(nodeId);
+        
+        nodesToMove.forEach(nodeToMoveId => {
+            const nodeToMove = this.nodes.get(nodeToMoveId);
+            if (nodeToMove) {
+                nodeToMove.originalX = nodeToMove.x;
+                nodeToMove.originalY = nodeToMove.y;
+            }
+        });
 
         this.draggingState.shakeHistory = [];
         this.draggingState.lastShakeTime = Date.now();
@@ -959,11 +1014,15 @@ class NodeUI {
         const { targetNode } = this.draggingState;
         if (!targetNode) return;
 
+        this.updateGroupingForMovedNodes();
+
         // Clear any final droppable state
         if (this.draggingState.droppableEdge) {
             this.draggingState.droppableEdge.classList.remove('is-droppable');
             this.draggingState.droppableEdge = null;
         }
+
+        const nodesMoved = this.getNodesToMove(targetNode.id);
 
         // If any node is dropped on an edge, split the edge
         let edgeToSplit = null;
@@ -983,27 +1042,159 @@ class NodeUI {
             this.clearGuides();
         }
 
-        // If multiple nodes are selected, publish 'moved' for all of them
-        if (this.selectedNodes.size > 1 && this.selectedNodes.has(targetNode.id)) {
-            this.selectedNodes.forEach(nodeId => {
-                const node = this.nodes.get(nodeId);
-                if (node) {
-                    events.publish('node:moved', { nodeId: node.id, x: node.x, y: node.y });
-                }
-            });
-        } else {
-            // Publish 'moved' for the single dragged node
-            events.publish('node:moved', {
-                nodeId: targetNode.id,
-                x: targetNode.x,
-                y: targetNode.y
-            });
-        }
+        // Publish 'moved' for all affected nodes
+        nodesMoved.forEach(nodeId => {
+            const node = this.nodes.get(nodeId);
+            if (node) {
+                events.publish('node:moved', { nodeId: node.id, x: node.x, y: node.y });
+            }
+        });
 
         // Reset dragging state
         this.draggingState.isDragging = false;
         this.draggingState.targetNode = null;
         this.draggingState.shakeCooldown = false; // Reset cooldown
+    }
+
+    /**
+     * Traverses the node hierarchy (groups and selection) to determine all nodes that should move together.
+     * @param {string} startNodeId The ID of the node initiating the drag.
+     * @returns {Set<string>} A set of node IDs that should be moved.
+     */
+    getNodesToMove(startNodeId) {
+        const nodesToMove = new Set();
+        const queue = [];
+
+        // If the start node is part of a selection, the entire selection moves.
+        // Otherwise, only the start node and its children move.
+        if (this.selectedNodes.has(startNodeId)) {
+            this.selectedNodes.forEach(id => queue.push(id));
+        } else {
+            queue.push(startNodeId);
+        }
+
+        while (queue.length > 0) {
+            const currentId = queue.shift();
+            if (nodesToMove.has(currentId)) {
+                continue;
+            }
+            nodesToMove.add(currentId);
+
+            const node = this.nodes.get(currentId);
+            if (node instanceof GroupNode) {
+                node.containedNodeIds.forEach(childId => {
+                    if (!nodesToMove.has(childId)) {
+                        queue.push(childId);
+                    }
+                });
+            }
+        }
+        return nodesToMove;
+    }
+
+    /**
+     * Checks for and applies grouping changes after a drag operation.
+     */
+    updateGroupingForMovedNodes() {
+        const movedNodes = this.getNodesToMove(this.draggingState.targetNode.id);
+        
+        movedNodes.forEach(nodeId => {
+            const node = this.nodes.get(nodeId);
+            if (!node) return;
+
+            const currentParent = this.findParentGroup(nodeId);
+            const newParent = this.findBestTargetGroup(node);
+
+            if (currentParent !== newParent) {
+                if (currentParent) {
+                    currentParent.removeContainedNode(nodeId);
+                    console.log(`Node ${node.title} removed from group ${currentParent.title}`);
+                }
+                if (newParent) {
+                    newParent.addContainedNode(nodeId);
+                    console.log(`Node ${node.title} added to group ${newParent.title}`);
+                }
+            }
+        });
+    }
+
+    /**
+     * Finds the group that a given node should be placed in based on its position.
+     * It prioritizes the smallest, topmost group.
+     * @param {BaseNode} node The node to find a parent for.
+     * @returns {GroupNode|null} The best target group or null if none.
+     */
+    findBestTargetGroup(node) {
+        let bestTarget = null;
+        let smallestArea = Infinity;
+
+        for (const potentialParent of this.nodes.values()) {
+            if (
+                potentialParent instanceof GroupNode &&
+                potentialParent.id !== node.id && // Cannot be its own parent
+                !this.isDescendant(potentialParent, node) // Prevent cycles
+            ) {
+                const nodeCenter = {
+                    x: node.x + node.width / 2,
+                    y: node.y + node.height / 2
+                };
+
+                // Check if the node's center is inside the potential parent
+                if (
+                    nodeCenter.x > potentialParent.x &&
+                    nodeCenter.x < potentialParent.x + potentialParent.width &&
+                    nodeCenter.y > potentialParent.y &&
+                    nodeCenter.y < potentialParent.y + potentialParent.height
+                ) {
+                    const area = potentialParent.width * potentialParent.height;
+                    // Prioritize smaller groups if they are on top
+                    if (!bestTarget || area < smallestArea || (area === smallestArea && parseInt(potentialParent.element.style.zIndex) > parseInt(bestTarget.element.style.zIndex))) {
+                        smallestArea = area;
+                        bestTarget = potentialParent;
+                    }
+                }
+            }
+        }
+        return bestTarget;
+    }
+
+    /**
+     * Finds the current parent group of a given node.
+     * @param {string} nodeId The ID of the node to check.
+     * @returns {GroupNode|null} The parent group or null.
+     */
+    findParentGroup(nodeId) {
+        for (const node of this.nodes.values()) {
+            if (node instanceof GroupNode && node.containedNodeIds.has(nodeId)) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks if a potential ancestor node is a descendant of a given node.
+     * @param {BaseNode} potentialAncestor The node to check if it is a descendant.
+     * @param {BaseNode} node The node to check against.
+     * @returns {boolean} True if a cycle would be created.
+     */
+    isDescendant(potentialAncestor, node) {
+        if (!(node instanceof GroupNode)) {
+            return false;
+        }
+
+        const queue = [...node.containedNodeIds];
+        while (queue.length > 0) {
+            const childId = queue.shift();
+            if (childId === potentialAncestor.id) {
+                return true;
+            }
+            const childNode = this.nodes.get(childId);
+            if (childNode instanceof GroupNode) {
+                childNode.containedNodeIds.forEach(id => queue.push(id));
+            }
+        }
+        return false;
     }
 
     /**
@@ -1299,14 +1490,15 @@ class NodeUI {
         const transformCss = `translate(${this.panZoom.offsetX}px, ${this.panZoom.offsetY}px) scale(${this.panZoom.scale})`;
         const transformSvg = `translate(${this.panZoom.offsetX}, ${this.panZoom.offsetY}) scale(${this.panZoom.scale})`;
 
-        // Apply transform to the HTML container for nodes
+        // Apply transform to the HTML containers for nodes
+        this.groupContainer.style.transform = transformCss;
         this.nodeContainer.style.transform = transformCss;
         
         // Apply the same transform to the SVG group for edges to keep them in sync
         this.canvasGroup.setAttribute('transform', transformSvg);
         
         // The grid pattern is transformed separately to give the illusion of an infinite grid.
-        const pattern = this.svg.getElementById('grid-pattern');
+        const pattern = this.gridSvg.getElementById('grid-pattern');
         if(pattern) {
             // We transform the pattern inside the SVG definition.
             const gridX = this.panZoom.offsetX;
@@ -1447,7 +1639,7 @@ class NodeUI {
         if (node && node.element) {
             this.selectedNodes.add(nodeId);
             node.element.classList.add('is-selected');
-            node.element.style.zIndex = this.maxZIndex++;
+            // Do not set z-index here; it's handled by bringToFront on mousedown
         }
     }
 
@@ -1471,7 +1663,7 @@ class NodeUI {
             const node = this.nodes.get(nodeId);
             if (node && node.element) {
                 node.element.classList.remove('is-selected');
-                node.element.style.zIndex = 1; // Reset to a base z-index
+                // Don't reset z-index here, let nodes keep their stacked order
             }
         });
         this.selectedNodes.clear();
@@ -1502,12 +1694,19 @@ class NodeUI {
         this.selectedNodes.forEach(nodeId => {
             const node = this.nodes.get(nodeId);
             if (node) {
-                this.clipboard.nodes.push({ 
+                // Serialize containedNodeIds if it's a GroupNode
+                const nodeData = { 
                     ...node,
                     element: null, 
                     handles: {},
                     connections: new Map() // Connections are not copied
-                });
+                };
+
+                if (node instanceof GroupNode) {
+                    nodeData.containedNodeIds = Array.from(node.containedNodeIds);
+                }
+
+                this.clipboard.nodes.push(nodeData);
             }
         });
 
@@ -1574,12 +1773,15 @@ class NodeUI {
                 title: nodeData.title,
                 content: nodeData.content,
                 type: nodeData.type,
-                color: nodeData.color
+                color: nodeData.color,
+                containedNodeIds: nodeData.containedNodeIds
             };
 
             // Instantiate the correct class based on the node type
             if (newNodeData.type === 'RoutingNode') {
                 this.addNode(new RoutingNode(newNodeData));
+            } else if (newNodeData.type === 'GroupNode') {
+                this.addNode(new GroupNode(newNodeData));
             } else {
                 this.addNode(new BaseNode(newNodeData));
             }
@@ -1641,26 +1843,28 @@ class NodeUI {
         this.edgeCutState.cutLine.setAttribute('y2', mousePos.y);
     }
 
-    endCuttingLine() {
+    endCuttingLine(performCut = true) {
         if (!this.edgeCutState.cutLine) return;
         
-        const x1 = parseFloat(this.edgeCutState.cutLine.getAttribute('x1'));
-        const y1 = parseFloat(this.edgeCutState.cutLine.getAttribute('y1'));
-        const x2 = parseFloat(this.edgeCutState.cutLine.getAttribute('x2'));
-        const y2 = parseFloat(this.edgeCutState.cutLine.getAttribute('y2'));
-
-        this.edges.forEach(edge => {
-            const path = edge.element;
-            const len = path.getTotalLength();
-            for (let i = 0; i < len; i += 5) {
-                const p1 = path.getPointAtLength(i);
-                const p2 = path.getPointAtLength(i + 5);
-                if (this.lineIntersect(x1, y1, x2, y2, p1.x, p1.y, p2.x, p2.y)) {
-                    events.publish('edge:delete', edge.id);
-                    break; 
+        if (performCut) {
+            const x1 = parseFloat(this.edgeCutState.cutLine.getAttribute('x1'));
+            const y1 = parseFloat(this.edgeCutState.cutLine.getAttribute('y1'));
+            const x2 = parseFloat(this.edgeCutState.cutLine.getAttribute('x2'));
+            const y2 = parseFloat(this.edgeCutState.cutLine.getAttribute('y2'));
+    
+            this.edges.forEach(edge => {
+                const path = edge.element;
+                const len = path.getTotalLength();
+                for (let i = 0; i < len; i += 5) {
+                    const p1 = path.getPointAtLength(i);
+                    const p2 = path.getPointAtLength(i + 5 > len ? len : i + 5);
+                    if (this.lineIntersect(x1, y1, x2, y2, p1.x, p1.y, p2.x, p2.y)) {
+                        events.publish('edge:delete', edge.id);
+                        break; 
+                    }
                 }
-            }
-        });
+            });
+        }
 
         this.edgeCutState.cutLine.remove();
         this.edgeCutState.cutLine = null;
@@ -1787,6 +1991,11 @@ class NodeUI {
                 type: 'RoutingNode',
                 label: 'Create Routing Node',
                 iconClass: 'icon-git-commit'
+            },
+            {
+                type: 'GroupNode',
+                label: 'Create Group',
+                iconClass: 'icon-group'
             }
         ];
 
@@ -1798,6 +2007,8 @@ class NodeUI {
                     let newNode;
                     if (action.type === 'RoutingNode') {
                         newNode = new RoutingNode({ x: worldPos.x, y: worldPos.y });
+                    } else if (action.type === 'GroupNode') {
+                        newNode = new GroupNode({ x: worldPos.x, y: worldPos.y });
                     } else {
                         newNode = new BaseNode({ x: worldPos.x, y: worldPos.y, title: action.label, type: action.type });
                     }
@@ -1940,47 +2151,53 @@ class NodeUI {
     // --- Resize Logic ---
 
     /**
-     * Starts the process of resizing a node.
-     * @param {string} nodeId The ID of the node to resize.
-     * @param {MouseEvent|TouchEvent} event The event that triggered the resize.
+     * Initiates the resize state for a node.
+     * @param {string} nodeId - The ID of the node to resize.
+     * @param {MouseEvent} event - The triggering mouse event.
+     * @param {string} direction - The direction of the resize ('n', 's', 'e', 'w', etc.).
      */
-    startResize(nodeId, event) {
+    startResize(nodeId, event, direction) {
         const node = this.nodes.get(nodeId);
         if (!node) return;
-        
-        event.stopPropagation();
 
-        const touch = event.touches ? event.touches[0] : event;
+        event.stopPropagation(); // Prevent drag from firing
 
-        this.resizingState.isResizing = true;
-        this.resizingState.targetNode = node;
-        this.resizingState.startX = touch.clientX;
-        this.resizingState.startY = touch.clientY;
-        this.resizingState.originalWidth = node.width;
-        this.resizingState.originalHeight = node.height;
+        this.resizingState = {
+            isResizing: true,
+            targetNode: node,
+            startX: event.clientX,
+            startY: event.clientY,
+            originalX: node.x,
+            originalY: node.y,
+            originalWidth: node.width,
+            originalHeight: node.height,
+            direction: direction
+        };
     }
 
     /**
-     * Ends the node resizing process.
+     * Ends the current resizing state.
      */
     endResize() {
-        const { isResizing, targetNode } = this.resizingState;
-        if (!isResizing || !targetNode) return;
-
-        this.clearGuides();
-
-        events.publish('node:update', {
-            nodeId: targetNode.id,
-            width: targetNode.width,
-            height: targetNode.height
-        });
-
+        if (!this.resizingState.isResizing) return;
+        
+        const { targetNode } = this.resizingState;
+        if (targetNode) {
+            events.publish('node:resized', {
+                nodeId: targetNode.id,
+                x: targetNode.x,
+                y: targetNode.y,
+                width: targetNode.width,
+                height: targetNode.height
+            });
+        }
+        
         this.resizingState.isResizing = false;
         this.resizingState.targetNode = null;
     }
 
     /**
-     * Checks for snapping opportunities while resizing a node.
+     * Checks for snapping guides during node resizing.
      * @param {BaseNode} resizingNode The node being resized.
      * @param {number} currentWidth The proposed new width.
      * @param {number} currentHeight The proposed new height.
@@ -2440,6 +2657,127 @@ class NodeUI {
         // Remove the original edge
         events.publish('edge:delete', edge.id);
     }
+
+    /**
+     * Brings a node and all its children (if it's a group) or all selected nodes to the front.
+     * @param {string} startNodeId The ID of the node initiating the action.
+     */
+    bringToFront(startNodeId) {
+        const nodesToFront = this.getNodesToMove(startNodeId);
+        
+        const groups = [];
+        const regularNodes = [];
+
+        // Separate nodes into groups and regular nodes
+        nodesToFront.forEach(nodeId => {
+            const node = this.nodes.get(nodeId);
+            if (node) {
+                if (node instanceof GroupNode) {
+                    groups.push(node);
+                } else {
+                    regularNodes.push(node);
+                }
+            }
+        });
+
+        // Sort groups so that parent groups come before their children.
+        // This ensures parents get a lower z-index.
+        groups.sort((a, b) => {
+            if (this.isDescendant(b, a)) return -1; // a contains b, so a should be first
+            if (this.isDescendant(a, b)) return 1;  // b contains a, so b should be first
+            return 0;
+        });
+        
+        // Assign z-indices to groups from the group pool
+        groups.forEach(node => {
+            if(node.element) node.element.style.zIndex = this.maxGroupZIndex++;
+        });
+        
+        // Then assign z-indices to regular nodes from the node pool
+        regularNodes.forEach(node => {
+            if(node.element) node.element.style.zIndex = this.maxNodeZIndex++;
+        });
+    }
+
+    /**
+     * Creates a new group node around the currently selected nodes.
+     */
+    groupSelection() {
+        if (this.selectedNodes.size < 1) return;
+
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+
+        this.selectedNodes.forEach(nodeId => {
+            const node = this.nodes.get(nodeId);
+            if (node) {
+                minX = Math.min(minX, node.x);
+                minY = Math.min(minY, node.y);
+                maxX = Math.max(maxX, node.x + node.width);
+                maxY = Math.max(maxY, node.y + node.height);
+            }
+        });
+
+        const padding = 40; // Add padding around the nodes
+        const groupX = minX - padding;
+        const groupY = minY - padding;
+        const groupWidth = (maxX - minX) + (padding * 2);
+        const groupHeight = (maxY - minY) + (padding * 2);
+
+        const containedNodeIds = Array.from(this.selectedNodes);
+
+        // Remove newly contained nodes from any previous parent
+        containedNodeIds.forEach(nodeId => {
+            const oldParent = this.findParentGroup(nodeId);
+            if (oldParent) {
+                oldParent.removeContainedNode(nodeId);
+            }
+        });
+
+        const newGroup = new GroupNode({
+            x: groupX,
+            y: groupY,
+            width: groupWidth,
+            height: groupHeight,
+            containedNodeIds: containedNodeIds
+        });
+
+        this.addNode(newGroup);
+
+        // Update selection to be just the new group
+        this.clearSelection();
+        this.selectNode(newGroup.id);
+        events.publish('selection:changed', {
+            selectedNodeIds: Array.from(this.selectedNodes),
+            selectedEdgeIds: Array.from(this.selectedEdges)
+        });
+    }
+
+    /**
+     * Creates a new BaseNode at the last known mouse position.
+     */
+    createNodeAtMousePosition() {
+        const position = this.getMousePosition(this.lastMousePosition);
+        events.publish('node:create', {
+            x: position.x,
+            y: position.y,
+            title: 'New Node'
+        });
+    }
+
+    /**
+     * Creates a new RoutingNode at the last known mouse position.
+     */
+    createRoutingNodeAtMousePosition() {
+        const position = this.getMousePosition(this.lastMousePosition);
+        events.publish('node:create', {
+            type: 'RoutingNode',
+            x: position.x - 15, // Center the small node on the cursor
+            y: position.y - 15
+        });
+    }
 }
 
 // Initialize NodeUI once the DOM is ready
@@ -2461,4 +2799,5 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('%c[Test]%c Firing test node:create event.', 'color: #8e8e8e; font-weight: bold;', 'color: inherit;');
     events.publish('node:create', { x: x1, y: y, title: 'Welcome!' });
     events.publish('node:create', { x: x2, y: y, title: 'Connect Me!' });
+    events.publish('node:create', { type: 'GroupNode', x: x1 - 50, y: y - 50, width: 550, height: 250 });
 }); 

@@ -16,7 +16,7 @@ class BaseNode {
      * @param {string} [options.title='New Node'] - The title of the node.
      * @param {string} [options.content=''] - The markdown content of the node.
      * @param {string} [options.type='BaseNode'] - The type of the node.
-     * @param {string} [options.color='default'] - The color of the node.
+     * @param {string} [options.color='yellow'] - The color of the node.
      */
     constructor({
         id = crypto.randomUUID(),
@@ -27,7 +27,7 @@ class BaseNode {
         title = 'New Node',
         content = '',
         type = 'BaseNode',
-        color = 'default'
+        color = 'yellow'
     } = {}) {
         this.id = id;
         this.x = x;
@@ -37,7 +37,7 @@ class BaseNode {
         this.title = title;
         this.content = content;
         this.type = type;
-        this.color = color || 'default';
+        this.color = color || 'yellow';
 
         this.element = null; // To hold the DOM element
         this.popoverElement = null; // Container for the popover
@@ -73,7 +73,7 @@ class BaseNode {
         
         this.renderContent(contentArea);
         this.createHandles();
-        this.createResizeHandle();
+        this.createResizeHandles();
         this.createPopoverContainer();
 
         return this.element;
@@ -168,12 +168,17 @@ class BaseNode {
     }
 
     /**
-     * Creates the resize handle for the node.
+     * Creates the resize handles for all sides and corners of the node.
      */
-    createResizeHandle() {
-        const resizeHandle = document.createElement('div');
-        resizeHandle.className = 'node-resize-handle';
-        this.element.appendChild(resizeHandle);
+    createResizeHandles() {
+        const handlePositions = ['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'];
+        handlePositions.forEach(pos => {
+            const handle = document.createElement('div');
+            handle.className = `resize-handle ${pos}`;
+            handle.dataset.direction = pos;
+            handle.dataset.nodeId = this.id;
+            this.element.appendChild(handle);
+        });
     }
 
     /**

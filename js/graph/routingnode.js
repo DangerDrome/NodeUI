@@ -10,7 +10,8 @@ class RoutingNode extends BaseNode {
             width: 30,
             height: 30,
             title: '',
-            type: 'RoutingNode'
+            type: 'RoutingNode',
+            color: 'default'
         };
 
         super({ ...defaults, ...options });

@@ -47,7 +47,8 @@ js/                          # Core application logic
 └── graph/                   # Graph entity base classes
     ├── basenode.js          # Base class for all node types
     ├── baseedge.js          # Base class for all edge types
-    └── routingnode.js       # Specialized node for edge routing
+    ├── routingnode.js       # Specialized node for edge routing
+    └── groupnode.js         # Specialized node for grouping other nodes
 ```
 
 ## Getting Started
