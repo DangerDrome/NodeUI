@@ -352,6 +352,7 @@ class NodeUI {
             return;
         }
         if (event.target.classList.contains('node-handle-zone')) {
+            if (event.button !== 0) return; // Only allow left-click to draw edges
             const { nodeId, handlePosition } = event.target.dataset;
             this.startDrawingEdge(nodeId, handlePosition);
             return;
