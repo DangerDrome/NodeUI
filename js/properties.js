@@ -1,78 +1,55 @@
+/**
+ * @fileoverview Manages the properties panel, which displays information
+ * about the currently selected node and allows for its modification.
+ */
+
 class PropertiesPanel {
+    /**
+     * @param {HTMLElement} container - The container element for the properties panel.
+     * @param {EventEmitter} eventBus - The global event bus.
+     */
     constructor(container, eventBus) {
+        if (!container || !eventBus) {
+            throw new Error("PropertiesPanel requires a container element and an event bus.");
+        }
         this.container = container;
         this.events = eventBus;
-        this.selectedId = null;
-        this.selectedType = null; // 'node' or 'edge'
-        
+        this.selectedNodeId = null;
+
         this.init();
-        this.subscribeToEvents();
     }
 
+    /**
+     * Initializes the panel, clearing any existing content and subscribing to events.
+     */
     init() {
-        this.container.innerHTML = `<h2>Properties</h2><div class="properties-content"><p>No item selected</p></div>`;
+        this.container.innerHTML = '<h2>Properties</h2><div class="properties-content"></div>';
+        this.subscribeToEvents();
+        console.log('%c[PropertiesPanel]%c Service initialized.', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
     }
 
+    /**
+     * Subscribes to relevant events from the event bus.
+     */
     subscribeToEvents() {
-        this.events.subscribe('selection:changed', (data) => this.onSelectionChanged(data));
-        this.events.subscribe('response:node-data', (node) => this.render(node));
+        // Implementation will go here
     }
 
-    onSelectionChanged(data) {
-        const { selectedNodeIds } = data;
-        
-        // For now, only handle single selection
-        if (selectedNodeIds.length === 1) {
-            this.selectedId = selectedNodeIds[0];
-            this.selectedType = 'node'; // Simplification
-            this.events.publish('request:node-data', this.selectedId);
-        } else {
-            this.selectedId = null;
-            this.selectedType = null;
-            this.clearPanel();
-        }
+    /**
+     * Renders the properties for a given node.
+     * @param {object} nodeData - The data of the node to display.
+     */
+    render(nodeData) {
+        // Implementation will go here
     }
 
-    render(node) {
-        if (!node) {
-            this.clearPanel();
-            return;
-        }
-
-        const content = this.container.querySelector('.properties-content');
-        content.innerHTML = `
-            <div><strong>ID:</strong> ${node.id}</div>
-            <div><strong>Type:</strong> ${node.type}</div>
-            <div><strong>Title:</strong> <input type="text" class="prop-input" id="prop-title" value="${node.title}"></div>
-            <div class="prop-color-palette"></div>
-        `;
-
-        this.renderColorPalette(content.querySelector('.prop-color-palette'), node.id);
-
-        // Add event listener for the title input
-        content.querySelector('#prop-title').addEventListener('change', (e) => {
-            this.events.publish('node:update', { nodeId: node.id, title: e.target.value });
-        });
-    }
-
-    renderColorPalette(container, nodeId) {
-        const colors = ['default', 'red', 'green', 'blue', 'yellow', 'purple'];
-        colors.forEach(color => {
-            const swatch = document.createElement('div');
-            swatch.className = 'color-swatch';
-            swatch.dataset.color = color;
-            swatch.style.backgroundColor = `var(--color-node-${color})`;
-            swatch.addEventListener('click', () => {
-                this.events.publish('node:update', { nodeId, color });
-            });
-            container.appendChild(swatch);
-        });
-    }
-
-    clearPanel() {
+    /**
+     * Clears the properties panel, showing a default message.
+     */
+    clear() {
         const content = this.container.querySelector('.properties-content');
         if (content) {
-            content.innerHTML = '<p>No item selected</p>';
+            content.innerHTML = '<p>No node selected.</p>';
         }
     }
 } 

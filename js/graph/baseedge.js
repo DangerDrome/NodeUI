@@ -12,6 +12,8 @@ class BaseEdge {
      * @param {string} [options.endNodeId=null] - The ID of the node where the edge ends.
      * @param {string} [options.startHandleId=null] - The ID of the specific handle on the start node.
      * @param {string} [options.endHandleId=null] - The ID of the specific handle on the end node.
+     * @param {string} [options.startPosition=null] - The position of the start handle.
+     * @param {string} [options.endPosition=null] - The position of the end handle.
      * @param {string} [options.type='BaseEdge'] - The type of the edge.
      */
     constructor({
@@ -27,9 +29,15 @@ class BaseEdge {
         this.endNodeId = endNodeId;
         this.startHandleId = startHandleId;
         this.endHandleId = endHandleId;
+        this.startPosition = null; // Calculated in addEdge
+        this.endPosition = null;   // Calculated in addEdge
+        this.routingPoints = []; // Array of {x, y} points
         this.type = type;
 
         this.element = null; // To hold the DOM element (e.g., an SVG path)
+        this.hitArea = null; // A thicker, invisible path for easier interaction
+        this.groupElement = null; // The parent <g> element
+        this.routingPointElements = []; // Array of routing point DOM elements
     }
 
     /**
@@ -38,9 +46,78 @@ class BaseEdge {
      * @param {SVGElement} svgGroup - The main SVG group element to draw on.
      */
     render(svgGroup) {
+        // Create a group for the edge and its hit area
+        this.groupElement = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        
+        // Create the visible edge path
         this.element = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         this.element.id = this.id;
         this.element.classList.add('edge');
-        svgGroup.appendChild(this.element);
+
+        // Create the invisible hit area
+        this.hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        this.hitArea.classList.add('edge-hit-area');
+        
+        // The hit area must be the last element to be on top and receive clicks
+        this.groupElement.appendChild(this.element);
+        this.groupElement.appendChild(this.hitArea);
+        
+        // Set the color and marker based on the start node
+        const startNodeEl = document.getElementById(this.startNodeId);
+        if (startNodeEl) {
+            const nodeColor = startNodeEl.dataset.color || 'default';
+            const startNodeColorVar = `var(--color-node-${nodeColor}-border)`;
+            
+            this.element.style.setProperty('--edge-color', startNodeColorVar);
+            this.element.setAttribute('marker-end', `url(#arrowhead-${nodeColor})`);
+        }
+
+        // Add hover effects to the group to show the routing handles
+        this.groupElement.addEventListener('mouseenter', () => this.groupElement.classList.add('is-hovered'));
+        this.groupElement.addEventListener('mouseleave', () => this.groupElement.classList.remove('is-hovered'));
+
+        // Add interaction listeners directly to the hit area
+        this.hitArea.addEventListener('mouseenter', () => {
+            const startNodeEl = document.getElementById(this.startNodeId);
+            if (startNodeEl) {
+                const nodeColor = startNodeEl.dataset.color || 'default';
+                const hoverColor = getComputedStyle(startNodeEl).getPropertyValue(`--color-node-${nodeColor}-border`);
+                this.element.style.setProperty('--edge-hover-color', hoverColor);
+            }
+            this.element.classList.add('is-hovered');
+        });
+        this.hitArea.addEventListener('mouseleave', () => {
+            this.element.classList.remove('is-hovered');
+        });
+        
+        this.hitArea.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const isSelected = this.element.classList.contains('is-selected');
+            events.publish('edge:selected', { 
+                edgeId: this.id, 
+                isSelected: !isSelected,
+                isMultiSelect: event.shiftKey 
+            });
+        });
+
+        // Manual dblclick detection on the hit area
+        let lastClickTime = 0;
+        this.hitArea.addEventListener('mousedown', (event) => {
+            event.stopPropagation(); // Prevent canvas mousedown from firing
+            const now = Date.now();
+            if (now - lastClickTime < 300) { // 300ms threshold for dblclick
+                event.stopPropagation();
+                events.publish('edge:add-routing-node', { edgeId: this.id, event });
+            }
+            lastClickTime = now;
+        });
+
+        svgGroup.appendChild(this.groupElement);
+
+        // Make the handles visible
+        const startHandle = document.querySelector(`[data-node-id="${this.startNodeId}"] .node-handle-zone[data-handle-position="${this.startHandleId}"] .node-handle`);
+        const endHandle = document.querySelector(`[data-node-id="${this.endNodeId}"] .node-handle-zone[data-handle-position="${this.endHandleId}"] .node-handle`);
+        if (startHandle) startHandle.classList.add('connected');
+        if (endHandle) endHandle.classList.add('connected');
     }
 } 

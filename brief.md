@@ -99,7 +99,7 @@ All node types will extend a `BaseNode` class, and all edge types will extend a 
 
 ## Settings & Help
 
-- Settings menu for theme toggles: dark, light, blue, colorized
+- Settings menu for theme toggles: dark, light, blue, colorized 
 - Settings for edge types
 - Graph preferences
 - Accent color and any other theme settings
@@ -108,4 +108,4 @@ All node types will extend a `BaseNode` class, and all edge types will extend a 
 
 ## Plugins
 
-- Plugins menu for enabling and disabling custom node types
+- Plugins menu for enabling and disabling custom node types 

@@ -1,12 +1,29 @@
 /* 
  * NodeUI Stylesheet
  * Inspired by the Supabase dark theme.
+ *
+ * This file is organized as follows:
+ * 1. :root variables (colors, fonts, sizes)
+ * 2. Global styles (reset, body)
+ * 3. Main layout containers (#app, #canvas-container)
+ * 4. Canvas elements (grid, SVG containers)
+ * 5. Node styles (base, states, parts)
+ * 6. Node Handle styles (clickable zone and visible handle)
+ * 7. Edge styles (base, states, arrowheads)
+ * 8. UI tool styles (popover, context menu, etc.)
+ * 9. Responsive styles (media queries)
+ * 10. Node color variants
  */
 
+
+/* 1. ROOT VARIABLES
+-------------------------------------------------------------------------------- */
 :root {
+    /* Base Font */
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     
-    /* Supabase-inspired Dark Theme Palette */
+    /* --- Palette --- */
+    /* Core UI Colors */
     --color-bg-default: #1c1c1c;
     --color-bg-panel: #242424;
     --color-bg-hover: #2d2d2d;
@@ -17,17 +34,47 @@
     --color-accent: #3ecf8e;
     --color-danger: #e5484d;
 
-    --color-node-default: #3a3a3a;
-    --color-node-red: #e5484d;
-    --color-node-green: #3ecf8e;
-    --color-node-blue: #0090ff;
-    --color-node-yellow: #f9c74f;
-    --color-node-purple: #9d4edd;
+    /* Node Colors */
+    --color-node-default-bg: rgba(58, 58, 58, 0.5);
+    --color-node-default-border: rgba(90, 90, 90, 0.8);
+    --color-node-red-bg: rgba(229, 72, 77, 0.2);
+    --color-node-red-border: rgba(229, 72, 77, 0.8);
+    --color-node-green-bg: rgba(62, 207, 142, 0.2);
+    --color-node-green-border: rgba(62, 207, 142, 0.8);
+    --color-node-blue-bg: rgba(0, 144, 255, 0.2);
+    --color-node-blue-border: rgba(0, 144, 255, 0.8);
+    --color-node-yellow-bg: rgba(249, 199, 79, 0.2);
+    --color-node-yellow-border: rgba(249, 199, 79, 0.8);
+    --color-node-purple-bg: rgba(157, 78, 221, 0.2);
+    --color-node-purple-border: rgba(157, 78, 221, 0.8);
 
-    --panel-width: 250px;
+    /* --- Sizing & Metrics --- */
+    /* Node Layout */
+    --panel-width: 200px;
+    --panel-height: 120px;
     --header-height: 48px;
+    --edge-padding: 10px;
+
+    /* Radii & Shadows */
+    --radius-small: 4px;
+    --radius-medium: 8px;
+    --shadow-small: 0 4px 12px rgba(0, 0, 0, 0.2);
+    --shadow-large: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+    /* Font Sizes */
+    --font-size-small: 12px;
+    --font-size-medium: 14px;
+
+    /* --- Theming & Modifiers --- */
+    /* Multipliers for handle sizing */
+    --handle-size-mult: 1;
+    --handle-zone-mult: 1;
+    --handle-offset-mult: 1;
 }
 
+
+/* 2. GLOBAL STYLES
+-------------------------------------------------------------------------------- */
 *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
@@ -43,6 +90,9 @@ body {
     width: 100vw;
 }
 
+
+/* 3. MAIN LAYOUT CONTAINERS
+-------------------------------------------------------------------------------- */
 #app {
     display: flex;
     height: 100%;
@@ -60,72 +110,25 @@ body {
     border-right: 1px solid var(--color-border-default);
 }
 
-#properties-panel {
-    width: 250px;
-    height: 100%;
-    background-color: var(--color-bg-panel);
-    border-left: 1px solid var(--color-border-default);
-    padding: 16px;
-    overflow-y: auto;
-    color: var(--color-text-default);
-}
-
-#properties-panel h2 {
-    margin-top: 0;
-    margin-bottom: 16px;
-    font-size: 18px;
-    color: var(--color-text-emphasis);
-}
-
-.properties-content div {
-    margin-bottom: 8px;
-}
-
-.properties-content strong {
-    color: var(--color-text-subtle);
-}
-
-.prop-input {
-    width: 100%;
-    background-color: var(--color-bg-default);
-    border: 1px solid var(--color-border-default);
-    border-radius: 4px;
-    padding: 6px 8px;
-    color: var(--color-text-default);
-    margin-top: 4px;
-    box-sizing: border-box;
-}
-
-.prop-color-palette {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-}
-
-.color-swatch {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid transparent;
-    transition: border-color 0.2s;
-}
-
-.color-swatch:hover {
-    border-color: var(--color-accent);
-}
-
 #canvas-container {
     flex-grow: 1;
     height: 100%;
     position: relative;
-    overflow: hidden; /* Prevent nodes from appearing outside the canvas */
+    overflow: hidden;
+    cursor: default;
+}
+
+#canvas-container.is-panning {
+    cursor: grabbing;
 }
 
 #canvas-container.is-cutting {
     cursor: crosshair;
 }
 
+
+/* 4. CANVAS ELEMENTS
+-------------------------------------------------------------------------------- */
 .node-ui-canvas,
 .node-container {
     position: absolute;
@@ -133,118 +136,425 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    pointer-events: none; /* SVG is for edges only, node container handles node events */
+    pointer-events: none;
 }
 
 .node-container {
-    pointer-events: auto; /* Re-enable pointer events for the node container */
-    cursor: grab;
+    pointer-events: auto;
     transform-origin: 0 0;
-}
-
-.node-container:active {
-    cursor: grabbing;
 }
 
 .grid-dot {
     fill: var(--color-border-default);
 }
 
+
+/* 5. NODE STYLES
+-------------------------------------------------------------------------------- */
+/* Base Node Style */
 .node {
     position: absolute;
-    background-color: var(--color-bg-panel);
-    border: 1px solid var(--color-border-default);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background-color: var(--color-node-default-bg);
+    border: 1px solid var(--color-node-default-border);
+    border-radius: var(--radius-medium);
+    box-shadow: var(--shadow-small);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    user-select: none;
+    cursor: move;
+    backdrop-filter: blur(10px);
+    min-width: var(--panel-width);
+    min-height: var(--panel-height);
+}
+
+/* Node States */
+.node:hover {
+    border-color: var(--icon-color, var(--color-accent));
 }
 
 .node.is-dragging {
     border-color: var(--color-accent);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-large);
     z-index: 1000;
 }
 
-.node:hover {
-    border-color: var(--color-accent);
+.node.is-selected {
+    border-color: var(--icon-color, var(--color-accent));
+    box-shadow: 0 0 0 2px var(--color-accent-glow), var(--shadow-large);
 }
 
+/* Node Parts */
 .node-title-bar {
-    background-color: var(--color-node-default);
-    color: var(--color-text-muted);
-    padding: 4px 8px;
-    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background-color: transparent;
+    color: var(--color-text-subtle);
+    padding: 12px 16px;
+    font-size: var(--font-size-small);
     font-weight: 600;
-    cursor: move;
     user-select: none;
-    border-bottom: 1px solid var(--color-border-default);
+    border-bottom: 1px solid var(--icon-color, var(--color-border-default));
+    border-radius: calc(var(--radius-medium) - 1px) calc(var(--radius-medium) - 1px) 0 0;
+}
+
+.node-icon {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+}
+
+.node-cycle-color-icon {
+    position: absolute;
+    right: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    padding: 2px;
+    opacity: 0;
+    transition: opacity 0.2s, background-color 0.2s, color 0.2s, filter 0.2s;
+}
+
+.node-cycle-color-icon:hover {
+    background-color: var(--icon-color-bg, var(--color-bg-hover));
+    filter: brightness(1.2);
+}
+
+.node-settings-icon {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    padding: 2px;
+    opacity: 0.5;
+    transition: opacity 0.2s, background-color 0.2s, color 0.2s, filter 0.2s;
+}
+
+.node-settings-icon:hover {
+    background-color: var(--icon-color-bg, var(--color-bg-hover));
+    filter: brightness(1.2);
+}
+
+.node:hover .node-cycle-color-icon,
+.node:hover .node-settings-icon {
+    opacity: 1;
+}
+
+.node-title-text {
+    padding: 0 24px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .node-content {
     padding: 8px;
     flex-grow: 1;
-    font-size: 14px;
+    font-size: var(--font-size-medium);
     color: var(--color-text-default);
 }
 
-.node-handle {
+/* Resize Handle */
+.node-resize-handle {
     position: absolute;
-    width: 12px;
-    height: 12px;
-    background-color: var(--color-accent);
-    border: 2px solid var(--color-bg-panel);
-    border-radius: 50%;
-    z-index: 10;
-    cursor: crosshair;
-    opacity: 0;
-    transition: opacity 0.2s ease-in-out;
+    width: 24px;
+    height: 24px;
+    bottom: 0;
+    right: 0;
+    cursor: nwse-resize;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    z-index: 1000;
 }
 
-.node:hover .node-handle {
+.node-resize-handle::after {
+    content: '';
+    position: absolute;
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-bottom: 2px solid var(--icon-color, var(--color-text-subtle));
+    border-right: 2px solid var(--icon-color, var(--color-text-subtle));
+    transform: rotate(0deg);
+    right: 6px;
+    bottom: 6px;
+}
+
+.node:hover .node-resize-handle {
     opacity: 1;
 }
 
-.node.is-selected {
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 2px var(--color-accent), 0 8px 24px rgba(0, 0, 0, 0.4);
+/* Specific style for minimalist routing nodes */
+.routing-node {
+    border-radius: 50%;
+    min-width: 30px !important;
+    min-height: 30px !important;
+    background-color: var(--color-bg-panel);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.node-handle.top {
-    top: -6px;
-    left: 50%;
-    transform: translateX(-50%);
+.routing-node .node-cycle-color-icon {
+    position: static;
+    opacity: 0;
+    margin-bottom: -15px;
+    color: var(--icon-color, var(--color-text-subtle));
+    transition: opacity 0.2s;
 }
 
-.node-handle.right {
-    top: 50%;
-    right: -6px;
-    transform: translateY(-50%);
+.routing-node:hover .node-cycle-color-icon {
+    opacity: 1;
 }
 
-.node-handle.bottom {
-    bottom: -6px;
-    left: 50%;
-    transform: translateX(-50%);
+
+/* 6. NODE HANDLE STYLES
+-------------------------------------------------------------------------------- */
+.node-handle-zone {
+    position: absolute;
+    z-index: 10;
+    cursor: crosshair;
+    transition: background-color 0.2s ease-in-out;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.node-handle.left {
-    top: 50%;
-    left: -6px;
-    transform: translateY(-50%);
+.node-handle-zone:hover {
+    background-color: rgba(62, 207, 142, 0);
 }
 
+/* Visible handle that appears on hover */
+.node-handle {
+    width: calc(12px * var(--handle-size-mult));
+    height: calc(12px * var(--handle-size-mult));
+    background-color: var(--handle-color, var(--color-accent));
+    border: 2px solid var(--color-bg-panel);
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    pointer-events: none;
+}
+
+.node-handle-zone:hover .node-handle,
+.node-handle.is-connected {
+    opacity: 1;
+}
+
+/* Handle Positioning */
+.node-handle-zone.top {
+    top: calc(-10px * var(--handle-offset-mult) - 10px * var(--handle-zone-mult));
+    left: 0;
+    width: 100%;
+    height: calc(20px * var(--handle-zone-mult));
+}
+
+.node-handle-zone.right {
+    top: 0;
+    right: calc(-10px * var(--handle-offset-mult) - 10px * var(--handle-zone-mult));
+    width: calc(20px * var(--handle-zone-mult));
+    height: 100%;
+}
+
+.node-handle-zone.bottom {
+    bottom: calc(-10px * var(--handle-offset-mult) - 10px * var(--handle-zone-mult));
+    left: 0;
+    width: 100%;
+    height: calc(20px * var(--handle-zone-mult));
+}
+
+.node-handle-zone.left {
+    top: 0;
+    left: calc(-10px * var(--handle-offset-mult) - 10px * var(--handle-zone-mult));
+    width: calc(20px * var(--handle-zone-mult));
+    height: 100%;
+}
+
+.node-handle.connected {
+    opacity: 1;
+}
+
+.node:hover .node-handle-zone .node-handle {
+    opacity: 1;
+}
+
+
+/* 7. EDGE STYLES
+-------------------------------------------------------------------------------- */
 .edge {
     fill: none;
-    stroke: var(--color-border-default);
+    stroke: var(--edge-color, var(--color-border-default));
     stroke-width: 2px;
     stroke-linecap: round;
+    transition: stroke-width 0.2s ease, stroke 0.2s ease;
+}
+
+.edge-hit-area {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 40px;
+    stroke-linecap: round;
+    cursor: pointer;
+    pointer-events: stroke;
+}
+
+g.is-hovered .edge-hit-area {
+    stroke: rgba(142, 142, 142, 0.2);
+}
+
+.edge:hover,
+.edge.is-hovered {
+    stroke: var(--edge-hover-color, var(--color-accent));
+    stroke-width: 4px;
+}
+
+.edge.is-selected {
+    stroke-width: 4px;
+    stroke-dasharray: 8, 8;
+}
+
+.edge.is-droppable {
+    stroke-dasharray: 8, 8;
 }
 
 .edge.edge-drawing {
-    stroke: var(--color-accent);
+    stroke: var(--edge-draw-color, var(--color-accent));
     stroke-dasharray: 5, 5;
+}
+
+.arrowhead-drawing {
+    fill: var(--edge-draw-color, var(--color-accent));
+}
+
+.edge-routing-handle {
+    fill: var(--color-accent);
+    stroke: var(--color-bg-panel);
+    stroke-width: 2px;
+    cursor: move;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.edge:hover .edge-routing-handle,
+.edge-routing-handle:hover {
+    opacity: 1;
+}
+
+
+/* 8. UI TOOL STYLES
+-------------------------------------------------------------------------------- */
+.node-popover {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translate(-50%, 10px);
+    width: 200px;
+    background-color: var(--color-bg-panel);
+    border: 1px solid var(--color-border-default);
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    z-index: 20;
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.2, 1, 0.3, 1), opacity 0.2s ease-out;
+    pointer-events: none;
+}
+
+.node-popover::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; 
+    height: 0; 
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid var(--color-border-default);
+}
+
+.node.is-popover-open .node-popover {
+    transform: translate(-50%, -40px);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.popover-section {
+    margin-bottom: 12px;
+}
+
+.popover-section:last-child {
+    margin-bottom: 0;
+}
+
+.popover-input {
+    width: 100%;
+    background-color: var(--color-bg-default);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-small);
+    padding: 6px 8px;
+    color: var(--color-text-default);
+    box-sizing: border-box;
+}
+
+.popover-color-palette {
+    display: flex;
+    gap: 8px;
+}
+
+.popover-color-swatch {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.popover-color-swatch:hover {
+    transform: scale(1.1);
+}
+
+.popover-section-divider {
+    height: 1px;
+    background-color: var(--color-border-default);
+    margin: 8px 0;
+}
+
+.popover-delete-button {
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--color-text-subtle);
+    padding: 8px;
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    text-align: left;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.popover-delete-button:hover {
+    background-color: var(--icon-color, var(--color-danger));
+    color: var(--color-bg-panel);
 }
 
 .cut-line {
@@ -255,7 +565,6 @@ body {
 }
 
 .snap-guide {
-    stroke: var(--color-danger);
     stroke-width: 1px;
     stroke-dasharray: 4, 4;
 }
@@ -264,12 +573,63 @@ body {
     position: absolute;
     border: 1px solid var(--color-accent);
     background-color: rgba(62, 207, 142, 0.1);
-    pointer-events: none; /* Make sure it doesn't interfere with mouse events */
+    pointer-events: none;
     z-index: 9999;
-    display: none; /* Hidden by default */
+    display: none;
 }
 
-/* Mobile-first: Panels are hidden by default on small screens */
+.context-menu {
+    position: absolute;
+    display: none;
+    background-color: var(--color-bg-panel);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-small);
+    box-shadow: var(--shadow-small);
+    z-index: 10000;
+    min-width: 180px;
+    padding: 4px;
+}
+
+.context-menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.context-menu li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: var(--radius-small);
+    color: var(--color-text-default);
+    font-size: var(--font-size-medium);
+}
+
+.context-menu-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-subtle);
+    width: 24px;
+    height: 24px;
+}
+
+.context-menu-separator {
+    height: 1px;
+    background-color: var(--color-border-default);
+    margin: 4px 0;
+}
+
+.context-menu li:hover {
+    background-color: var(--color-bg-hover);
+    color: var(--color-text-emphasis);
+}
+
+
+/* 9. RESPONSIVE STYLES
+-------------------------------------------------------------------------------- */
 @media (max-width: 768px) {
     .panel {
         position: absolute;
@@ -283,18 +643,78 @@ body {
         transform: translateX(-100%);
     }
 
-    #properties-panel {
-        right: 0;
-        transform: translateX(100%);
-    }
-
-    #file-tree-panel.open,
-    #properties-panel.open {
+    #file-tree-panel.open {
         transform: translateX(0);
     }
 }
 
-.node[data-color="green"] .node-title-bar { background-color: var(--color-node-green); }
-.node[data-color="blue"] .node-title-bar { background-color: var(--color-node-blue); }
-.node[data-color="yellow"] .node-title-bar { background-color: var(--color-node-yellow); }
-.node[data-color="purple"] .node-title-bar { background-color: var(--color-node-purple); } 
+
+/* 10. NODE COLOR VARIANTS
+-------------------------------------------------------------------------------- */
+.node[data-color="default"] { --color-accent-glow: rgba(230, 230, 230, 0.5); }
+.node[data-color="red"] { background-color: var(--color-node-red-bg); border-color: var(--color-node-red-border); --color-accent-glow: var(--color-node-red-border); }
+.node[data-color="red"] .node-title-bar { color: #ff8a80; }
+.node[data-color="green"] { background-color: var(--color-node-green-bg); border-color: var(--color-node-green-border); --color-accent-glow: var(--color-node-green-border); }
+.node[data-color="green"] .node-title-bar { color: #b9f6ca; }
+.node[data-color="blue"] { background-color: var(--color-node-blue-bg); border-color: var(--color-node-blue-border); --color-accent-glow: var(--color-node-blue-border); }
+.node[data-color="blue"] .node-title-bar { color: #82b1ff; }
+.node[data-color="yellow"] { background-color: var(--color-node-yellow-bg); border-color: var(--color-node-yellow-border); --color-accent-glow: var(--color-node-yellow-border); }
+.node[data-color="yellow"] .node-title-bar { color: #ffe57f; }
+.node[data-color="purple"] { background-color: var(--color-node-purple-bg); border-color: var(--color-node-purple-border); --color-accent-glow: var(--color-node-purple-border); }
+.node[data-color="purple"] .node-title-bar { color: #e1b5ff; }
+
+/* Base style for all icons applied via CSS mask */
+.icon-box, .icon-sun-medium, .icon-more-horizontal, .icon-plus-square, .icon-grid-2x2, .icon-magnet, .icon-plus, .icon-trash-2, .icon-git-commit {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-color: currentColor;
+    -webkit-mask-size: cover;
+    mask-size: cover;
+}
+
+/* Specific Icon Masks */
+.icon-box { 
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-box"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-box"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></svg>');
+}
+.icon-sun-medium { 
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun-medium"><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M12 3v1"/><path d="M12 20v1"/><path d="M3 12H2"/><path d="M22 12h-1"/><path d="m19.07 4.93-1.41 1.41"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 19.07-1.41-1.41"/><path d="m6.34 6.34-1.41-1.41"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun-medium"><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M12 3v1"/><path d="M12 20v1"/><path d="M3 12H2"/><path d="M22 12h-1"/><path d="m19.07 4.93-1.41 1.41"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 19.07-1.41-1.41"/><path d="m6.34 6.34-1.41-1.41"/></svg>');
+}
+.icon-more-horizontal { 
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-more-horizontal"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-more-horizontal"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>');
+}
+.icon-plus-square { 
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-square"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-square"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>');
+}
+.icon-grid-2x2 { 
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-grid-2x2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-grid-2x2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></svg>');
+}
+.icon-magnet { 
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-magnet"><path d="M15 6l-4 4-1-1-4 4"/><path d="M19 5l-4 4"/><path d="m11 9-4 4"/><path d="M5 19l4-4"/><path d="M13.5 2.5a5.5 5.5 0 0 0-7.78 7.78l-1.22 1.22a1 1 0 0 0 0 1.42l4.24 4.24a1 1 0 0 0 1.42 0l1.22-1.22a5.5 5.5 0 0 0 7.78-7.78Z"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-magnet"><path d="M15 6l-4 4-1-1-4 4"/><path d="M19 5l-4 4"/><path d="m11 9-4 4"/><path d="M5 19l4-4"/><path d="M13.5 2.5a5.5 5.5 0 0 0-7.78 7.78l-1.22 1.22a1 1 0 0 0 0 1.42l4.24 4.24a1 1 0 0 0 1.42 0l1.22-1.22a5.5 5.5 0 0 0 7.78-7.78Z"/></svg>');
+}
+.icon-plus {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>');
+}
+.icon-trash-2 {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>');
+}
+.icon-git-commit {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-git-commit"><circle cx="12" cy="12" r="3"/><line x1="3" x2="9" y1="12" y2="12"/><line x1="15" x2="21" y1="12" y2="12"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-git-commit"><circle cx="12" cy="12" r="3"/><line x1="3" x2="9" y1="12" y2="12"/><line x1="15" x2="21" y1="12" y2="12"/></svg>');
+}
+
+/* Line for routing cut */
+.routing-cut-line {
+    stroke: var(--color-node-blue-border);
+    stroke-width: 2px;
+    stroke-linecap: round;
+    stroke-dasharray: 5, 5;
+}

@@ -1,7 +1,5 @@
 class ContextMenu {
-    constructor(container, eventBus) {
-        this.container = container;
-        this.events = eventBus;
+    constructor() {
         this.menuElement = null;
         this.init();
     }
@@ -10,11 +8,11 @@ class ContextMenu {
         this.menuElement = document.createElement('div');
         this.menuElement.id = 'context-menu';
         this.menuElement.classList.add('context-menu');
-        this.container.appendChild(this.menuElement);
+        document.body.appendChild(this.menuElement);
 
         // Hide on click outside
         document.addEventListener('click', (event) => {
-            if (!this.menuElement.contains(event.target)) {
+            if (this.menuElement && !this.menuElement.contains(event.target)) {
                 this.hide();
             }
         });
@@ -26,11 +24,28 @@ class ContextMenu {
         const itemList = document.createElement('ul');
         items.forEach(item => {
             const li = document.createElement('li');
-            li.textContent = item.label;
-            li.addEventListener('click', () => {
-                this.events.publish(item.event, { x, y });
-                this.hide();
-            });
+
+            if (item.isSeparator) {
+                li.className = 'context-menu-separator';
+            } else {
+                const iconSpan = document.createElement('span');
+                iconSpan.className = 'context-menu-icon';
+                iconSpan.classList.add(item.iconClass || 'icon-placeholder');
+                
+                const labelSpan = document.createElement('span');
+                labelSpan.textContent = item.label;
+
+                li.appendChild(iconSpan);
+                li.appendChild(labelSpan);
+
+                li.addEventListener('click', () => {
+                    if (item.action && typeof item.action === 'function') {
+                        item.action();
+                    }
+                    this.hide();
+                });
+            }
+
             itemList.appendChild(li);
         });
 
