@@ -27,7 +27,8 @@ class NodeUI {
             shakeHistory: [],
             lastShakeTime: 0,
             shakeCooldown: false,
-            droppableEdge: null // Track which edge we can drop onto
+            droppableEdge: null, // Track which edge we can drop onto
+            isDraggingPinned: false
         };
 
         this.edgeDrawingState = {
@@ -91,6 +92,7 @@ class NodeUI {
         this.maxGroupZIndex = 0;
         this.maxNodeZIndex = 10000; // Large offset to separate node/group layers
         this.selectionDebounceTimer = null;
+        this.pinnedNodes = new Set();
 
         this.panZoom = {
             scale: 1,
@@ -109,6 +111,9 @@ class NodeUI {
      */
     init() {
         this.container.innerHTML = ''; // Clear any previous content
+
+        // --- Pinned Node Layer (Topmost) ---
+        this.pinnedNodeContainer = document.getElementById('pinned-node-container');
 
         // --- Grid Layer (Bottom) ---
         this.gridSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -195,12 +200,12 @@ class NodeUI {
      * Binds DOM event listeners for canvas interactions.
      */
     bindEventListeners() {
-        this.container.addEventListener('mousedown', this.onMouseDown.bind(this));
+        document.addEventListener('mousedown', this.onMouseDown.bind(this));
         document.addEventListener('mousemove', this.onMouseMove.bind(this));
         document.addEventListener('mouseup', this.onMouseUp.bind(this));
         
         // Add touch event listeners
-        this.container.addEventListener('touchstart', this.onTouchStart.bind(this), { passive: false });
+        document.addEventListener('touchstart', this.onTouchStart.bind(this), { passive: false });
         document.addEventListener('touchmove', this.onTouchMove.bind(this), { passive: false });
         document.addEventListener('touchend', this.onTouchEnd.bind(this));
 
@@ -212,7 +217,7 @@ class NodeUI {
         this.container.addEventListener('wheel', this.onWheel.bind(this), { passive: false });
 
         // Add context menu event
-        this.container.addEventListener('contextmenu', this.onContextMenu.bind(this));
+        document.addEventListener('contextmenu', this.onContextMenu.bind(this));
     }
 
     /**
@@ -333,6 +338,12 @@ class NodeUI {
      * @param {MouseEvent} event 
      */
     onMouseDown(event) {
+        // Only process events inside the main container or pinned container
+        const isInsideContainer = event.target.closest('#canvas-container') || event.target.closest('#pinned-node-container');
+        if (!isInsideContainer && !this.draggingState.isDragging && !this.resizingState.isResizing) {
+            return;
+        }
+
         // If a popover is open, and the click is not inside it, close it.
         if (this.openPopoverNodeId && !event.target.closest('.node-popover') && !event.target.closest('.node-settings-icon')) {
             this.toggleNodePopover(this.openPopoverNodeId);
@@ -385,6 +396,13 @@ class NodeUI {
         const nodeElement = event.target.closest('.node');
         if (nodeElement) {
             const nodeId = nodeElement.id;
+            const node = this.nodes.get(nodeId);
+
+            if (node.isPinned) {
+                this.startDrag(nodeId, event.clientX, event.clientY, true);
+                return;
+            }
+
             this.bringToFront(nodeId); // Bring the node and its hierarchy to the front
 
             // If the node is not part of a multi-selection, clear the selection.
@@ -464,8 +482,9 @@ class NodeUI {
         
         if (this.resizingState.isResizing) {
             const { targetNode, startX, startY, originalX, originalY, originalWidth, originalHeight, direction } = this.resizingState;
-            const dx = (event.clientX - startX) / this.panZoom.scale;
-            const dy = (event.clientY - startY) / this.panZoom.scale;
+            const scale = targetNode.isPinned ? 1 : this.panZoom.scale;
+            const dx = (event.clientX - startX) / scale;
+            const dy = (event.clientY - startY) / scale;
         
             const minWidth = parseInt(getComputedStyle(this.container).getPropertyValue('--panel-width'));
             const minHeight = parseInt(getComputedStyle(this.container).getPropertyValue('--panel-height'));
@@ -496,7 +515,7 @@ class NodeUI {
                 }
             }
 
-            if (this.snapToObjects) {
+            if (this.snapToObjects && !targetNode.isPinned) {
                 const snapResult = this.checkForResizeSnapping(targetNode, newX, newY, newWidth, newHeight, direction);
                 newX = snapResult.x;
                 newY = snapResult.y;
@@ -519,6 +538,21 @@ class NodeUI {
         }
 
         if (this.draggingState.isDragging) {
+            // Handle dragging for pinned nodes (screen space)
+            if (this.draggingState.isDraggingPinned) {
+                const node = this.draggingState.targetNode;
+                const dx = event.clientX - this.draggingState.startX;
+                const dy = event.clientY - this.draggingState.startY;
+
+                node.x = node.originalX + dx;
+                node.y = node.originalY + dy;
+                node.element.style.left = `${node.x}px`;
+                node.element.style.top = `${node.y}px`;
+                this.updateConnectedEdges(node.id);
+                return;
+            }
+            
+            // Handle dragging for regular nodes (world space)
             const primaryNode = this.draggingState.targetNode;
 
             // 1. Calculate base delta from mouse movement
@@ -690,6 +724,12 @@ class NodeUI {
      * @param {TouchEvent} event 
      */
     onTouchStart(event) {
+        // Only process events inside the main container or pinned container
+        const isInsideContainer = event.target.closest('#canvas-container') || event.target.closest('#pinned-node-container');
+        if (!isInsideContainer && !this.draggingState.isDragging && !this.resizingState.isResizing) {
+            return;
+        }
+
         const touch = event.touches[0];
 
         // Start a timer for long-press
@@ -734,8 +774,9 @@ class NodeUI {
             event.preventDefault();
             const touch = event.touches[0];
             const { targetNode, startX, startY, originalX, originalY, originalWidth, originalHeight, direction } = this.resizingState;
-            const dx = (touch.clientX - startX) / this.panZoom.scale;
-            const dy = (touch.clientY - startY) / this.panZoom.scale;
+            const scale = targetNode.isPinned ? 1 : this.panZoom.scale;
+            const dx = (touch.clientX - startX) / scale;
+            const dy = (touch.clientY - startY) / scale;
 
             const minWidth = parseInt(getComputedStyle(this.container).getPropertyValue('--panel-width'));
             const minHeight = parseInt(getComputedStyle(this.container).getPropertyValue('--panel-height'));
@@ -766,7 +807,7 @@ class NodeUI {
                 }
             }
 
-            if (this.snapToObjects) {
+            if (this.snapToObjects && !targetNode.isPinned) {
                 const snapResult = this.checkForResizeSnapping(targetNode, newX, newY, newWidth, newHeight, direction);
                 newX = snapResult.x;
                 newY = snapResult.y;
@@ -1006,12 +1047,13 @@ class NodeUI {
      * @param {number} clientX - The clientX from the triggering event.
      * @param {number} clientY - The clientY from the triggering event.
      */
-    startDrag(nodeId, clientX, clientY) {
+    startDrag(nodeId, clientX, clientY, isPinned = false) {
         const node = this.nodes.get(nodeId);
         if (!node) return;
 
         this.draggingState.isDragging = true;
         this.draggingState.targetNode = node;
+        this.draggingState.isDraggingPinned = isPinned;
         
         // Store initial mouse position and node's original position
         this.draggingState.startX = clientX;
@@ -1080,6 +1122,7 @@ class NodeUI {
         this.draggingState.isDragging = false;
         this.draggingState.targetNode = null;
         this.draggingState.shakeCooldown = false; // Reset cooldown
+        this.draggingState.isDraggingPinned = false;
     }
 
     /**
@@ -1379,17 +1422,36 @@ class NodeUI {
         let y = node.y;
 
         const offsetMult = parseFloat(getComputedStyle(this.container).getPropertyValue('--handle-offset-mult')) || 1;
-        const baseOffset = 10; // The base distance from the node edge to the handle's center
+        const baseOffset = 10;
         const offset = baseOffset * offsetMult;
+        
+        if (node.isPinned) {
+             // For pinned nodes, calculations are in screen space first
+             let screenX = node.x;
+             let screenY = node.y;
 
-        switch (handlePosition) {
-            case 'top':    x += node.width / 2; y -= offset; break;
-            case 'right':  x += node.width + offset; y += node.height / 2; break;
-            case 'bottom': x += node.width / 2; y += node.height + offset; break;
-            case 'left':   x -= offset; y += node.height / 2; break;
+             switch (handlePosition) {
+                case 'top':    screenX += node.width / 2; screenY -= offset; break;
+                case 'right':  screenX += node.width + offset; screenY += node.height / 2; break;
+                case 'bottom': screenX += node.width / 2; screenY += node.height + offset; break;
+                case 'left':   screenX -= offset; screenY += node.height / 2; break;
+            }
+
+            // Then convert final screen coordinates to world coordinates for the SVG
+            const worldX = (screenX - this.panZoom.offsetX) / this.panZoom.scale;
+            const worldY = (screenY - this.panZoom.offsetY) / this.panZoom.scale;
+            return { x: worldX, y: worldY };
+
+        } else {
+            // For regular nodes, all calculations are in world space
+            switch (handlePosition) {
+                case 'top':    x += node.width / 2; y -= offset; break;
+                case 'right':  x += node.width + offset; y += node.height / 2; break;
+                case 'bottom': x += node.width / 2; y += node.height + offset; break;
+                case 'left':   x -= offset; y += node.height / 2; break;
+            }
+            return { x, y };
         }
-    
-        return { x, y };
     }
 
     /**
@@ -1529,6 +1591,11 @@ class NodeUI {
             const gridY = this.panZoom.offsetY;
             pattern.setAttribute('patternTransform', `translate(${gridX} ${gridY}) scale(${this.panZoom.scale})`);
         }
+
+        // Force-update edges connected to pinned nodes so they follow the pan/zoom
+        this.pinnedNodes.forEach(nodeId => {
+            this.updateConnectedEdges(nodeId);
+        });
     }
 
     /**
@@ -1977,6 +2044,12 @@ class NodeUI {
      * @param {MouseEvent} event 
      */
     onContextMenu(event) {
+        // Only show context menu for events inside the app's containers
+        const isInsideContainer = event.target.closest('#canvas-container') || event.target.closest('#pinned-node-container');
+        if (!isInsideContainer) {
+            return;
+        }
+
         event.preventDefault();
         
         const target = event.target;
@@ -2200,7 +2273,11 @@ class NodeUI {
     updateNode(data) {
         const node = this.nodes.get(data.nodeId);
         if (node) {
+            const oldPinnedState = node.isPinned;
             node.update(data);
+            if (data.isPinned !== undefined && oldPinnedState !== data.isPinned) {
+                this.reparentNode(data.nodeId);
+            }
         }
     }
 
@@ -3036,6 +3113,56 @@ class NodeUI {
         };
 
         requestAnimationFrame(animationStep);
+    }
+
+    /**
+     * Moves a node between the main container and the pinned container based on its state.
+     * @param {string} nodeId The ID of the node to reparent.
+     */
+    reparentNode(nodeId) {
+        const node = this.nodes.get(nodeId);
+        if (!node || !node.element) return;
+
+        if (node.isPinned) {
+            // Pinning the node: Move from world container to pinned container
+            const rect = node.element.getBoundingClientRect();
+            const containerRect = this.container.getBoundingClientRect();
+
+            // Convert world coords and size to screen coords for pinning
+            node.x = rect.left - containerRect.left;
+            node.y = rect.top - containerRect.top;
+            node.width = rect.width;
+            node.height = rect.height;
+            
+            this.pinnedNodeContainer.appendChild(node.element);
+            node.element.style.left = `${node.x}px`;
+            node.element.style.top = `${node.y}px`;
+            node.element.style.width = `${node.width}px`;
+            node.element.style.height = `${node.height}px`;
+            this.pinnedNodes.add(nodeId);
+
+        } else {
+            // Unpinning the node: Move from pinned container to world container
+            // Convert screen coords and size back to world coords
+            const worldX = (node.x - this.panZoom.offsetX) / this.panZoom.scale;
+            const worldY = (node.y - this.panZoom.offsetY) / this.panZoom.scale;
+            const worldWidth = node.width / this.panZoom.scale;
+            const worldHeight = node.height / this.panZoom.scale;
+
+            node.x = worldX;
+            node.y = worldY;
+            node.width = worldWidth;
+            node.height = worldHeight;
+
+            const targetContainer = node instanceof GroupNode ? this.groupContainer : this.nodeContainer;
+            targetContainer.appendChild(node.element);
+            node.element.style.left = `${node.x}px`;
+            node.element.style.top = `${node.y}px`;
+            node.element.style.width = `${node.width}px`;
+            node.element.style.height = `${node.height}px`;
+            this.pinnedNodes.delete(nodeId);
+        }
+        this.updateConnectedEdges(nodeId);
     }
 }
 

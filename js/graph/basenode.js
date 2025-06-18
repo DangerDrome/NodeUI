@@ -17,6 +17,7 @@ class BaseNode {
      * @param {string} [options.content=''] - The markdown content of the node.
      * @param {string} [options.type='BaseNode'] - The type of the node.
      * @param {string} [options.color='yellow'] - The color of the node.
+     * @param {boolean} [options.isPinned=false] - Whether the node is pinned.
      */
     constructor({
         id = crypto.randomUUID(),
@@ -27,7 +28,8 @@ class BaseNode {
         title = 'New Node',
         content = '',
         type = 'BaseNode',
-        color = 'yellow'
+        color = 'yellow',
+        isPinned = false
     } = {}) {
         this.id = id;
         this.x = x;
@@ -38,6 +40,7 @@ class BaseNode {
         this.content = content;
         this.type = type;
         this.color = color || 'yellow';
+        this.isPinned = isPinned;
 
         this.element = null; // To hold the DOM element
         this.popoverElement = null; // Container for the popover
@@ -94,12 +97,20 @@ class BaseNode {
         titleText.className = 'node-title-text';
         titleText.textContent = this.title;
 
+        const pinIcon = document.createElement('div');
+        pinIcon.className = 'node-pin-icon icon-pin';
+        pinIcon.addEventListener('click', (event) => {
+            event.stopPropagation();
+            events.publish('node:update', { nodeId: this.id, isPinned: !this.isPinned });
+        });
+
         const cycleColorIcon = document.createElement('div');
         cycleColorIcon.className = 'node-cycle-color-icon icon-sun-medium';
 
         const settingsIcon = document.createElement('div');
         settingsIcon.className = 'node-settings-icon icon-more-horizontal';
 
+        titleBar.appendChild(pinIcon);
         titleBar.appendChild(icon);
         titleBar.appendChild(titleText);
         titleBar.appendChild(cycleColorIcon);
@@ -267,6 +278,11 @@ class BaseNode {
             if (titleElement) {
                 titleElement.textContent = this.title;
             }
+        }
+        if (data.isPinned !== undefined) {
+            this.isPinned = data.isPinned;
+            this.element.classList.toggle('is-pinned', this.isPinned);
+            needsRedraw = true; // A redraw is needed to update edges
         }
         if (data.color) {
             this.color = data.color;
