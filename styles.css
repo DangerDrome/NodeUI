@@ -1162,3 +1162,25 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
     color: var(--icon-color);
     font-weight: bold;
 }
+
+/* Custom Scrollbar for Log Node */
+.log-container::-webkit-scrollbar {
+    width: 10px;
+
+}
+
+.log-container::-webkit-scrollbar-track {
+    background: transparent; /* The track will be invisible */
+}
+
+.log-container::-webkit-scrollbar-thumb {
+    background-color: var(--icon-color);
+    border-radius: 4px;
+    border: 2px solid transparent; /* Creates padding around the thumb */
+    background-clip: content-box;
+    transition: filter 0.2s;
+}
+
+.log-container::-webkit-scrollbar-thumb:hover {
+    filter: brightness(1.2);
+}
