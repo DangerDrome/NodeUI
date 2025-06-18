@@ -86,6 +86,9 @@ class NodeUI {
         this.snapThreshold = 5;
         this.shakeSensitivity = 6.5; // Higher number = less sensitive shake detection
 
+        this.projectName = 'Untitled Graph';
+        this.thumbnailUrl = '';
+
         this.contextMenu = new ContextMenu();
         this.longPressTimer = null;
         this.openPopoverNodeId = null;
@@ -3297,7 +3300,9 @@ class NodeUI {
             snapToGrid: this.snapToGrid,
             snapToObjects: this.snapToObjects,
             snapThreshold: this.snapThreshold,
-            shakeSensitivity: this.shakeSensitivity
+            shakeSensitivity: this.shakeSensitivity,
+            projectName: this.projectName,
+            thumbnailUrl: this.thumbnailUrl
         };
         events.publish('settings:response', settings);
     }
@@ -3319,6 +3324,10 @@ class NodeUI {
      */
     saveGraph() {
         const data = {
+            metadata: {
+                projectName: this.projectName,
+                thumbnailUrl: this.thumbnailUrl
+            },
             nodes: [],
             edges: []
         };
@@ -3382,6 +3391,13 @@ class NodeUI {
 
             // Defer execution to allow the DOM to clear
             setTimeout(() => {
+                // Load metadata if it exists
+                if (data.metadata) {
+                    this.projectName = data.metadata.projectName || 'Untitled Graph';
+                    this.thumbnailUrl = data.metadata.thumbnailUrl || '';
+                    this.publishSettings(); // Publish updated settings
+                }
+
                 // Create nodes first, mapping old IDs to new ones in case of conflicts
                 const idMap = new Map();
                 data.nodes.forEach(nodeData => {
@@ -3440,6 +3456,9 @@ class NodeUI {
         this.clearSelection();
         this.maxGroupZIndex = 0;
         this.maxNodeZIndex = 10000;
+        this.projectName = 'Untitled Graph';
+        this.thumbnailUrl = '';
+        this.publishSettings();
         console.log("Canvas cleared.");
     }
 

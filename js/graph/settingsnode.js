@@ -70,6 +70,7 @@ class SettingsNode extends BaseNode {
         container.appendChild(this.createGraphActionsSection());
         container.appendChild(this.createUISettingsSection());
         container.appendChild(this.createThemeSection());
+        container.appendChild(this.createProjectSection());
         
         wrapper.appendChild(container);
         contentArea.appendChild(wrapper);
@@ -135,9 +136,32 @@ class SettingsNode extends BaseNode {
             if (name.startsWith('--color-')) {
                  section.appendChild(this.createColorPicker(name, this.formatVarName(name)));
             } else if (name.startsWith('--font-') || name.startsWith('--radius-')) {
-                 section.appendChild(this.createTextInput(name, this.formatVarName(name)));
+                 section.appendChild(this.createThemeTextInput(name, this.formatVarName(name)));
             }
         });
+
+        return section;
+    }
+
+    /**
+     * Creates the "Project" section with project-specific settings.
+     * @returns {HTMLElement}
+     */
+    createProjectSection() {
+        const section = document.createElement('div');
+        section.className = 'settings-section';
+        section.innerHTML = '<h3>Project</h3>';
+
+        section.appendChild(this.createTextInput('projectName', 'Project Name', 'project-name-input'));
+        section.appendChild(this.createTextInput('thumbnailUrl', 'Thumbnail URL', 'thumbnail-url-input'));
+        
+        const previewContainer = document.createElement('div');
+        previewContainer.id = 'project-markdown-preview';
+        
+        const copyButton = this.createButton('Copy Markdown', 'icon-clipboard', 'copy-markdown-button');
+        
+        section.appendChild(previewContainer);
+        section.appendChild(copyButton);
 
         return section;
     }
@@ -184,6 +208,23 @@ class SettingsNode extends BaseNode {
             this.updateSliderLabel('shakeSensitivity', e.target.value);
         });
 
+        // Project Settings
+        const debouncedProjectUpdate = this.debounce((key, value) => {
+            events.publish('setting:update', { key, value });
+        }, 500);
+
+        this.element.querySelector('#project-name-input').addEventListener('input', (e) => {
+            debouncedProjectUpdate('projectName', e.target.value);
+            this.updateMarkdownPreview();
+        });
+        this.element.querySelector('#thumbnail-url-input').addEventListener('input', (e) => {
+            debouncedProjectUpdate('thumbnailUrl', e.target.value);
+            this.updateMarkdownPreview();
+        });
+        this.element.querySelector('#copy-markdown-button').addEventListener('click', () => {
+            this.copyProjectMarkdown();
+        });
+
         // Theme
         this.cssVariables.forEach(({ name }) => {
             const input = this.element.querySelector(`[data-variable="${name}"]`);
@@ -209,6 +250,15 @@ class SettingsNode extends BaseNode {
         
         this.updateSliderLabel('snapThreshold', this.nodeUiSettings.snapThreshold);
         this.updateSliderLabel('shakeSensitivity', this.nodeUiSettings.shakeSensitivity);
+
+        // Project Settings
+        if (this.nodeUiSettings.projectName !== undefined) {
+            this.element.querySelector('#project-name-input').value = this.nodeUiSettings.projectName;
+        }
+        if (this.nodeUiSettings.thumbnailUrl !== undefined) {
+            this.element.querySelector('#thumbnail-url-input').value = this.nodeUiSettings.thumbnailUrl;
+        }
+        this.updateMarkdownPreview();
     }
 
     /**
@@ -275,13 +325,30 @@ class SettingsNode extends BaseNode {
      * @param {string} label - The text label.
      * @returns {HTMLElement}
      */
-    createTextInput(varName, label) {
+    createThemeTextInput(varName, label) {
         const row = document.createElement('div');
         row.className = 'setting-row';
         const initialValue = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
         row.innerHTML = `
             <label for="${varName}-input">${label}</label>
             <input type="text" id="${varName}-input" class="settings-input" data-variable="${varName}" value="${initialValue}">
+        `;
+        return row;
+    }
+
+    /**
+     * Helper to create a text input.
+     * @param {string} key - The setting key.
+     * @param {string} label - The text label for the input.
+     * @param {string} id - The unique ID for the input element.
+     * @returns {HTMLElement}
+     */
+    createTextInput(key, label, id) {
+        const row = document.createElement('div');
+        row.className = 'setting-row';
+        row.innerHTML = `
+            <label for="${id}">${label}</label>
+            <input type="text" id="${id}" class="settings-input" data-key="${key}">
         `;
         return row;
     }
@@ -355,6 +422,45 @@ class SettingsNode extends BaseNode {
     }
 
     /**
+     * Copies a markdown-formatted string of the project details to the clipboard.
+     */
+    copyProjectMarkdown() {
+        const projectName = this.nodeUiSettings.projectName || 'Untitled Graph';
+        const thumbnailUrl = this.nodeUiSettings.thumbnailUrl || '';
+
+        const markdownString = `# ${projectName}\n\n![thumbnail](${thumbnailUrl})`;
+        
+        navigator.clipboard.writeText(markdownString).then(() => {
+            console.log('Project markdown copied to clipboard.');
+            // Optional: Show a temporary success message on the button
+            const button = this.element.querySelector('#copy-markdown-button');
+            if (button) {
+                const originalText = button.innerHTML;
+                button.innerHTML = `<span class="icon-check"></span> Copied!`;
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                }, 2000);
+            }
+        }).catch(err => {
+            console.error('Failed to copy markdown to clipboard:', err);
+        });
+    }
+
+    /**
+     * A simple debounce function.
+     * @param {Function} func The function to debounce.
+     * @param {number} delay The delay in milliseconds.
+     * @returns {Function} The debounced function.
+     */
+    debounce(func, delay) {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    /**
      * Cleans up subscriptions when the node is removed.
      */
     destroy() {
@@ -362,5 +468,30 @@ class SettingsNode extends BaseNode {
             this.settingsSubscription.unsubscribe();
             this.settingsSubscription = null;
         }
+    }
+
+    /**
+     * Renders a preview of the project markdown inside the node.
+     */
+    updateMarkdownPreview() {
+        const previewEl = this.element.querySelector('#project-markdown-preview');
+        if (!previewEl) return;
+        
+        const projectName = this.element.querySelector('#project-name-input').value || 'Untitled Graph';
+        const thumbnailUrl = this.element.querySelector('#thumbnail-url-input').value || '';
+
+        // Basic markdown to HTML conversion
+        let html = `<h1>${projectName}</h1>`;
+        if (thumbnailUrl) {
+            // Basic validation for URL
+            try {
+                new URL(thumbnailUrl);
+                html += `<img src="${thumbnailUrl}" alt="Project Thumbnail">`;
+            } catch (e) {
+                html += `<div class="thumbnail-placeholder">Invalid thumbnail URL</div>`;
+            }
+        }
+        
+        previewEl.innerHTML = html;
     }
 } 
