@@ -2843,7 +2843,12 @@ class NodeUI {
         if (routingNode.element) {
             const iconEl = routingNode.element.querySelector('.node-icon');
             if (iconEl) {
-                const icons = ['icon-git-commit', 'icon-refresh-cw', 'icon-plus'];
+                const icons = [
+                    'icon-git-commit', 'icon-refresh-cw', 'icon-plus', 'icon-anchor',
+                    'icon-aperture', 'icon-bomb', 'icon-bot', 'icon-bug',
+                    'icon-cloud-lightning', 'icon-codesandbox', 'icon-cpu',
+                    'icon-database', 'icon-diamond', 'icon-feather', 'icon-figma', 'icon-ghost'
+                ];
                 
                 // Remove any of the possible icon classes
                 iconEl.classList.remove(...icons);
