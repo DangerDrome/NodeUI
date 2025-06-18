@@ -61,6 +61,7 @@ class BaseNode {
         this.element.dataset.color = this.color;
         this.element.style.setProperty('--icon-color', `var(--color-node-${this.color}-border)`);
         this.element.style.setProperty('--icon-color-bg', `var(--color-node-${this.color}-bg)`);
+        this.element.style.setProperty('--node-accent-color', `var(--color-node-${this.color}-border)`);
         this.element.style.left = `${this.x}px`;
         this.element.style.top = `${this.y}px`;
         this.element.style.width = `${this.width}px`;
@@ -289,6 +290,7 @@ class BaseNode {
             this.element.dataset.color = this.color;
             this.element.style.setProperty('--icon-color', `var(--color-node-${this.color}-border)`);
             this.element.style.setProperty('--icon-color-bg', `var(--color-node-${this.color}-bg)`);
+            this.element.style.setProperty('--node-accent-color', `var(--color-node-${this.color}-border)`);
             this.updateHandleColors();
             needsRedraw = true;
         }

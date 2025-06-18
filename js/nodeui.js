@@ -194,6 +194,9 @@ class NodeUI {
         this.subscribeToEvents();
 
         console.log('%c[NodeUI]%c Service initialized.', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
+
+        // Create a settings node by default
+        events.publish('node:create', { type: 'SettingsNode', x: 20, y: 20, isPinned: true });
     }
 
     /**
@@ -231,6 +234,8 @@ class NodeUI {
                 this.addNode(new RoutingNode(options));
             } else if (options.type === 'LogNode') {
                 this.addNode(new LogNode(options));
+            } else if (options.type === 'SettingsNode') {
+                this.addNode(new SettingsNode(options));
             }
             else {
                 this.addNode(new BaseNode(options));
@@ -246,6 +251,10 @@ class NodeUI {
         events.subscribe('edge:add-routing-node', (data) => this.splitEdgeWithRoutingNode(data));
         events.subscribe('edge:selected', (data) => this.onEdgeSelected(data));
         events.subscribe('edge:create-with-new-node', (data) => this.createNodeAndConnectEdge(data));
+        events.subscribe('setting:update', (data) => this.updateSetting(data));
+        events.subscribe('settings:request', () => this.publishSettings());
+        events.subscribe('graph:save', () => this.saveGraph());
+        events.subscribe('graph:load-content', (json) => this.loadGraph(json));
     }
 
     /**
@@ -405,7 +414,7 @@ class NodeUI {
             const nodeId = nodeElement.id;
             const node = this.nodes.get(nodeId);
 
-            if (node.isPinned) {
+            if (node.isPinned && !(node instanceof SettingsNode)) { // Allow settings node to be dragged even if pinned
                 this.startDrag(nodeId, event.clientX, event.clientY, true);
                 return;
             }
@@ -1011,6 +1020,9 @@ class NodeUI {
         } else if (key === 'm' && !isModKey && !targetIsInput) {
             event.preventDefault();
             this.createRoutingNodeAtMousePosition();
+        } else if ((key === 'delete' || key === 'backspace') && !targetIsInput) {
+            event.preventDefault();
+            this.deleteSelection();
         } else if ((key === 'c' || key === 'y') && !isModKey && !targetIsInput) {
             event.preventDefault();
             this.edgeCutState.isCutting = true;
@@ -1019,17 +1031,6 @@ class NodeUI {
             event.preventDefault();
             this.routingCutState.isRouting = true;
             this.container.classList.add('is-routing');
-        } else if ((key === 'delete' || key === 'backspace') && !targetIsInput) {
-            if (this.selectedNodes.size > 0 || this.selectedEdges.size > 0) {
-                event.preventDefault();
-                this.selectedNodes.forEach(nodeId => {
-                    events.publish('node:delete', nodeId);
-                });
-                this.selectedEdges.forEach(edgeId => {
-                    events.publish('edge:delete', edgeId);
-                });
-                this.clearSelection();
-            }
         }
     }
 
@@ -1898,7 +1899,10 @@ class NodeUI {
                 this.addNode(new GroupNode(newNodeData));
             } else if (newNodeData.type === 'LogNode') {
                 this.addNode(new LogNode(newNodeData));
-            } else {
+            } else if (newNodeData.type === 'SettingsNode') {
+                this.addNode(new SettingsNode(newNodeData));
+            }
+            else {
                 this.addNode(new BaseNode(newNodeData));
             }
 
@@ -2090,9 +2094,33 @@ class NodeUI {
         
         if (edgeHitArea) {
             const edgeId = edgeHitArea.parentElement.querySelector('.edge').id;
+            const edge = this.edges.get(edgeId);
+
+            // If right-clicking on an edge that isn't part of a multi-selection,
+            // clear the current selection and select just this edge.
+            if (edge && !this.selectedEdges.has(edge.id)) {
+                this.clearSelection();
+                this.selectEdge(edge.id);
+                events.publish('selection:changed', {
+                    selectedNodeIds: Array.from(this.selectedNodes),
+                    selectedEdgeIds: Array.from(this.selectedEdges)
+                });
+            }
             this.showEdgeContextMenu(event.clientX, event.clientY, edgeId);
         } else if (nodeElement) {
             const node = this.nodes.get(nodeElement.id);
+
+            // If right-clicking on a node that isn't part of a multi-selection,
+            // clear the current selection and select just this node.
+            if (!this.selectedNodes.has(node.id)) {
+                this.clearSelection();
+                this.selectNode(node.id);
+                events.publish('selection:changed', {
+                    selectedNodeIds: Array.from(this.selectedNodes),
+                    selectedEdgeIds: Array.from(this.selectedEdges)
+                });
+            }
+
             if (node instanceof RoutingNode) {
                 // Directly cycle the input connection on right-click.
                 this.cycleRoutingNodeConnections(node.id);
@@ -2138,6 +2166,12 @@ class NodeUI {
                 action: () => this.paste(),
                 disabled: !clipboardHasContent
             });
+            items.push({
+                label: 'Delete',
+                iconClass: 'icon-trash-2',
+                action: () => this.deleteSelection(),
+                disabled: !hasSelection
+            });
             items.push({ isSeparator: true });
         }
 
@@ -2162,6 +2196,11 @@ class NodeUI {
                 type: 'LogNode',
                 label: 'Create Log Node',
                 iconClass: 'icon-terminal'
+            },
+            {
+                type: 'SettingsNode',
+                label: 'Create Settings Node',
+                iconClass: 'icon-settings'
             }
         ];
 
@@ -2177,7 +2216,10 @@ class NodeUI {
                         newNode = new GroupNode({ x: worldPos.x, y: worldPos.y });
                     } else if (action.type === 'LogNode') {
                         newNode = new LogNode({ x: worldPos.x, y: worldPos.y });
-                    } else {
+                    } else if (action.type === 'SettingsNode') {
+                        newNode = new SettingsNode({ x: worldPos.x, y: worldPos.y });
+                    }
+                    else {
                         newNode = new BaseNode({ x: worldPos.x, y: worldPos.y, title: action.label, type: action.type });
                     }
                     this.addNode(newNode);
@@ -2235,6 +2277,8 @@ class NodeUI {
         const edge = this.edges.get(edgeId);
         if (!edge) return;
 
+        const hasSelection = this.selectedNodes.size > 0 || this.selectedEdges.size > 0;
+
         const items = [
             {
                 label: 'Add Routing Node',
@@ -2258,11 +2302,10 @@ class NodeUI {
                 }
             },
             {
-                label: 'Delete Edge',
+                label: 'Delete',
                 iconClass: 'icon-trash-2',
-                action: () => {
-                    events.publish('edge:delete', edgeId);
-                }
+                action: () => this.deleteSelection(),
+                disabled: !hasSelection
             }
         ];
         this.contextMenu.show(x, y, items);
@@ -2270,19 +2313,30 @@ class NodeUI {
 
     /**
      * Toggles the snap-to-grid functionality.
-     * @param {string} edgeId The ID of the edge to add a point to.
+     * @param {boolean} [force] - Optional boolean to force a state.
      */
-    toggleSnapToGrid(edgeId) {
-        this.snapToGrid = this.snapToGrid ? false : 20;
+    toggleSnapToGrid(force) {
+        if (typeof force === 'boolean') {
+            this.snapToGrid = force ? 20 : 0;
+        } else {
+            this.snapToGrid = this.snapToGrid ? 0 : 20;
+        }
         console.log(`Snap to grid is now ${this.snapToGrid ? 'enabled' : 'disabled'}`);
+        this.publishSettings();
     }
 
     /**
      * Toggles the snap-to-objects functionality.
+     * @param {boolean} [force] - Optional boolean to force a state.
      */
-    toggleSnapToObjects() {
-        this.snapToObjects = !this.snapToObjects;
+    toggleSnapToObjects(force) {
+        if (typeof force === 'boolean') {
+            this.snapToObjects = force;
+        } else {
+            this.snapToObjects = !this.snapToObjects;
+        }
         console.log(`Snap to objects is now ${this.snapToObjects ? 'enabled' : 'disabled'}`);
+        this.publishSettings();
     }
 
     /**
@@ -3233,6 +3287,175 @@ class NodeUI {
             this.pinnedNodes.delete(nodeId);
         }
         this.updateConnectedEdges(nodeId);
+    }
+
+    /**
+     * Publishes the current state of NodeUI settings.
+     */
+    publishSettings() {
+        const settings = {
+            snapToGrid: this.snapToGrid,
+            snapToObjects: this.snapToObjects,
+            snapThreshold: this.snapThreshold,
+            shakeSensitivity: this.shakeSensitivity
+        };
+        events.publish('settings:response', settings);
+    }
+
+    /**
+     * Updates a specific setting from an event.
+     * @param {{key: string, value: any}} data
+     */
+    updateSetting({ key, value }) {
+        if (this.hasOwnProperty(key)) {
+            this[key] = value;
+            console.log(`Setting updated: ${key} = ${value}`);
+            this.publishSettings(); // Publish updated settings
+        }
+    }
+
+    /**
+     * Saves the current graph state to a JSON file.
+     */
+    saveGraph() {
+        const data = {
+            nodes: [],
+            edges: []
+        };
+
+        this.nodes.forEach(node => {
+            const nodeData = {
+                id: node.id,
+                x: node.x,
+                y: node.y,
+                width: node.width,
+                height: node.height,
+                title: node.title,
+                content: node.content,
+                type: node.type,
+                color: node.color,
+                isPinned: node.isPinned
+            };
+            if (node instanceof GroupNode) {
+                nodeData.containedNodeIds = Array.from(node.containedNodeIds);
+            }
+            data.nodes.push(nodeData);
+        });
+
+        this.edges.forEach(edge => {
+            data.edges.push({
+                id: edge.id,
+                startNodeId: edge.startNodeId,
+                endNodeId: edge.endNodeId,
+                startHandleId: edge.startHandleId,
+                endHandleId: edge.endHandleId,
+                routingPoints: edge.routingPoints,
+                type: edge.type
+            });
+        });
+
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'graph.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        console.log("Graph saved.");
+    }
+
+    /**
+     * Loads a graph from a JSON string.
+     * @param {string} json
+     */
+    loadGraph(json) {
+        try {
+            const data = JSON.parse(json);
+            if (!data.nodes || !data.edges) {
+                throw new Error("Invalid graph file format.");
+            }
+
+            this.clearAll();
+
+            // Defer execution to allow the DOM to clear
+            setTimeout(() => {
+                // Create nodes first, mapping old IDs to new ones in case of conflicts
+                const idMap = new Map();
+                data.nodes.forEach(nodeData => {
+                    // It's safer to generate new IDs to avoid any potential weirdness
+                    const oldId = nodeData.id;
+                    const newId = crypto.randomUUID();
+                    idMap.set(oldId, newId);
+                    nodeData.id = newId;
+
+                    // Ensure containedNodeIds are preserved for groups (will be mapped later)
+                    if (nodeData.type === 'GroupNode') {
+                        nodeData.oldContainedIds = nodeData.containedNodeIds;
+                    }
+
+                    events.publish('node:create', nodeData);
+                });
+
+                // Update containedNodeIds in groups to use the new IDs
+                this.nodes.forEach(node => {
+                    if (node instanceof GroupNode && node.oldContainedIds) {
+                        node.containedNodeIds = new Set(
+                            node.oldContainedIds.map(oldId => idMap.get(oldId)).filter(Boolean)
+                        );
+                        delete node.oldContainedIds;
+                    }
+                });
+
+                // Create edges with the newly mapped node IDs
+                data.edges.forEach(edgeData => {
+                    edgeData.startNodeId = idMap.get(edgeData.startNodeId);
+                    edgeData.endNodeId = idMap.get(edgeData.endNodeId);
+                    if (edgeData.startNodeId && edgeData.endNodeId) {
+                        events.publish('edge:create', edgeData);
+                    }
+                });
+                console.log("Graph loaded.");
+            }, 100);
+
+        } catch (error) {
+            console.error("Failed to load graph:", error);
+            // Optionally, publish a UI notification event here
+        }
+    }
+
+    /**
+     * Clears all nodes and edges from the canvas.
+     */
+    clearAll() {
+        // Create a copy of the IDs to avoid issues while iterating and deleting
+        const nodeIds = Array.from(this.nodes.keys());
+        const edgeIds = Array.from(this.edges.keys());
+
+        edgeIds.forEach(id => this.removeEdge(id));
+        nodeIds.forEach(id => this.removeNode(id));
+        
+        this.clearSelection();
+        this.maxGroupZIndex = 0;
+        this.maxNodeZIndex = 10000;
+        console.log("Canvas cleared.");
+    }
+
+    /**
+     * Deletes the currently selected nodes and edges.
+     */
+    deleteSelection() {
+        if (this.selectedNodes.size > 0 || this.selectedEdges.size > 0) {
+            this.selectedNodes.forEach(nodeId => {
+                events.publish('node:delete', nodeId);
+            });
+            this.selectedEdges.forEach(edgeId => {
+                events.publish('edge:delete', edgeId);
+            });
+            this.clearSelection();
+        }
     }
 }
 
