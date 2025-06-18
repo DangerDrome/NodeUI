@@ -83,6 +83,7 @@ class NodeUI {
         this.snapToGrid = 20; // Grid size, can be false or a number
         this.snapToObjects = true;
         this.snapThreshold = 5;
+        this.shakeSensitivity = 6.5; // Higher number = less sensitive shake detection
 
         this.contextMenu = new ContextMenu();
         this.longPressTimer = null;
@@ -141,38 +142,22 @@ class NodeUI {
         this.svg.classList.add('node-ui-canvas');
 
         const edgeDefs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-        const colors = ['default', 'red', 'green', 'blue', 'yellow', 'purple'];
         
-        colors.forEach(color => {
-            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-            marker.id = `arrowhead-${color}`;
-            marker.setAttribute('viewBox', '0 0 10 10');
-            marker.setAttribute('refX', '8');
-            marker.setAttribute('refY', '5');
-            marker.setAttribute('markerWidth', '6');
-            marker.setAttribute('markerHeight', '6');
-            marker.setAttribute('orient', 'auto-start-reverse');
-            
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
-            path.style.fill = `var(--color-node-${color}-border)`;
-            marker.appendChild(path);
-            edgeDefs.appendChild(marker);
-        });
-
-        const markerDrawing = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-        markerDrawing.id = 'arrowhead-drawing';
-        markerDrawing.setAttribute('viewBox', '0 0 10 10');
-        markerDrawing.setAttribute('refX', '8');
-        markerDrawing.setAttribute('refY', '5');
-        markerDrawing.setAttribute('markerWidth', '6');
-        markerDrawing.setAttribute('markerHeight', '6');
-        markerDrawing.setAttribute('orient', 'auto-start-reverse');
-        const pathDrawing = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        pathDrawing.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
-        pathDrawing.classList.add('arrowhead-drawing');
-        markerDrawing.appendChild(pathDrawing);
-        edgeDefs.appendChild(markerDrawing);
+        // A single, generic marker that inherits color from the edge
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.id = 'arrowhead';
+        marker.setAttribute('viewBox', '0 0 10 10');
+        marker.setAttribute('refX', '8');
+        marker.setAttribute('refY', '5');
+        marker.setAttribute('markerWidth', '6');
+        marker.setAttribute('markerHeight', '6');
+        marker.setAttribute('orient', 'auto-start-reverse');
+        
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+        path.style.fill = 'currentColor'; // Inherit color from the path it's attached to
+        marker.appendChild(path);
+        edgeDefs.appendChild(marker);
         
         this.svg.appendChild(edgeDefs);
 
@@ -399,14 +384,6 @@ class NodeUI {
         const nodeElement = event.target.closest('.node');
         if (nodeElement) {
             const nodeId = nodeElement.id;
-            const node = this.nodes.get(nodeId);
-
-            // Special handler for left-clicking a routing node's icon to cycle color
-            if (node instanceof RoutingNode && event.target.closest('.node-icon')) {
-                this.cycleNodeColor(nodeId);
-                return; // Prevent starting a drag operation
-            }
-
             this.bringToFront(nodeId); // Bring the node and its hierarchy to the front
 
             // If the node is not part of a multi-selection, clear the selection.
@@ -933,6 +910,9 @@ class NodeUI {
         } else if (key === 'g' && !isModKey && !targetIsInput) {
             event.preventDefault();
             this.groupSelection();
+        } else if (key === 'f' && !isModKey && !targetIsInput) {
+            event.preventDefault();
+            this.frameSelection();
         } else if (key === 'n' && !isModKey && !targetIsInput) {
             event.preventDefault();
             this.createNodeAtMousePosition();
@@ -1278,12 +1258,12 @@ class NodeUI {
         // Create a temporary path element
         const tempEdge = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         tempEdge.classList.add('edge', 'edge-drawing');
-        tempEdge.setAttribute('marker-end', 'url(#arrowhead-drawing)');
+        tempEdge.setAttribute('marker-end', 'url(#arrowhead)');
         
-        // Set the drawing color based on the start node's color
-        // This is applied to the main container so the SVG marker def can inherit it.
+        // Set the drawing color for both stroke and marker fill
         const drawColor = getComputedStyle(startNode.element).getPropertyValue(`--color-node-${startNode.color}-border`);
-        this.container.style.setProperty('--edge-draw-color', drawColor);
+        tempEdge.style.stroke = drawColor;
+        tempEdge.style.color = drawColor;
 
         this.canvasGroup.appendChild(tempEdge);
         this.edgeDrawingState.tempEdgeElement = tempEdge;
@@ -1336,8 +1316,6 @@ class NodeUI {
         if (this.edgeDrawingState.tempEdgeElement) {
             this.edgeDrawingState.tempEdgeElement.remove();
         }
-        // Clean up the drawing color variable
-        this.container.style.removeProperty('--edge-draw-color');
         
         this.edgeDrawingState = {
             isDrawing: false,
@@ -1529,10 +1507,9 @@ class NodeUI {
                 // If the node is the start of an edge, its position and color change.
                 edge.startPosition = this.getHandlePosition(edge.startNodeId, edge.startHandleId);
                 
+                // Update the data-color attribute for the pure CSS styling to pick it up.
                 const nodeColor = node.color || 'default';
-                const startNodeColorVar = `var(--color-node-${nodeColor}-border)`;
-                edge.element.style.setProperty('--edge-color', startNodeColorVar);
-                edge.element.setAttribute('marker-end', `url(#arrowhead-${nodeColor})`);
+                edge.groupElement.dataset.color = nodeColor;
                 
                 this.updateEdge(edge.id);
             } else if (edge.endNodeId === nodeId) {
@@ -1999,7 +1976,7 @@ class NodeUI {
         const nodeCreationActions = [
             { 
                 type: 'BaseNode',
-                label: 'Create Node',
+                label: 'Note',
                 iconClass: 'icon-plus-square'
             },
             {
@@ -2369,7 +2346,7 @@ class NodeUI {
         }
 
         // If there are enough rapid direction changes, it's a shake.
-        if (directionChanges > 3) {
+        if (directionChanges > this.shakeSensitivity) {
             console.log(`Node ${node.id} was shaken! Releasing connections.`);
             this.edges.forEach(edge => {
                 if (edge.startNodeId === node.id || edge.endNodeId === node.id) {
@@ -2778,7 +2755,7 @@ class NodeUI {
         events.publish('node:create', {
             x: position.x,
             y: position.y,
-            title: 'New Node'
+            title: 'Note'
         });
     }
 
@@ -2802,6 +2779,18 @@ class NodeUI {
     cycleRoutingNodeConnections(routingNodeId) {
         const routingNode = this.nodes.get(routingNodeId);
         if (!routingNode) return;
+
+        // --- Cycle Color ---
+        const colors = ['default', 'red', 'green', 'blue', 'yellow', 'purple'];
+        const currentIndex = colors.indexOf(routingNode.color);
+        const newColor = colors[(currentIndex + 1) % colors.length];
+        routingNode.color = newColor;
+        if (routingNode.element) {
+            routingNode.element.dataset.color = routingNode.color;
+            routingNode.element.style.setProperty('--icon-color', `var(--color-node-${routingNode.color}-border)`);
+            routingNode.element.style.setProperty('--icon-color-bg', `var(--color-node-${routingNode.color}-bg)`);
+            routingNode.updateHandleColors();
+        }
 
         const connectedEdges = Array.from(this.edges.values()).filter(
             edge => edge.startNodeId === routingNodeId || edge.endNodeId === routingNodeId
@@ -2861,6 +2850,106 @@ class NodeUI {
 
         // Trigger a visual update for all edges connected to the routing node.
         this.updateConnectedEdges(routingNodeId);
+    }
+
+    /**
+     * Frames the current selection or all elements if nothing is selected,
+     * then animates the viewport to center on the bounding box.
+     */
+    frameSelection() {
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+
+        const hasSelection = this.selectedNodes.size > 0 || this.selectedEdges.size > 0;
+        const nodesToFrame = hasSelection ? Array.from(this.selectedNodes).map(id => this.nodes.get(id)) : Array.from(this.nodes.values());
+        const edgesToFrame = hasSelection ? Array.from(this.selectedEdges).map(id => this.edges.get(id)) : Array.from(this.edges.values());
+
+        // Bounding box for nodes
+        nodesToFrame.forEach(node => {
+            if (node) {
+                minX = Math.min(minX, node.x);
+                minY = Math.min(minY, node.y);
+                maxX = Math.max(maxX, node.x + node.width);
+                maxY = Math.max(maxY, node.y + node.height);
+            }
+        });
+
+        // Bounding box for edges
+        edgesToFrame.forEach(edge => {
+            if (edge && edge.startPosition && edge.endPosition) {
+                const points = [edge.startPosition, ...edge.routingPoints, edge.endPosition];
+                points.forEach(p => {
+                    minX = Math.min(minX, p.x);
+                    minY = Math.min(minY, p.y);
+                    maxX = Math.max(maxX, p.x);
+                    maxY = Math.max(maxY, p.y);
+                });
+            }
+        });
+        
+        // If there's nothing to frame, do nothing.
+        if (!isFinite(minX)) {
+            return;
+        }
+
+        // Calculate target scale and offset
+        const padding = 100; // pixels of padding around the selection
+        const selectionWidth = (maxX - minX) + padding * 2;
+        const selectionHeight = (maxY - minY) + padding * 2;
+        const containerRect = this.container.getBoundingClientRect();
+        
+        const targetScale = Math.min(
+            containerRect.width / selectionWidth, 
+            containerRect.height / selectionHeight,
+            1.5 // Cap max zoom level when framing
+        );
+
+        const selectionCenterX = minX + (maxX - minX) / 2;
+        const selectionCenterY = minY + (maxY - minY) / 2;
+        const targetOffsetX = (containerRect.width / 2) - (selectionCenterX * targetScale);
+        const targetOffsetY = (containerRect.height / 2) - (selectionCenterY * targetScale);
+
+        this.animatePanZoom(targetScale, targetOffsetX, targetOffsetY);
+    }
+
+    /**
+     * Animates the pan and zoom to a target state.
+     * @param {number} targetScale The destination scale.
+     * @param {number} targetOffsetX The destination X offset.
+     * @param {number} targetOffsetY The destination Y offset.
+     * @param {number} duration The duration of the animation in ms.
+     */
+    animatePanZoom(targetScale, targetOffsetX, targetOffsetY, duration = 300) {
+        const startScale = this.panZoom.scale;
+        const startOffsetX = this.panZoom.offsetX;
+        const startOffsetY = this.panZoom.offsetY;
+
+        const scaleDiff = targetScale - startScale;
+        const offsetXDiff = targetOffsetX - startOffsetX;
+        const offsetYDiff = targetOffsetY - startOffsetY;
+
+        let startTime = null;
+
+        const animationStep = (timestamp) => {
+            if (!startTime) startTime = timestamp;
+            const elapsed = timestamp - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const ease = 1 - Math.pow(1 - progress, 3);
+
+            this.panZoom.scale = startScale + scaleDiff * ease;
+            this.panZoom.offsetX = startOffsetX + offsetXDiff * ease;
+            this.panZoom.offsetY = startOffsetY + offsetYDiff * ease;
+
+            this.updateCanvasTransform();
+
+            if (progress < 1) {
+                requestAnimationFrame(animationStep);
+            }
+        };
+
+        requestAnimationFrame(animationStep);
     }
 }
 

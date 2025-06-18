@@ -48,6 +48,14 @@
     --color-node-purple-bg: rgba(157, 78, 221, 0.2);
     --color-node-purple-border: rgba(157, 78, 221, 0.8);
 
+    /* Edge Hover Colors (brighter versions of border colors) */
+    --color-node-default-border-hover: rgba(120, 120, 120, 1);
+    --color-node-red-border-hover: rgba(239, 82, 87, 1);
+    --color-node-green-border-hover: rgba(72, 217, 152, 1);
+    --color-node-blue-border-hover: rgba(40, 154, 255, 1);
+    --color-node-yellow-border-hover: rgba(255, 209, 89, 1);
+    --color-node-purple-border-hover: rgba(167, 88, 231, 1);
+
     /* --- Sizing & Metrics --- */
     /* Node Layout */
     --panel-width: 200px;
@@ -65,11 +73,16 @@
     --font-size-small: 12px;
     --font-size-medium: 14px;
 
+    /* --- Typography --- */
+    --h1-font-size: 4.1rem;
+    --h1-font-weight: 1000;
+    --h1-color: var(--color-text-subtle);
+
     /* --- Theming & Modifiers --- */
     /* Multipliers for handle sizing */
     --handle-size-mult: 1;
-    --handle-zone-mult: 1;
-    --handle-offset-mult: 1;
+    --handle-zone-mult: 2;
+    --handle-offset-mult: 1.5;
 }
 
 
@@ -273,6 +286,14 @@ body {
     color: var(--color-text-default);
 }
 
+.node-content h1 {
+    font-size: var(--h1-font-size);
+    font-weight: var(--h1-font-weight);
+    margin: 0;
+    padding: 0;
+    color: var(--h1-color);
+}
+
 /* Resize Handles */
 .resize-handle {
     position: absolute;
@@ -414,11 +435,46 @@ body {
 -------------------------------------------------------------------------------- */
 .edge {
     fill: none;
-    stroke: var(--edge-color, var(--color-border-default));
     stroke-width: 2px;
     stroke-linecap: round;
-    transition: stroke-width 0.2s ease, stroke 0.2s ease;
+    transition: stroke-width 0.2s ease, stroke 0.2s ease, color 0.2s ease;
+    stroke: var(--color-node-default-border-hover);
+    color: var(--color-node-default-border-hover);
 }
+
+/* 
+ * Arrowhead Color Control
+ * The arrowhead's fill is set to 'currentColor' in the SVG marker definition (in nodeui.js).
+ * This means its color is controlled by the 'color' CSS property of the .edge path it is attached to.
+ * To change the arrow color, change the 'color' property in the rules below.
+ */
+
+/* Utility class to hide an arrowhead on a specific edge */
+.edge.no-arrowhead {
+    marker-end: none;
+}
+
+g.is-hovered .edge {
+    stroke: var(--color-node-default-border-hover);
+    color: var(--color-node-default-border-hover);
+    stroke-width: 3px;
+}
+
+/* Color overrides based on parent group's data-color attribute */
+g[data-color="red"] .edge { stroke: var(--color-node-red-border); color: var(--color-node-red-border) !important; }
+g[data-color="red"].is-hovered .edge { stroke: var(--color-node-red-border-hover); color: var(--color-node-red-border-hover) !important; }
+
+g[data-color="green"] .edge { stroke: var(--color-node-green-border); color: var(--color-node-green-border) !important; }
+g[data-color="green"].is-hovered .edge { stroke: var(--color-node-green-border-hover); color: var(--color-node-green-border-hover) !important; }
+
+g[data-color="blue"] .edge { stroke: var(--color-node-blue-border); color: var(--color-node-blue-border) !important; }
+g[data-color="blue"].is-hovered .edge { stroke: var(--color-node-blue-border-hover); color: var(--color-node-blue-border-hover) !important; }
+
+g[data-color="yellow"] .edge { stroke: var(--color-node-yellow-border); color: var(--color-node-yellow-border) !important; }
+g[data-color="yellow"].is-hovered .edge { stroke: var(--color-node-yellow-border-hover); color: var(--color-node-yellow-border-hover) !important; }
+
+g[data-color="purple"] .edge { stroke: var(--color-node-purple-border); color: var(--color-node-purple-border) !important; }
+g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border-hover); color: var(--color-node-purple-border-hover) !important; }
 
 .edge-hit-area {
     fill: none;
@@ -427,16 +483,6 @@ body {
     stroke-linecap: round;
     cursor: pointer;
     pointer-events: stroke;
-}
-
-g.is-hovered .edge-hit-area {
-    stroke: rgba(142, 142, 142, 0.2);
-}
-
-.edge:hover,
-.edge.is-hovered {
-    stroke: var(--edge-hover-color, var(--color-accent));
-    stroke-width: 4px;
 }
 
 .edge.is-selected {
@@ -451,10 +497,6 @@ g.is-hovered .edge-hit-area {
 .edge.edge-drawing {
     stroke: var(--edge-draw-color, var(--color-accent));
     stroke-dasharray: 5, 5;
-}
-
-.arrowhead-drawing {
-    fill: var(--edge-draw-color, var(--color-accent));
 }
 
 .edge-routing-handle {

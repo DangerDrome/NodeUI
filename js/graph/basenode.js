@@ -126,7 +126,7 @@ class BaseNode {
     renderContent(contentArea) {
         // Base implementation does nothing.
         // Subclasses like MarkdownNode or ImageNode will override this.
-        contentArea.textContent = 'This is a base node.';
+        contentArea.innerHTML = '<h1>Note</h1>';
     }
 
     /**

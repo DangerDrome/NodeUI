@@ -62,33 +62,17 @@ class BaseEdge {
         this.groupElement.appendChild(this.element);
         this.groupElement.appendChild(this.hitArea);
         
-        // Set the color and marker based on the start node
+        // Set the color attribute based on the start node for pure CSS styling
         const startNodeEl = document.getElementById(this.startNodeId);
         if (startNodeEl) {
             const nodeColor = startNodeEl.dataset.color || 'default';
-            const startNodeColorVar = `var(--color-node-${nodeColor}-border)`;
-            
-            this.element.style.setProperty('--edge-color', startNodeColorVar);
-            this.element.setAttribute('marker-end', `url(#arrowhead-${nodeColor})`);
+            this.groupElement.dataset.color = nodeColor;
+            this.element.setAttribute('marker-end', 'url(#arrowhead)');
         }
 
-        // Add hover effects to the group to show the routing handles
-        this.groupElement.addEventListener('mouseenter', () => this.groupElement.classList.add('is-hovered'));
-        this.groupElement.addEventListener('mouseleave', () => this.groupElement.classList.remove('is-hovered'));
-
-        // Add interaction listeners directly to the hit area
-        this.hitArea.addEventListener('mouseenter', () => {
-            const startNodeEl = document.getElementById(this.startNodeId);
-            if (startNodeEl) {
-                const nodeColor = startNodeEl.dataset.color || 'default';
-                const hoverColor = getComputedStyle(startNodeEl).getPropertyValue(`--color-node-${nodeColor}-border`);
-                this.element.style.setProperty('--edge-hover-color', hoverColor);
-            }
-            this.element.classList.add('is-hovered');
-        });
-        this.hitArea.addEventListener('mouseleave', () => {
-            this.element.classList.remove('is-hovered');
-        });
+        // Add hover effects to the group to show routing handles and trigger CSS changes
+        this.hitArea.addEventListener('mouseenter', () => this.groupElement.classList.add('is-hovered'));
+        this.hitArea.addEventListener('mouseleave', () => this.groupElement.classList.remove('is-hovered'));
         
         this.hitArea.addEventListener('click', (event) => {
             event.stopPropagation();
