@@ -2012,33 +2012,28 @@ class NodeUI {
 
         // Add clipboard actions if not drawing an edge
         if (!edgeStartInfo) {
-            const hasSelection = this.selectedNodes.size > 0;
+            const hasSelection = this.selectedNodes.size > 0 || this.selectedEdges.size > 0;
             const clipboardHasContent = this.clipboard.nodes.length > 0;
 
-            if (hasSelection) {
-                items.push({
-                    label: 'Cut',
-                    iconClass: 'icon-scissors',
-                    action: () => this.cutSelection()
-                });
-                items.push({
-                    label: 'Copy',
-                    iconClass: 'icon-copy',
-                    action: () => this.copySelection()
-                });
-            }
-            if (clipboardHasContent) {
-                items.push({
-                    label: 'Paste',
-                    iconClass: 'icon-clipboard',
-                    action: () => this.paste()
-                });
-            }
-            
-            // If we added clipboard items, add a separator.
-            if (items.length > 0) {
-                items.push({ isSeparator: true });
-            }
+            items.push({
+                label: 'Cut',
+                iconClass: 'icon-scissors',
+                action: () => this.cutSelection(),
+                disabled: !hasSelection
+            });
+            items.push({
+                label: 'Copy',
+                iconClass: 'icon-copy',
+                action: () => this.copySelection(),
+                disabled: !hasSelection
+            });
+            items.push({
+                label: 'Paste',
+                iconClass: 'icon-clipboard',
+                action: () => this.paste(),
+                disabled: !clipboardHasContent
+            });
+            items.push({ isSeparator: true });
         }
 
         // Define potential node types to create
@@ -2095,7 +2090,7 @@ class NodeUI {
         });
 
         // Add a separator if there were creation actions and we are not in edge-draw mode
-        if (nodeCreationActions.length > 0 && !edgeStartInfo) {
+        if (nodeCreationActions.length > 0 && items.length > 0 && !edgeStartInfo) {
             items.push({ isSeparator: true });
         }
         

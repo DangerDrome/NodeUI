@@ -28,6 +28,11 @@ class ContextMenu {
             if (item.isSeparator) {
                 li.className = 'context-menu-separator';
             } else {
+                li.className = 'context-menu-item';
+                if (item.disabled) {
+                    li.classList.add('is-disabled');
+                }
+
                 const iconSpan = document.createElement('span');
                 iconSpan.className = 'context-menu-icon';
                 iconSpan.classList.add(item.iconClass || 'icon-placeholder');
@@ -39,7 +44,7 @@ class ContextMenu {
                 li.appendChild(labelSpan);
 
                 li.addEventListener('click', () => {
-                    if (item.action && typeof item.action === 'function') {
+                    if (item.action && typeof item.action === 'function' && !item.disabled) {
                         item.action();
                     }
                     this.hide();
