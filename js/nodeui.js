@@ -80,7 +80,7 @@ class NodeUI {
             pointIndex: -1
         };
 
-        this.snapToGrid = 20; // Grid size, can be false or a number
+        this.snapToGrid = 0; // Grid size, can be false or a number
         this.snapToObjects = true;
         this.snapThreshold = 5;
         this.shakeSensitivity = 6.5; // Higher number = less sensitive shake detection
@@ -2010,6 +2010,37 @@ class NodeUI {
         const worldPos = this.getMousePosition({ clientX: x, clientY: y });
         let items = [];
 
+        // Add clipboard actions if not drawing an edge
+        if (!edgeStartInfo) {
+            const hasSelection = this.selectedNodes.size > 0;
+            const clipboardHasContent = this.clipboard.nodes.length > 0;
+
+            if (hasSelection) {
+                items.push({
+                    label: 'Cut',
+                    iconClass: 'icon-scissors',
+                    action: () => this.cutSelection()
+                });
+                items.push({
+                    label: 'Copy',
+                    iconClass: 'icon-copy',
+                    action: () => this.copySelection()
+                });
+            }
+            if (clipboardHasContent) {
+                items.push({
+                    label: 'Paste',
+                    iconClass: 'icon-clipboard',
+                    action: () => this.paste()
+                });
+            }
+            
+            // If we added clipboard items, add a separator.
+            if (items.length > 0) {
+                items.push({ isSeparator: true });
+            }
+        }
+
         // Define potential node types to create
         const nodeCreationActions = [
             { 
@@ -2064,7 +2095,7 @@ class NodeUI {
         });
 
         // Add a separator if there were creation actions and we are not in edge-draw mode
-        if (items.length > 0 && !edgeStartInfo) {
+        if (nodeCreationActions.length > 0 && !edgeStartInfo) {
             items.push({ isSeparator: true });
         }
         
