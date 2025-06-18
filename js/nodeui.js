@@ -497,11 +497,11 @@ class NodeUI {
             }
 
             if (this.snapToObjects) {
-                const { x, y, width, height } = this.checkForResizeSnapping(targetNode, newX, newY, newWidth, newHeight, direction);
-                newX = x;
-                newY = y;
-                newWidth = width;
-                newHeight = height;
+                const snapResult = this.checkForResizeSnapping(targetNode, newX, newY, newWidth, newHeight, direction);
+                newX = snapResult.x;
+                newY = snapResult.y;
+                newWidth = snapResult.width;
+                newHeight = snapResult.height;
             }
         
             targetNode.x = newX;
@@ -773,7 +773,7 @@ class NodeUI {
                 newWidth = snapResult.width;
                 newHeight = snapResult.height;
             }
-            
+
             targetNode.x = newX;
             targetNode.y = newY;
             targetNode.width = newWidth;
@@ -2229,34 +2229,23 @@ class NodeUI {
     /**
      * Checks for snapping guides during node resizing.
      * @param {BaseNode} resizingNode The node being resized.
-     * @param {number} newX The proposed new X.
-     * @param {number} newY The proposed new Y.
-     * @param {number} newWidth The proposed new width.
-     * @param {number} newHeight The proposed new height.
-     * @param {string} direction The resize direction.
-     * @returns {{x: number, y: number, width: number, height: number}} The snapped dimensions and position.
+     * @param {number} currentWidth The proposed new width.
+     * @param {number} currentHeight The proposed new height.
+     * @returns {{width: number, height: number}} The snapped dimensions.
      */
-    checkForResizeSnapping(resizingNode, newX, newY, newWidth, newHeight, direction) {
+    checkForResizeSnapping(resizingNode, currentX, currentY, currentWidth, currentHeight, direction) {
         this.clearGuides();
-    
-        let snappedX = newX;
-        let snappedY = newY;
-        let snappedWidth = newWidth;
-        let snappedHeight = newHeight;
-    
-        // The bounds of the node if it were at the proposed new position and size
-        const resizingBounds = {
-            left: newX,
-            top: newY,
-            right: newX + newWidth,
-            bottom: newY + newHeight
-        };
-    
+        let snappedX = currentX;
+        let snappedY = currentY;
+        let snappedWidth = currentWidth;
+        let snappedHeight = currentHeight;
+
+        const { originalX, originalY, originalWidth, originalHeight } = this.resizingState;
         const nodeColor = getComputedStyle(resizingNode.element).getPropertyValue(`--color-node-${resizingNode.color}-border`);
-    
+
         this.nodes.forEach(staticNode => {
             if (staticNode.id === resizingNode.id) return;
-    
+
             const staticBounds = {
                 left: staticNode.x,
                 top: staticNode.y,
@@ -2265,32 +2254,60 @@ class NodeUI {
                 hCenter: staticNode.x + staticNode.width / 2,
                 vCenter: staticNode.y + staticNode.height / 2
             };
-    
-            // --- VERTICAL SNAPPING ---
-            if (direction.includes('e')) { // Eastward resize
-                if (Math.abs(resizingBounds.right - staticBounds.left) < this.snapThreshold) { snappedWidth = staticBounds.left - newX; this.drawGuide(staticBounds.left, 'v', nodeColor); }
-                if (Math.abs(resizingBounds.right - staticBounds.right) < this.snapThreshold) { snappedWidth = staticBounds.right - newX; this.drawGuide(staticBounds.right, 'v', nodeColor); }
-                if (Math.abs(resizingBounds.right - staticBounds.hCenter) < this.snapThreshold) { snappedWidth = staticBounds.hCenter - newX; this.drawGuide(staticBounds.hCenter, 'v', nodeColor); }
+
+            // --- Vertical Snapping (affects X and Width) ---
+            if (direction.includes('w')) {
+                const newLeft = currentX;
+                if (Math.abs(newLeft - staticBounds.left) < this.snapThreshold) {
+                    snappedX = staticBounds.left;
+                    snappedWidth = originalX + originalWidth - snappedX;
+                    this.drawGuide(staticBounds.left, 'v', nodeColor);
+                }
+                if (Math.abs(newLeft - staticBounds.right) < this.snapThreshold) {
+                    snappedX = staticBounds.right;
+                    snappedWidth = originalX + originalWidth - snappedX;
+                    this.drawGuide(staticBounds.right, 'v', nodeColor);
+                }
             }
-            if (direction.includes('w')) { // Westward resize
-                if (Math.abs(resizingBounds.left - staticBounds.right) < this.snapThreshold) { const oldRight = newX + newWidth; snappedX = staticBounds.right; snappedWidth = oldRight - snappedX; this.drawGuide(staticBounds.right, 'v', nodeColor); }
-                if (Math.abs(resizingBounds.left - staticBounds.left) < this.snapThreshold) { const oldRight = newX + newWidth; snappedX = staticBounds.left; snappedWidth = oldRight - snappedX; this.drawGuide(staticBounds.left, 'v', nodeColor); }
-                if (Math.abs(resizingBounds.left - staticBounds.hCenter) < this.snapThreshold) { const oldRight = newX + newWidth; snappedX = staticBounds.hCenter; snappedWidth = oldRight - snappedX; this.drawGuide(staticBounds.hCenter, 'v', nodeColor); }
+            if (direction.includes('e')) {
+                const newRight = currentX + currentWidth;
+                if (Math.abs(newRight - staticBounds.right) < this.snapThreshold) {
+                    snappedWidth = staticBounds.right - snappedX;
+                    this.drawGuide(staticBounds.right, 'v', nodeColor);
+                }
+                if (Math.abs(newRight - staticBounds.left) < this.snapThreshold) {
+                    snappedWidth = staticBounds.left - snappedX;
+                    this.drawGuide(staticBounds.left, 'v', nodeColor);
+                }
             }
-    
-            // --- HORIZONTAL SNAPPING ---
-            if (direction.includes('s')) { // Southward resize
-                if (Math.abs(resizingBounds.bottom - staticBounds.top) < this.snapThreshold) { snappedHeight = staticBounds.top - newY; this.drawGuide(staticBounds.top, 'h', nodeColor); }
-                if (Math.abs(resizingBounds.bottom - staticBounds.bottom) < this.snapThreshold) { snappedHeight = staticBounds.bottom - newY; this.drawGuide(staticBounds.bottom, 'h', nodeColor); }
-                if (Math.abs(resizingBounds.bottom - staticBounds.vCenter) < this.snapThreshold) { snappedHeight = staticBounds.vCenter - newY; this.drawGuide(staticBounds.vCenter, 'h', nodeColor); }
+
+            // --- Horizontal Snapping (affects Y and Height) ---
+            if (direction.includes('n')) {
+                const newTop = currentY;
+                if (Math.abs(newTop - staticBounds.top) < this.snapThreshold) {
+                    snappedY = staticBounds.top;
+                    snappedHeight = originalY + originalHeight - snappedY;
+                    this.drawGuide(staticBounds.top, 'h', nodeColor);
+                }
+                if (Math.abs(newTop - staticBounds.bottom) < this.snapThreshold) {
+                    snappedY = staticBounds.bottom;
+                    snappedHeight = originalY + originalHeight - snappedY;
+                    this.drawGuide(staticBounds.bottom, 'h', nodeColor);
+                }
             }
-            if (direction.includes('n')) { // Northward resize
-                if (Math.abs(resizingBounds.top - staticBounds.bottom) < this.snapThreshold) { const oldBottom = newY + newHeight; snappedY = staticBounds.bottom; snappedHeight = oldBottom - snappedY; this.drawGuide(staticBounds.bottom, 'h', nodeColor); }
-                if (Math.abs(resizingBounds.top - staticBounds.top) < this.snapThreshold) { const oldBottom = newY + newHeight; snappedY = staticBounds.top; snappedHeight = oldBottom - snappedY; this.drawGuide(staticBounds.top, 'h', nodeColor); }
-                if (Math.abs(resizingBounds.top - staticBounds.vCenter) < this.snapThreshold) { const oldBottom = newY + newHeight; snappedY = staticBounds.vCenter; snappedHeight = oldBottom - snappedY; this.drawGuide(staticBounds.vCenter, 'h', nodeColor); }
+            if (direction.includes('s')) {
+                const newBottom = currentY + currentHeight;
+                if (Math.abs(newBottom - staticBounds.bottom) < this.snapThreshold) {
+                    snappedHeight = staticBounds.bottom - snappedY;
+                    this.drawGuide(staticBounds.bottom, 'h', nodeColor);
+                }
+                if (Math.abs(newBottom - staticBounds.top) < this.snapThreshold) {
+                    snappedHeight = staticBounds.top - snappedY;
+                    this.drawGuide(staticBounds.top, 'h', nodeColor);
+                }
             }
         });
-    
+
         return { x: snappedX, y: snappedY, width: snappedWidth, height: snappedHeight };
     }
 
