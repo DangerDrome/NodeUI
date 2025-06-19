@@ -111,8 +111,8 @@ class BaseNode {
         const settingsIcon = document.createElement('div');
         settingsIcon.className = 'node-settings-icon icon-more-horizontal';
 
-        titleBar.appendChild(pinIcon);
         titleBar.appendChild(icon);
+        titleBar.appendChild(pinIcon);
         titleBar.appendChild(titleText);
         titleBar.appendChild(cycleColorIcon);
         titleBar.appendChild(settingsIcon);
