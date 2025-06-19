@@ -15,6 +15,7 @@ class BaseEdge {
      * @param {string} [options.startPosition=null] - The position of the start handle.
      * @param {string} [options.endPosition=null] - The position of the end handle.
      * @param {string} [options.type='BaseEdge'] - The type of the edge.
+     * @param {string} [options.label=''] - The text label for the edge.
      */
     constructor({
         id = crypto.randomUUID(),
@@ -22,7 +23,8 @@ class BaseEdge {
         endNodeId = null,
         startHandleId = null,
         endHandleId = null,
-        type = 'BaseEdge'
+        type = 'BaseEdge',
+        label = ''
     } = {}) {
         this.id = id;
         this.startNodeId = startNodeId;
@@ -33,11 +35,14 @@ class BaseEdge {
         this.endPosition = null;   // Calculated in addEdge
         this.routingPoints = []; // Array of {x, y} points
         this.type = type;
+        this.label = label;
 
         this.element = null; // To hold the DOM element (e.g., an SVG path)
         this.hitArea = null; // A thicker, invisible path for easier interaction
         this.groupElement = null; // The parent <g> element
         this.routingPointElements = []; // Array of routing point DOM elements
+        this.labelElement = null;
+        this.labelBackgroundElement = null;
     }
 
     /**
@@ -58,8 +63,33 @@ class BaseEdge {
         this.hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         this.hitArea.classList.add('edge-hit-area');
         
+        // Create the label background element
+        this.labelBackgroundElement = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        this.labelBackgroundElement.classList.add('edge-label-background');
+
+        // Create the label element
+        this.labelElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        this.labelElement.classList.add('edge-label');
+        this.labelElement.setAttribute('text-anchor', 'middle');
+        this.labelElement.textContent = this.label;
+
+        // Manual dblclick detection for the label
+        let lastLabelClickTime = 0;
+        const handleLabelClick = (event) => {
+            event.stopPropagation();
+            const now = Date.now();
+            if (now - lastLabelClickTime < 300) {
+                events.publish('edge:edit-label', { edgeId: this.id });
+            }
+            lastLabelClickTime = now;
+        };
+        this.labelElement.addEventListener('mousedown', handleLabelClick);
+        this.labelBackgroundElement.addEventListener('mousedown', handleLabelClick);
+
         // The hit area must be the last element to be on top and receive clicks
         this.groupElement.appendChild(this.element);
+        this.groupElement.appendChild(this.labelBackgroundElement);
+        this.groupElement.appendChild(this.labelElement);
         this.groupElement.appendChild(this.hitArea);
         
         // Set the color attribute based on the start node for pure CSS styling

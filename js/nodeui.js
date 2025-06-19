@@ -105,7 +105,8 @@ class NodeUI {
             },
             edge: {
                 addRoutingNode: { label: 'Add Routing Node', iconClass: 'icon-network' },
-                delete: { label: 'Delete', iconClass: 'icon-trash-2' }
+                delete: { label: 'Delete', iconClass: 'icon-trash-2' },
+                edit: { label: 'Edit Label', iconClass: 'icon-edit' }
             }
         };
 
@@ -274,6 +275,7 @@ class NodeUI {
         events.subscribe('edge:create', (options) => this.addEdge(new BaseEdge(options)));
         events.subscribe('node:delete', (nodeId) => this.removeNode(nodeId));
         events.subscribe('edge:delete', (edgeId) => this.removeEdge(edgeId));
+        events.subscribe('edge:update', (data) => this.updateEdgeProps(data));
         events.subscribe('snap:grid-toggle', () => this.toggleSnapToGrid());
         events.subscribe('node:update', (data) => this.updateNode(data));
         events.subscribe('snap:object-toggle', this.toggleSnapToObjects.bind(this));
@@ -282,6 +284,12 @@ class NodeUI {
         events.subscribe('edge:selected', (data) => this.onEdgeSelected(data));
         events.subscribe('edge:create-with-new-node', (data) => this.createNodeAndConnectEdge(data));
         events.subscribe('setting:update', (data) => this.updateSetting(data));
+        events.subscribe('edge:edit-label', ({ edgeId }) => {
+            const edge = this.edges.get(edgeId);
+            if (edge) {
+                this.editEdgeLabel(edge);
+            }
+        });
         events.subscribe('settings:request', () => this.publishSettings());
         events.subscribe('graph:save', () => this.saveGraph());
         events.subscribe('graph:load-content', (json) => this.loadGraph(json));
@@ -1631,6 +1639,40 @@ class NodeUI {
         const pathData = this.calculateSpline(allPoints, edge.startHandleId, edge.endHandleId);
         edge.element.setAttribute('d', pathData);
         edge.hitArea.setAttribute('d', pathData);
+
+        // Update label position, content, and background
+        if (edge.labelElement && edge.labelBackgroundElement) {
+            edge.labelElement.textContent = edge.label;
+            const path = edge.element;
+            const len = path.getTotalLength();
+            if (len > 0 && edge.label) {
+                const midPoint = path.getPointAtLength(len / 2);
+                edge.labelElement.setAttribute('x', midPoint.x);
+                edge.labelElement.setAttribute('y', midPoint.y - 10); // Offset a bit above the line
+
+                edge.labelBackgroundElement.style.display = 'block';
+
+                // Use a minimal timeout to allow the browser to compute the bounding box of the text
+                setTimeout(() => {
+                    try {
+                        const labelBBox = edge.labelElement.getBBox();
+                        const padding = 4;
+                        edge.labelBackgroundElement.setAttribute('x', labelBBox.x - padding);
+                        edge.labelBackgroundElement.setAttribute('y', labelBBox.y - padding);
+                        edge.labelBackgroundElement.setAttribute('width', labelBBox.width + (padding * 2));
+                        edge.labelBackgroundElement.setAttribute('height', labelBBox.height + (padding * 2));
+                        edge.labelBackgroundElement.setAttribute('rx', 3); // rounded corners
+                    } catch (e) {
+                        // In case of an error (e.g., element not rendered), hide the background
+                        edge.labelBackgroundElement.style.display = 'none';
+                    }
+                }, 0);
+
+            } else {
+                // Hide background if there's no label text
+                edge.labelBackgroundElement.style.display = 'none';
+            }
+        }
     }
 
     /**
@@ -1964,7 +2006,7 @@ class NodeUI {
         // Find and clone ANY edge connected to the selection
         this.edges.forEach(edge => {
             if (this.selectedNodes.has(edge.startNodeId) || this.selectedNodes.has(edge.endNodeId)) {
-                this.clipboard.edges.push({ ...edge, element: null, groupElement: null, hitArea: null });
+                this.clipboard.edges.push({ ...edge, element: null, groupElement: null, hitArea: null, labelElement: null });
             }
         });
         
@@ -2418,6 +2460,15 @@ class NodeUI {
 
         const items = [
             {
+                label: menu.edit.label,
+                iconClass: menu.edit.iconClass,
+                inlineEdit: true,
+                initialValue: edge.label,
+                onEdit: (newLabel) => {
+                    events.publish('edge:update', { edgeId: edge.id, label: newLabel });
+                }
+            },
+            {
                 label: menu.addRoutingNode.label,
                 iconClass: menu.addRoutingNode.iconClass,
                 action: () => {
@@ -2438,6 +2489,7 @@ class NodeUI {
                     events.publish('edge:delete', edge.id);
                 }
             },
+            { isSeparator: true },
             {
                 label: menu.delete.label,
                 iconClass: menu.delete.iconClass,
@@ -2446,6 +2498,67 @@ class NodeUI {
             }
         ];
         this.contextMenu.show(x, y, items);
+    }
+
+    /**
+     * Creates an inline editor for an edge's label.
+     * @param {BaseEdge} edge The edge to edit.
+     */
+    editEdgeLabel(edge) {
+        if (!edge || !edge.labelElement) return;
+
+        // Hide the SVG label
+        edge.labelElement.style.visibility = 'hidden';
+
+        // Get the position of the SVG label to place the editor
+        // We use getBoundingClientRect because it gives us the final screen position after all SVG transforms
+        const labelRect = edge.labelElement.getBoundingClientRect();
+        const containerRect = this.container.getBoundingClientRect();
+
+        // Create the editor element
+        const editor = document.createElement('input');
+        editor.type = 'text';
+        editor.className = 'edge-label-editor';
+        editor.value = edge.label || '';
+        document.body.appendChild(editor);
+
+        // Position the editor over the now-hidden SVG label
+        const editorWidth = Math.max(80, labelRect.width + 20);
+        editor.style.width = `${editorWidth}px`;
+        editor.style.left = `${labelRect.left + (labelRect.width / 2) - (editorWidth / 2) - containerRect.left}px`;
+        editor.style.top = `${labelRect.top + (labelRect.height / 2) - (editor.offsetHeight / 2) - containerRect.top}px`;
+        
+        editor.focus();
+        editor.select();
+
+        const finishEditing = (saveChanges) => {
+            if (saveChanges) {
+                const newLabel = editor.value;
+                if (newLabel !== edge.label) {
+                    events.publish('edge:update', { edgeId: edge.id, label: newLabel });
+                }
+            }
+            // Cleanup
+            document.body.removeChild(editor);
+            edge.labelElement.style.visibility = 'visible';
+        };
+
+        // Use a one-time event listener for blur to prevent issues
+        const blurHandler = () => {
+            finishEditing(true);
+            editor.removeEventListener('blur', blurHandler);
+        };
+        editor.addEventListener('blur', blurHandler);
+
+        editor.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finishEditing(true);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                finishEditing(false);
+            }
+        });
     }
 
     /**
@@ -3454,7 +3567,8 @@ class NodeUI {
                 startHandleId: edge.startHandleId,
                 endHandleId: edge.endHandleId,
                 routingPoints: edge.routingPoints,
-                type: edge.type
+                type: edge.type,
+                label: edge.label
             });
         });
 
@@ -3802,6 +3916,21 @@ class NodeUI {
             } else {
                 console.warn("Dropped file is not a .json file:", file.name);
             }
+        }
+    }
+
+    /**
+     * Updates an edge's properties based on an event.
+     * @param {{edgeId: string, [key: string]: any}} data The update data.
+     */
+    updateEdgeProps(data) {
+        const edge = this.edges.get(data.edgeId);
+        if (edge) {
+            if (data.label !== undefined) {
+                edge.label = data.label;
+            }
+            // In the future, other properties could be updated here.
+            this.updateEdge(data.edgeId); // Re-render the edge to show the new label
         }
     }
 }

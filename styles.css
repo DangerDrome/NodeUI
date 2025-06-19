@@ -600,6 +600,42 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
     opacity: 1;
 }
 
+.edge-label-background {
+    stroke-width: 1px;
+    display: none; /* Hidden by default, shown via JS */
+}
+
+/* Color overrides for the label background */
+g[data-color="default"] .edge-label-background { fill: var(--color-node-default-border-hover); stroke: var(--color-node-default-border-hover); }
+g[data-color="red"] .edge-label-background { fill: var(--color-node-red-border-hover); stroke: var(--color-node-red-border-hover); }
+g[data-color="green"] .edge-label-background { fill: var(--color-node-green-border-hover); stroke: var(--color-node-green-border-hover); }
+g[data-color="blue"] .edge-label-background { fill: var(--color-node-blue-border-hover); stroke: var(--color-node-blue-border-hover); }
+g[data-color="yellow"] .edge-label-background { fill: var(--color-node-yellow-border-hover); stroke: var(--color-node-yellow-border-hover); }
+g[data-color="purple"] .edge-label-background { fill: var(--color-node-purple-border-hover); stroke: var(--color-node-purple-border-hover); }
+
+.edge-label {
+    fill: var(--color-bg-panel);
+    font-size: 12px;
+    font-family: var(--font-sans);
+    pointer-events: none; /* So it doesn't interfere with edge clicking */
+}
+
+.edge-label-editor {
+    position: absolute;
+    background-color: var(--color-bg-default);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-small);
+    color: var(--color-text-emphasis);
+    font-family: var(--font-sans);
+    font-size: 12px; /* Match the SVG label font size */
+    padding: 4px 6px;
+    text-align: center;
+    z-index: 100001; /* Above context menu */
+    transform-origin: center center;
+    outline: none;
+    box-shadow: var(--shadow-large);
+}
+
 
 /* 8. UI TOOL STYLES
 -------------------------------------------------------------------------------- */
@@ -787,46 +823,21 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
     opacity: 0.5;
 }
 
-
-/* 9. RESPONSIVE STYLES
--------------------------------------------------------------------------------- */
-@media (max-width: 768px) {
-    .panel {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        z-index: 10;
-        transition: transform 0.3s ease-in-out;
-    }
-
-    #file-tree-panel {
-        transform: translateX(-100%);
-    }
-
-    #file-tree-panel.open {
-        transform: translateX(0);
-    }
+.context-menu-input {
+    width: 100%;
+    background-color: var(--color-bg-default);
+    border: 0px solid var(--color-bg-default);
+    border-radius: var(--radius-small);
+    padding: 6px 8px;
+    color: var(--color-text-default);
+    box-sizing: border-box;
+    font: inherit;
+    outline: none;
 }
 
-
-/* 10. NODE COLOR VARIANTS
--------------------------------------------------------------------------------- */
-.node[data-color="default"] { --color-accent-glow: rgba(230, 230, 230, 0.5); }
-.node[data-color="red"] { background-color: var(--color-node-red-bg); border-color: var(--color-node-red-border); --color-accent-glow: var(--color-node-red-border); }
-.node[data-color="red"] .node-title-bar { color: #ff8a80; }
-.node[data-color="green"] { background-color: var(--color-node-green-bg); border-color: var(--color-node-green-border); --color-accent-glow: var(--color-node-green-border); }
-.node[data-color="green"] .node-title-bar { color: #b9f6ca; }
-.node[data-color="blue"] { background-color: var(--color-node-blue-bg); border-color: var(--color-node-blue-border); --color-accent-glow: var(--color-node-blue-border); }
-.node[data-color="blue"] .node-title-bar { color: #82b1ff; }
-.node[data-color="yellow"] { background-color: var(--color-node-yellow-bg); border-color: var(--color-node-yellow-border); --color-accent-glow: var(--color-node-yellow-border); }
-.node[data-color="yellow"] .node-title-bar { color: #ffe57f; }
-.node[data-color="purple"] { background-color: var(--color-node-purple-bg); border-color: var(--color-node-purple-border); --color-accent-glow: var(--color-node-purple-border); }
-.node[data-color="purple"] .node-title-bar { color: #e1b5ff; }
-
-/* Base style for all icons applied via CSS mask */
-.icon-box, .icon-sun-medium, .icon-more-horizontal, .icon-plus-square, .icon-grid-2x2, .icon-magnet, .icon-plus, .icon-trash-2, .icon-git-commit, .icon-group, .icon-refresh-cw,
 .icon-anchor, .icon-aperture, .icon-bomb, .icon-bot, .icon-bug, .icon-cloud-lightning, .icon-codesandbox, .icon-cpu, .icon-database, .icon-diamond, .icon-feather, .icon-figma, .icon-ghost,
-.icon-scissors, .icon-copy, .icon-clipboard, .icon-pin, .icon-terminal, .icon-settings, .icon-download, .icon-upload, .icon-check, .icon-camera, .icon-network, .icon-file-text, .icon-layout-panel-left {
+.icon-scissors, .icon-copy, .icon-clipboard, .icon-pin, .icon-terminal, .icon-settings, .icon-download, .icon-upload, .icon-check, .icon-camera, .icon-network, .icon-file-text, .icon-layout-panel-left,
+.icon-edit {
     display: inline-block;
     width: 16px;
     height: 16px;
@@ -835,7 +846,6 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
     mask-size: cover;
 }
 
-/* Specific Icon Masks */
 .icon-layout-panel-left {
     -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-panel-left"><rect width="7" height="18" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>');
     mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-panel-left"><rect width="7" height="18" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>');
@@ -905,6 +915,7 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
 .icon-camera { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-camera"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-camera"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>'); }
 .icon-network { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-network"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-network"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg>'); }
 .icon-file-text { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>'); }
+.icon-edit { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-3"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-3"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'); }
 
 /* Added for clipboard */
 .icon-scissors {
@@ -992,6 +1003,18 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
     opacity: 0.5;
 }
 
+.context-menu-input {
+    width: 100%;
+    background-color: var(--color-bg-default);
+    border: 0px solid var(--color-bg-default);
+    border-radius: var(--radius-small);
+    padding: 6px 8px;
+    color: var(--color-text-default);
+    box-sizing: border-box;
+    font: inherit;
+    outline: none;
+}
+
 
 /* 9. RESPONSIVE STYLES
 -------------------------------------------------------------------------------- */
@@ -1031,7 +1054,8 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
 /* Base style for all icons applied via CSS mask */
 .icon-box, .icon-sun-medium, .icon-more-horizontal, .icon-plus-square, .icon-grid-2x2, .icon-magnet, .icon-plus, .icon-trash-2, .icon-git-commit, .icon-group, .icon-refresh-cw,
 .icon-anchor, .icon-aperture, .icon-bomb, .icon-bot, .icon-bug, .icon-cloud-lightning, .icon-codesandbox, .icon-cpu, .icon-database, .icon-diamond, .icon-feather, .icon-figma, .icon-ghost,
-.icon-scissors, .icon-copy, .icon-clipboard, .icon-pin, .icon-terminal, .icon-settings, .icon-download, .icon-upload, .icon-check, .icon-camera, .icon-network, .icon-file-text, .icon-layout-panel-left {
+.icon-scissors, .icon-copy, .icon-clipboard, .icon-pin, .icon-terminal, .icon-settings, .icon-download, .icon-upload, .icon-check, .icon-camera, .icon-network, .icon-file-text, .icon-layout-panel-left,
+.icon-edit {
     display: inline-block;
     width: 16px;
     height: 16px;
@@ -1110,6 +1134,7 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
 .icon-camera { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-camera"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-camera"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>'); }
 .icon-network { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-network"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-network"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg>'); }
 .icon-file-text { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>'); }
+.icon-edit { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-3"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-3"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>');}
 
 /* Added for clipboard */
 .icon-scissors {
