@@ -1077,41 +1077,42 @@ class NodeUI {
     onKeyDown(event) {
         // Use event.metaKey for Command key on macOS
         const isModKey = event.ctrlKey || event.metaKey;
-        const targetIsInput = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
+        const target = event.target;
+        const isEditingContent = target.isContentEditable || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
         const key = event.key.toLowerCase();
 
-        if (isModKey && key === 'a') {
+        if (isModKey && key === 'a' && !isEditingContent) {
             event.preventDefault();
             this.selectAll();
-        } else if (isModKey && key === 'c') {
+        } else if (isModKey && key === 'c' && !isEditingContent) {
             event.preventDefault();
             this.copySelection();
-        } else if (isModKey && key === 'x') {
+        } else if (isModKey && key === 'x' && !isEditingContent) {
             event.preventDefault();
             this.cutSelection();
-        } else if (isModKey && key === 'v') {
+        } else if (isModKey && key === 'v' && !isEditingContent) {
             event.preventDefault();
             this.paste();
-        } else if (key === 'g' && !isModKey && !targetIsInput) {
+        } else if (key === 'g' && !isModKey && !isEditingContent) {
             event.preventDefault();
             this.groupSelection();
-        } else if (key === 'f' && !isModKey && !targetIsInput) {
+        } else if (key === 'f' && !isModKey && !isEditingContent) {
             event.preventDefault();
             this.frameSelection();
-        } else if (key === 'n' && !isModKey && !targetIsInput) {
+        } else if (key === 'n' && !isModKey && !isEditingContent) {
             event.preventDefault();
             this.createNodeAtMousePosition();
-        } else if (key === 'm' && !isModKey && !targetIsInput) {
+        } else if (key === 'm' && !isModKey && !isEditingContent) {
             event.preventDefault();
             this.createRoutingNodeAtMousePosition();
-        } else if ((key === 'delete' || key === 'backspace') && !targetIsInput) {
+        } else if ((key === 'delete' || key === 'backspace') && !isEditingContent) {
             event.preventDefault();
             this.deleteSelection();
-        } else if ((key === 'c' || key === 'y') && !isModKey && !targetIsInput) {
+        } else if ((key === 'c' || key === 'y') && !isModKey && !isEditingContent) {
             event.preventDefault();
             this.edgeCutState.isCutting = true;
             this.container.classList.add('is-cutting');
-        } else if (key === 'r' && !isModKey && !targetIsInput) {
+        } else if (key === 'r' && !isModKey && !isEditingContent) {
             event.preventDefault();
             this.routingCutState.isRouting = true;
             this.container.classList.add('is-routing');

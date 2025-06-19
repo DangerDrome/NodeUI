@@ -136,9 +136,68 @@ class BaseNode {
      * @param {HTMLElement} contentArea - The element to render content into.
      */
     renderContent(contentArea) {
-        // Base implementation does nothing.
-        // Subclasses like MarkdownNode or ImageNode will override this.
-        contentArea.innerHTML = '<h1>Note</h1>';
+        // Initial render
+        this.renderMarkdown(contentArea);
+
+        const saveContent = () => {
+            if (!contentArea.isEditing) return;
+
+            contentArea.isEditing = false;
+            contentArea.contentEditable = 'false';
+            const newContent = contentArea.innerText;
+
+            if (this.content !== newContent) {
+                // The update cycle will trigger the re-render.
+                events.publish('node:update', { nodeId: this.id, content: newContent });
+            } else {
+                // If no changes were made, just revert the view back to rendered markdown.
+                this.renderMarkdown(contentArea);
+            }
+        };
+
+        contentArea.addEventListener('dblclick', () => {
+            // Don't allow editing on specialized nodes that override this behavior
+            if (this.constructor.name === 'BaseNode') {
+                contentArea.isEditing = true;
+                contentArea.contentEditable = 'true';
+                contentArea.innerText = this.content || '';
+                contentArea.focus();
+                // Place cursor at the end
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(contentArea);
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        });
+
+        // Add blur listener to disable editing and save
+        contentArea.addEventListener('blur', saveContent);
+
+        // Add keydown listener to save on Enter
+        contentArea.addEventListener('keydown', (event) => {
+            // Save on Enter without Shift
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                contentArea.blur(); // Trigger the blur event to save
+            }
+        });
+    }
+
+    /**
+     * Renders the node's markdown content into the given element.
+     * @param {HTMLElement} contentArea The element to render into.
+     */
+    renderMarkdown(contentArea) {
+        if (typeof marked === 'undefined') {
+            console.warn('marked.js is not loaded. Cannot render markdown.');
+            contentArea.innerText = this.content || 'Double-click to edit...';
+            return;
+        }
+        // Use 'marked.parse' which is the modern way to call it
+        const dirtyHtml = marked.parse(this.content || 'Double-click to edit...');
+        contentArea.innerHTML = dirtyHtml;
     }
 
     /**
@@ -278,6 +337,14 @@ class BaseNode {
             const titleElement = this.element.querySelector('.node-title-text');
             if (titleElement) {
                 titleElement.textContent = this.title;
+            }
+        }
+        if (data.content !== undefined) {
+            this.content = data.content;
+            const contentArea = this.element.querySelector('.node-content');
+            // Only re-render if the node is not currently being edited to avoid losing focus.
+            if (contentArea && !contentArea.isEditing) {
+                this.renderMarkdown(contentArea);
             }
         }
         if (data.isPinned !== undefined) {

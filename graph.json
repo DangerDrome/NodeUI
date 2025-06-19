@@ -63,19 +63,19 @@
   },
   "nodes": [
     {
-      "id": "51b81ed5-1ba0-46f5-9a85-e79ab1198582",
-      "x": 155.44444444444443,
-      "y": -181.88888888888889,
-      "width": 345.55555555555554,
-      "height": 134,
+      "id": "2ed490ea-9662-4f7e-bb7a-473298f12e98",
+      "x": 161,
+      "y": -183.65964664407005,
+      "width": 329.61873575892486,
+      "height": 147.28068316385884,
       "title": "Base Node",
-      "content": "",
+      "content": "# NodeUI",
       "type": "BaseNode",
       "color": "green",
       "isPinned": false
     },
     {
-      "id": "5b3af5a1-6861-4c5d-bd50-3d8386e32c99",
+      "id": "6da282ef-73d4-4ef0-8388-9d83485507ed",
       "x": 360,
       "y": 123,
       "width": 30,
@@ -87,7 +87,7 @@
       "isPinned": false
     },
     {
-      "id": "4be7dbce-27a6-4295-af33-aeef8ff04005",
+      "id": "d655bfb3-207d-4027-ada0-808904951f83",
       "x": 1119.6666666666665,
       "y": 557.8888888888889,
       "width": 300,
@@ -99,7 +99,7 @@
       "isPinned": false
     },
     {
-      "id": "5e2b474c-ed4e-49af-805d-8329d441f2d6",
+      "id": "fb43638d-e5e6-4e8a-ae12-f43dfaff732f",
       "x": 161,
       "y": -3,
       "width": 842,
@@ -110,12 +110,12 @@
       "color": "default",
       "isPinned": false,
       "containedNodeIds": [
-        "5b3af5a1-6861-4c5d-bd50-3d8386e32c99",
-        "e56e026e-d78f-43a3-970e-a794c40a42e7"
+        "6da282ef-73d4-4ef0-8388-9d83485507ed",
+        "8d0814b5-7ec6-4c20-8b9b-0ebbd56a8e5c"
       ]
     },
     {
-      "id": "e56e026e-d78f-43a3-970e-a794c40a42e7",
+      "id": "8d0814b5-7ec6-4c20-8b9b-0ebbd56a8e5c",
       "x": 490.22222222222223,
       "y": 82.4444444444444,
       "width": 450,
@@ -130,8 +130,8 @@
   "edges": [
     {
       "id": "bdc1bc9b-1d63-42f9-ac7f-c83eb2f1b9d2",
-      "startNodeId": "51b81ed5-1ba0-46f5-9a85-e79ab1198582",
-      "endNodeId": "5b3af5a1-6861-4c5d-bd50-3d8386e32c99",
+      "startNodeId": "2ed490ea-9662-4f7e-bb7a-473298f12e98",
+      "endNodeId": "6da282ef-73d4-4ef0-8388-9d83485507ed",
       "startHandleId": "bottom",
       "endHandleId": "left",
       "routingPoints": [],
@@ -139,8 +139,8 @@
     },
     {
       "id": "1128b137-c919-48ff-ba73-70b3b75ef110",
-      "startNodeId": "5b3af5a1-6861-4c5d-bd50-3d8386e32c99",
-      "endNodeId": "e56e026e-d78f-43a3-970e-a794c40a42e7",
+      "startNodeId": "6da282ef-73d4-4ef0-8388-9d83485507ed",
+      "endNodeId": "8d0814b5-7ec6-4c20-8b9b-0ebbd56a8e5c",
       "startHandleId": "right",
       "endHandleId": "top",
       "routingPoints": [],
@@ -148,8 +148,8 @@
     },
     {
       "id": "73f2f335-1085-4f0a-96d0-ea3333849320",
-      "startNodeId": "5b3af5a1-6861-4c5d-bd50-3d8386e32c99",
-      "endNodeId": "e56e026e-d78f-43a3-970e-a794c40a42e7",
+      "startNodeId": "6da282ef-73d4-4ef0-8388-9d83485507ed",
+      "endNodeId": "8d0814b5-7ec6-4c20-8b9b-0ebbd56a8e5c",
       "startHandleId": "right",
       "endHandleId": "left",
       "routingPoints": [],
@@ -157,8 +157,8 @@
     },
     {
       "id": "742e1650-b6b8-4ae1-8271-f3255de87c1c",
-      "startNodeId": "5e2b474c-ed4e-49af-805d-8329d441f2d6",
-      "endNodeId": "4be7dbce-27a6-4295-af33-aeef8ff04005",
+      "startNodeId": "fb43638d-e5e6-4e8a-ae12-f43dfaff732f",
+      "endNodeId": "d655bfb3-207d-4027-ada0-808904951f83",
       "startHandleId": "right",
       "endHandleId": "left",
       "routingPoints": [],
