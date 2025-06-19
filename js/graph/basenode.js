@@ -80,9 +80,13 @@ class BaseNode {
         this.createResizeHandles();
         this.createPopoverContainer();
 
-        // Prevent node drag from firing when interacting with content.
+        // Prevent node drag from firing when content is being edited.
         contentArea.addEventListener('mousedown', (event) => {
-            event.stopPropagation();
+            // Only stop propagation if the content is editable,
+            // allowing the node to be dragged by its body otherwise.
+            if (contentArea.contentEditable === 'true') {
+                event.stopPropagation();
+            }
         });
 
         // Double-click to edit
