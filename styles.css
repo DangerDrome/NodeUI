@@ -1001,6 +1001,7 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
     border: 2px solid transparent; /* Creates padding around the thumb */
     background-clip: content-box;
     transition: filter 0.2s;
+    cursor: default;
 }
 
 .log-container::-webkit-scrollbar-thumb:hover {
@@ -1236,6 +1237,7 @@ input:checked + .slider:before {
     border-radius: 4px;
     border: 2px solid transparent;
     background-clip: content-box;
+    cursor: default;
 }
 
 .settings-container::-webkit-scrollbar-thumb:hover {
@@ -1351,4 +1353,44 @@ input:checked + .slider:before {
     width: auto; /* Unset the width:100% from the rule above */
     flex: 1; /* Take up remaining space within the flex wrapper */
     min-width: 0; /* Allow shrinking */
+}
+
+.theme-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.theme-setting-card {
+    background-color: var(--color-bg-default);
+    border-radius: var(--radius-small);
+    padding: 12px;
+    border: 1px solid var(--color-border-default);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.theme-setting-card-title {
+    font-weight: 600;
+    color: var(--color-text-emphasis);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border-default);
+    margin-bottom: 4px;
+}
+
+/* Override for setting rows inside the context menu item cards to prevent overflow */
+.context-menu-item-control .setting-row,
+.theme-setting-card .setting-row {
+    display: grid;
+    grid-template-columns: auto 1fr; /* Label=content width, input=rest */
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 0; /* The card's flex gap handles spacing */
+}
+
+.context-menu-item-control .setting-row .settings-input,
+.theme-setting-card .setting-row .settings-input {
+    width: 100%;
 }

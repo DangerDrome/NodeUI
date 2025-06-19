@@ -132,17 +132,89 @@ class SettingsNode extends BaseNode {
     createThemeSection() {
         const section = document.createElement('div');
         section.className = 'settings-section';
-        section.innerHTML = '<h3>Theme Colors</h3>';
+        section.innerHTML = '<h3>Theme</h3>';
 
-        this.cssVariables.forEach(({ name, value }) => {
-            if (name.startsWith('--color-')) {
-                 section.appendChild(this.createColorPicker(name, this.formatVarName(name)));
-            } else if (name.startsWith('--font-') || name.startsWith('--radius-')) {
-                 section.appendChild(this.createThemeTextInput(name, this.formatVarName(name)));
+        const groupedVars = this.groupCssVariables();
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'theme-settings-grid';
+
+        for (const groupName in groupedVars) {
+            const card = this.createThemeSettingsCard(groupName, groupedVars[groupName]);
+            gridContainer.appendChild(card);
+        }
+
+        section.appendChild(gridContainer);
+        return section;
+    }
+
+    /**
+     * Groups CSS variables by category for card-based display.
+     * @returns {object} An object where keys are group names and values are arrays of variables.
+     */
+    groupCssVariables() {
+        const groups = {
+            'Core: Background': [],
+            'Core: Text, Borders & Accents': [],
+            'Node: Default': [],
+            'Node: Red': [],
+            'Node: Green': [],
+            'Node: Blue': [],
+            'Node: Yellow': [],
+            'Node: Purple': [],
+            'Sizing & Layout': [],
+            'Typography': []
+        };
+
+        this.cssVariables.forEach(variable => {
+            const { name } = variable;
+            if (name.startsWith('--color-bg-')) groups['Core: Background'].push(variable);
+            else if (name.startsWith('--color-text-') || name.startsWith('--color-border-') || name.startsWith('--color-accent') || name.startsWith('--color-danger')) groups['Core: Text, Borders & Accents'].push(variable);
+            else if (name.startsWith('--color-node-default')) groups['Node: Default'].push(variable);
+            else if (name.startsWith('--color-node-red')) groups['Node: Red'].push(variable);
+            else if (name.startsWith('--color-node-green')) groups['Node: Green'].push(variable);
+            else if (name.startsWith('--color-node-blue')) groups['Node: Blue'].push(variable);
+            else if (name.startsWith('--color-node-yellow')) groups['Node: Yellow'].push(variable);
+            else if (name.startsWith('--color-node-purple')) groups['Node: Purple'].push(variable);
+            else if (name.startsWith('--font-') || name.startsWith('--h1-')) groups['Typography'].push(variable);
+            else if (name.startsWith('--radius-') || name.startsWith('--shadow-') || name.startsWith('--panel-') || name.startsWith('--header-') || name.startsWith('--edge-') || name.startsWith('--handle-')) groups['Sizing & Layout'].push(variable);
+        });
+        
+        // Filter out empty groups
+        for (const key in groups) {
+            if (groups[key].length === 0) {
+                delete groups[key];
             }
+        }
+
+        return groups;
+    }
+
+    /**
+     * Creates a self-contained card for a group of theme settings.
+     * @param {string} title The title of the card.
+     * @param {Array<object>} variables The array of CSS variables for this card.
+     * @returns {HTMLElement}
+     */
+    createThemeSettingsCard(title, variables) {
+        const card = document.createElement('div');
+        card.className = 'theme-setting-card';
+
+        const cardTitle = document.createElement('div');
+        cardTitle.className = 'theme-setting-card-title';
+        cardTitle.textContent = title;
+        card.appendChild(cardTitle);
+
+        variables.forEach(({ name }) => {
+            let control;
+            if (name.startsWith('--color-')) {
+                control = this.createColorPicker(name, this.formatVarName(name));
+            } else {
+                control = this.createThemeTextInput(name, this.formatVarName(name));
+            }
+            card.appendChild(control);
         });
 
-        return section;
+        return card;
     }
 
     /**
