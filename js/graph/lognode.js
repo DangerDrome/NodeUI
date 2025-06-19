@@ -61,6 +61,37 @@ class LogNode extends BaseNode {
         
         wrapper.appendChild(this.logContainer);
         contentArea.appendChild(wrapper);
+
+        this.logContainer.addEventListener('dblclick', () => {
+            if (this.logContainer.isContentEditable) {
+                return;
+            }
+            this.logContainer.contentEditable = true;
+            this.logContainer.focus();
+
+            const exitEditMode = () => {
+                this.logContainer.contentEditable = false;
+                this.logContainer.removeEventListener('blur', exitEditMode);
+                this.logContainer.removeEventListener('keydown', handleKeyDown);
+            };
+
+            const handleKeyDown = (ev) => {
+                if (ev.key === 'Escape') {
+                    ev.preventDefault();
+                    exitEditMode();
+                }
+            };
+
+            this.logContainer.addEventListener('blur', exitEditMode);
+            this.logContainer.addEventListener('keydown', handleKeyDown);
+        });
+
+        // Prevent node dragging when interacting with the log container text.
+        this.logContainer.addEventListener('mousedown', (e) => {
+            if (this.logContainer.isContentEditable) {
+                e.stopPropagation();
+            }
+        });
     }
 
     /**

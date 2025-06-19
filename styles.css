@@ -216,7 +216,8 @@ body {
 }
 
 .node.is-pinned .node-pin-icon {
-    color: var(--color-accent) !important;
+    opacity: 1;
+    color: var(--node-accent-color, var(--color-accent)) !important;
 }
 
 /* Node Parts */
@@ -283,10 +284,6 @@ body {
 .node-settings-icon:hover {
     background-color: var(--icon-color-bg, var(--color-bg-hover));
     filter: brightness(1.2);
-}
-
-.node.is-pinned .node-pin-icon {
-    color: var(--color-accent) !important;
 }
 
 .node-title-text {
@@ -1184,6 +1181,12 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
     padding: 8px;
     background-color: rgba(0,0,0,0.2);
     color: var(--color-text-subtle);
+}
+
+.log-container[contenteditable="true"] {
+    cursor: text;
+    background-color: rgba(0,0,0,0.3);
+    outline: 0px;
 }
 
 .log-entry {
