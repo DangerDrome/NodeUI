@@ -1006,15 +1006,15 @@ class NodeUI {
             const touch = event.changedTouches[0];
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
             
-            // Differentiate between a tap on a node and a tap on the background
-            const tappedNode = target.closest('.node');
+            const tappedNodeElement = target.closest('.node');
 
-            if (tappedNode) {
-                // On a node: select it (if not already) and frame it.
-                // The first tap usually handles selection via onMouseDown.
-                if (!this.selection.nodes.has(tappedNode.id)) {
+            if (tappedNodeElement) {
+                // A node was double-tapped.
+                // The first tap should have already selected it via onTouchStart -> onMouseDown.
+                // We ensure it's the *only* thing selected, then frame it.
+                if (!this.selection.nodes.has(tappedNodeElement.id) || this.selection.nodes.size > 1) {
                     this.clearSelection();
-                    this.toggleNodeSelection(tappedNode.id, true);
+                    this.toggleNodeSelection(tappedNodeElement.id, true);
                 }
                 this.frameSelection();
             } else {
@@ -1080,6 +1080,19 @@ class NodeUI {
         }
 
         this.container.classList.remove('is-panning');
+
+        // Handle single tap for selection, but only if it wasn't a drag
+        const dx = this.lastMousePosition.clientX - this.draggingState.startX;
+        const dy = this.lastMousePosition.clientY - this.draggingState.startY;
+        const isDrag = Math.sqrt(dx * dx + dy * dy) > this.DRAG_THRESHOLD;
+
+        if (!isDrag) {
+            this.handleSelection(event);
+        }
+
+        // Defer clearing the dragging state until after we've checked for drag
+        this.draggingState.isDragging = false;
+        this.draggingState.hasDragged = false;
     }
 
     /**
