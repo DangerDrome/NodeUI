@@ -183,11 +183,11 @@ class BaseNode {
     renderMarkdown(contentArea) {
         if (typeof marked === 'undefined') {
             console.warn('marked.js is not loaded. Cannot render markdown.');
-            contentArea.innerText = this.content || 'Double-click to edit...';
+            contentArea.innerText = this.content || '';
             return;
         }
         // Use 'marked.parse' which is the modern way to call it
-        const dirtyHtml = marked.parse(this.content || 'Double-click to edit...');
+        const dirtyHtml = marked.parse(this.content || '');
         contentArea.innerHTML = dirtyHtml;
     }
 
