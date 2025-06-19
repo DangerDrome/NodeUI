@@ -3895,7 +3895,7 @@ class NodeUI {
     }
 
     /**
-     * Handles the drop event for loading graph files.
+     * Handles the drop event for files, supporting graph loading and image embedding.
      * @param {DragEvent} event
      */
     onDrop(event) {
@@ -3903,20 +3903,69 @@ class NodeUI {
         event.stopPropagation();
         this.container.classList.remove('is-drop-target');
 
-        const files = event.dataTransfer.files;
-        if (files.length > 0) {
-            const file = files[0];
-            // Check if the file is a JSON file
+        if (!event.dataTransfer || !event.dataTransfer.files.length) {
+            return;
+        }
+
+        const position = this.getMousePosition(event);
+
+        // Process all dropped files
+        Array.from(event.dataTransfer.files).forEach((file, index) => {
+            const filePosition = {
+                x: position.x + index * 20, // Offset subsequent files
+                y: position.y + index * 20
+            };
+
+            // Handle graph loading
             if (file.type === 'application/json' || file.name.endsWith('.json')) {
                 const reader = new FileReader();
-                reader.onload = (e) => {
-                    events.publish('graph:load-content', e.target.result);
-                };
+                reader.onload = (e) => events.publish('graph:load-content', e.target.result);
                 reader.readAsText(file);
-            } else {
-                console.warn("Dropped file is not a .json file:", file.name);
+                return;
             }
-        }
+
+            // Handle image embedding
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const dataUrl = e.target.result;
+                    
+                    // Create an in-memory image to get its dimensions
+                    const img = new Image();
+                    img.onload = () => {
+                        const nodeWidth = 200;
+                        const contentPadding = 16;
+                        const titleBarHeight = 48; 
+                        const imageMarginTop = 8;
+                        
+                        // Calculate image aspect ratio
+                        const aspectRatio = img.height / img.width;
+                        const imageWidthInNode = nodeWidth - (contentPadding * 2);
+                        const imageHeightInNode = imageWidthInNode * aspectRatio;
+
+                        // Calculate total node height
+                        const totalContentHeight = contentPadding + imageMarginTop + imageHeightInNode + contentPadding;
+                        const nodeHeight = titleBarHeight + totalContentHeight;
+
+                        events.publish('node:create', {
+                            x: filePosition.x - nodeWidth / 2,
+                            y: filePosition.y - nodeHeight / 2,
+                            width: nodeWidth,
+                            height: nodeHeight,
+                            title: file.name,
+                            content: `![${file.name}](${dataUrl})`,
+                            type: 'BaseNode',
+                            color: 'default'
+                        });
+                    };
+                    img.src = dataUrl;
+                };
+                reader.readAsDataURL(file);
+                return;
+            }
+
+            console.warn("Unsupported file type dropped:", file.name, file.type);
+        });
     }
 
     /**

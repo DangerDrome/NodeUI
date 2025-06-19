@@ -297,7 +297,6 @@ body {
 
 .node-content {
     padding: 16px;
-    padding-right: 26px; /* Add extra padding to move scrollbar left */
     flex-grow: 1;
     font-size: var(--font-size-medium);
     color: var(--color-text-default);
@@ -306,6 +305,7 @@ body {
     overflow-wrap: break-word;
     white-space: pre-wrap;
     outline: none; /* Disable default browser outline for contenteditable */
+    scrollbar-width: none; /* For Firefox */
 }
 
 .node-content[contenteditable="true"] {
@@ -318,6 +318,15 @@ body {
     margin: 0;
     padding: 0;
     color: var(--h1-color);
+}
+
+/* Add styles for images inside node content */
+.node-content img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border-radius: var(--radius-small);
+    margin-top: 8px;
 }
 
 /* Add styles for tables inside node content */
@@ -490,7 +499,7 @@ body {
 
 /* Custom scrollbar for node content */
 .node-content::-webkit-scrollbar {
-    width: 16px;
+    display: none; /* For Webkit browsers */
 }
 
 .node-content::-webkit-scrollbar-track {
