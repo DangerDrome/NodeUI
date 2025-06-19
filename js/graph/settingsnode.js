@@ -359,7 +359,22 @@ class SettingsNode extends BaseNode {
             const input = this.element.querySelector(`[data-variable="${name}"]`);
             if (input) {
                 input.addEventListener('input', (e) => {
-                    document.documentElement.style.setProperty(name, e.target.value);
+                    const newColorHex = e.target.value;
+                    const originalValue = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+                    
+                    // If original was rgba, preserve alpha channel.
+                    if (originalValue.startsWith('rgba')) {
+                        const alpha = originalValue.substring(originalValue.lastIndexOf(',') + 1, originalValue.lastIndexOf(')')).trim();
+                        
+                        const r = parseInt(newColorHex.slice(1, 3), 16);
+                        const g = parseInt(newColorHex.slice(3, 5), 16);
+                        const b = parseInt(newColorHex.slice(5, 7), 16);
+                        
+                        const newRgba = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                        document.documentElement.style.setProperty(name, newRgba);
+                    } else {
+                        document.documentElement.style.setProperty(name, newColorHex);
+                    }
                 });
             }
         });
@@ -444,9 +459,26 @@ class SettingsNode extends BaseNode {
         const row = document.createElement('div');
         row.className = 'setting-row color-picker-row';
         const initialValue = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+        
+        let colorForInput = initialValue;
+        // The color input type only supports hex format. We need to convert rgba.
+        if (initialValue.startsWith('rgba')) {
+            try {
+                const parts = initialValue.substring(initialValue.indexOf('(') + 1, initialValue.lastIndexOf(')')).split(/,\\s*/);
+                const r = parseInt(parts[0]);
+                const g = parseInt(parts[1]);
+                const b = parseInt(parts[2]);
+                const toHex = c => ('0' + c.toString(16)).slice(-2);
+                colorForInput = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+            } catch (e) {
+                console.error(`Could not parse rgba value: ${initialValue}`, e);
+                colorForInput = '#000000'; // Default to black on error
+            }
+        }
+
         row.innerHTML = `
             <label for="${varName}-color">${label}</label>
-            <input type="color" id="${varName}-color" data-variable="${varName}" value="${initialValue}">
+            <input type="color" id="${varName}-color" data-variable="${varName}" value="${colorForInput}">
         `;
         return row;
     }
