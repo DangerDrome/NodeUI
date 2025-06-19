@@ -43,7 +43,7 @@ class GroupNode extends BaseNode {
         // Change the default icon to the group icon
         const icon = this.element.querySelector('.node-icon');
         if (icon) {
-            icon.classList.remove('icon-box');
+            icon.classList.remove('icon-file-text');
             icon.classList.add('icon-group');
         }
 

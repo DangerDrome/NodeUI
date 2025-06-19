@@ -124,7 +124,11 @@ class NodeUI {
             isPanning: false
         };
 
+        this.lastTap = 0;
         this.lastMousePosition = { clientX: 0, clientY: 0 };
+
+        this.initialPinchDistance = null;
+        this.initialScale = 1;
 
         this.init();
     }
@@ -217,9 +221,6 @@ class NodeUI {
         this.subscribeToEvents();
 
         console.log('%c[NodeUI]%c Service initialized.', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
-
-        // Create a settings node by default
-        events.publish('node:create', { type: 'SettingsNode', x: 20, y: 20, isPinned: true });
     }
 
     /**
@@ -233,7 +234,7 @@ class NodeUI {
         // Add touch event listeners
         document.addEventListener('touchstart', this.onTouchStart.bind(this), { passive: false });
         document.addEventListener('touchmove', this.onTouchMove.bind(this), { passive: false });
-        document.addEventListener('touchend', this.onTouchEnd.bind(this));
+        document.addEventListener('touchend', this.onTouchEnd.bind(this), { passive: false });
 
         // Add keyboard event listeners
         document.addEventListener('keydown', this.onKeyDown.bind(this));
@@ -244,6 +245,11 @@ class NodeUI {
 
         // Add context menu event
         document.addEventListener('contextmenu', this.onContextMenu.bind(this));
+
+        // Add drag and drop listeners for graph files
+        this.container.addEventListener('dragover', this.onDragOver.bind(this));
+        this.container.addEventListener('dragleave', this.onDragLeave.bind(this));
+        this.container.addEventListener('drop', this.onDrop.bind(this));
     }
 
     /**
@@ -763,6 +769,8 @@ class NodeUI {
             this.routingState.isRouting = false;
             return;
         }
+
+        this.container.classList.remove('is-panning');
     }
 
     /**
@@ -770,6 +778,16 @@ class NodeUI {
      * @param {TouchEvent} event 
      */
     onTouchStart(event) {
+        // Handle pinch-to-zoom
+        if (event.touches.length === 2) {
+            event.preventDefault(); // Prevent default browser actions
+            this.panZoom.isPanning = false; // Stop panning when pinching
+            this.draggingState.isDragging = false; // Stop dragging when pinching
+            this.initialPinchDistance = this.getPinchDistance(event);
+            this.initialScale = this.panZoom.scale;
+            return;
+        }
+
         // Only process events inside the main container or pinned container
         const isInsideContainer = event.target.closest('#canvas-container') || event.target.closest('#pinned-node-container');
         if (!isInsideContainer && !this.draggingState.isDragging && !this.resizingState.isResizing) {
@@ -813,6 +831,30 @@ class NodeUI {
      * @param {TouchEvent} event 
      */
     onTouchMove(event) {
+        // Handle pinch-to-zoom
+        if (event.touches.length === 2) {
+            event.preventDefault();
+            const currentPinchDistance = this.getPinchDistance(event);
+            const scaleFactor = currentPinchDistance / this.initialPinchDistance;
+            let newScale = this.initialScale * scaleFactor;
+
+            // Clamp the scale to prevent zooming too far in or out
+            newScale = Math.max(0.1, Math.min(3, newScale));
+
+            // Get the center of the pinch gesture
+            const rect = this.container.getBoundingClientRect();
+            const pinchCenterX = (event.touches[0].clientX + event.touches[1].clientX) / 2 - rect.left;
+            const pinchCenterY = (event.touches[0].clientY + event.touches[1].clientY) / 2 - rect.top;
+
+            // Adjust offset to zoom towards the pinch center
+            this.panZoom.offsetX = pinchCenterX - (pinchCenterX - this.panZoom.offsetX) * (newScale / this.panZoom.scale);
+            this.panZoom.offsetY = pinchCenterY - (pinchCenterY - this.panZoom.offsetY) * (newScale / this.panZoom.scale);
+            this.panZoom.scale = newScale;
+
+            this.updateCanvasTransform();
+            return;
+        }
+
         // If the finger moves, it's not a long press
         clearTimeout(this.longPressTimer);
 
@@ -944,8 +986,24 @@ class NodeUI {
      * @param {TouchEvent} event 
      */
     onTouchEnd(event) {
+        // Double tap to fit view
+        const now = new Date().getTime();
+        const timesince = now - this.lastTap;
+        if ((timesince < 300) && (timesince > 0)) {
+            // Double tap detected
+            this.frameSelection();
+            this.lastTap = 0; // Reset tap time
+            return; // Exit to prevent other touchend actions
+        }
+        this.lastTap = new Date().getTime();
+
         // If the touch ends before the timer, it's not a long press
         clearTimeout(this.longPressTimer);
+
+        // If a pinch gesture was active, reset the state
+        if (event.touches.length < 2) {
+            this.initialPinchDistance = null;
+        }
 
         // Same logic as onMouseUp: handle the most specific state first.
         if (this.edgeDrawingState.isDrawing) {
@@ -979,6 +1037,8 @@ class NodeUI {
             this.routingState.isRouting = false;
             return;
         }
+
+        this.container.classList.remove('is-panning');
     }
 
     /**
@@ -2146,8 +2206,8 @@ class NodeUI {
             }
 
             if (node instanceof RoutingNode) {
-                // Directly cycle the input connection on right-click.
-                this.cycleRoutingNodeConnections(node.id);
+                // On right-click, cycle the color.
+                this.cycleRoutingNodeColor(node.id);
             } else {
                 // For other nodes, show the default canvas menu.
                 this.showCanvasContextMenu(event.clientX, event.clientY);
@@ -3081,11 +3141,10 @@ class NodeUI {
     }
 
     /**
-     * For a given routing node, finds all connected edges and cycles their
-     * connection points clockwise to the next available handle on the routing node itself.
+     * Cycles through the available colors for a given routing node on right-click.
      * @param {string} routingNodeId The ID of the routing node to cycle.
      */
-    cycleRoutingNodeConnections(routingNodeId) {
+    cycleRoutingNodeColor(routingNodeId) {
         const routingNode = this.nodes.get(routingNodeId);
         if (!routingNode) return;
 
@@ -3093,72 +3152,9 @@ class NodeUI {
         const colors = ['default', 'red', 'green', 'blue', 'yellow', 'purple'];
         const currentIndex = colors.indexOf(routingNode.color);
         const newColor = colors[(currentIndex + 1) % colors.length];
-        routingNode.color = newColor;
-        if (routingNode.element) {
-            routingNode.element.dataset.color = routingNode.color;
-            routingNode.element.style.setProperty('--icon-color', `var(--color-node-${routingNode.color}-border)`);
-            routingNode.element.style.setProperty('--icon-color-bg', `var(--color-node-${routingNode.color}-bg)`);
-            routingNode.updateHandleColors();
-        }
-
-        const connectedEdges = Array.from(this.edges.values()).filter(
-            edge => edge.startNodeId === routingNodeId || edge.endNodeId === routingNodeId
-        );
-
-        if (connectedEdges.length === 0) return;
-
-        const clockwiseHandles = ['top', 'right', 'bottom', 'left'];
-        const edgeUpdates = [];
-
-        // Step 1: Determine the new handle for each edge based on the current state.
-        connectedEdges.forEach(edge => {
-            const isStartNode = edge.startNodeId === routingNodeId;
-            const oldHandle = isStartNode ? edge.startHandleId : edge.endHandleId;
-            
-            const currentIndex = clockwiseHandles.indexOf(oldHandle);
-            // Cycle to the next handle in the clockwise direction.
-            const newHandle = clockwiseHandles[(currentIndex + 1) % clockwiseHandles.length];
-
-            edgeUpdates.push({ edge, oldHandle, newHandle, isStartNode });
-        });
-
-        // Step 2: Apply all updates. This two-pass process prevents conflicts
-        // where one edge moves to a handle occupied by another edge in the same cycle.
-        edgeUpdates.forEach(({ edge, oldHandle }) => {
-            routingNode.removeConnection(oldHandle, edge.id);
-        });
-
-        edgeUpdates.forEach(({ edge, newHandle, isStartNode }) => {
-            routingNode.addConnection(newHandle, edge.id);
-            if (isStartNode) {
-                edge.startHandleId = newHandle;
-            } else {
-                edge.endHandleId = newHandle;
-            }
-        });
-
-        // --- Cycle Icon ---
-        if (routingNode.element) {
-            const iconEl = routingNode.element.querySelector('.node-icon');
-            if (iconEl) {
-                const icons = [
-                    'icon-git-commit', 'icon-refresh-cw', 'icon-plus', 'icon-anchor',
-                    'icon-aperture', 'icon-bomb', 'icon-bot', 'icon-bug',
-                    'icon-cloud-lightning', 'icon-codesandbox', 'icon-cpu',
-                    'icon-database', 'icon-diamond', 'icon-feather', 'icon-figma', 'icon-ghost'
-                ];
-                
-                // Remove any of the possible icon classes
-                iconEl.classList.remove(...icons);
-
-                // Increment state and apply the new icon class
-                routingNode.iconState = (routingNode.iconState + 1) % icons.length;
-                iconEl.classList.add(icons[routingNode.iconState]);
-            }
-        }
-
-        // Trigger a visual update for all edges connected to the routing node.
-        this.updateConnectedEdges(routingNodeId);
+        
+        // Use the public update event to change the color
+        events.publish('node:update', { nodeId: routingNodeId, color: newColor });
     }
 
     /**
@@ -3614,6 +3610,66 @@ class NodeUI {
     isObject(item) {
         return (item && typeof item === 'object' && !Array.isArray(item));
     }
+
+    /**
+     * Calculates the distance between two touch points for pinch gestures.
+     * @param {TouchEvent} event The touch event.
+     * @returns {number} The distance between the two touch points.
+     */
+    getPinchDistance(event) {
+        const touch1 = event.touches[0];
+        const touch2 = event.touches[1];
+        return Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+    }
+
+    /**
+     * Handles the dragover event for file drops.
+     * @param {DragEvent} event
+     */
+    onDragOver(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Check if the dragged item is a file
+        if (event.dataTransfer.types.includes('Files')) {
+            this.container.classList.add('is-drop-target');
+        }
+    }
+
+    /**
+     * Handles the dragleave event for file drops.
+     * @param {DragEvent} event
+     */
+    onDragLeave(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.container.classList.remove('is-drop-target');
+    }
+
+    /**
+     * Handles the drop event for loading graph files.
+     * @param {DragEvent} event
+     */
+    onDrop(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.container.classList.remove('is-drop-target');
+
+        const files = event.dataTransfer.files;
+        if (files.length > 0) {
+            const file = files[0];
+            // Check if the file is a JSON file
+            if (file.type === 'application/json' || file.name.endsWith('.json')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    events.publish('graph:load-content', e.target.result);
+                };
+                reader.readAsText(file);
+            } else {
+                console.warn("Dropped file is not a .json file:", file.name);
+            }
+        }
+    }
 }
 
 // Initialize NodeUI once the DOM is ready
@@ -3621,19 +3677,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvasContainer = document.getElementById('canvas-container');
     const app = new NodeUI(canvasContainer);
 
-    // --- For Testing ---
-    // Center the initial nodes on the canvas
-    const { width: containerWidth, height: containerHeight } = canvasContainer.getBoundingClientRect();
-    const nodeWidth = 200; // Default from BaseNode
-    const nodeHeight = 120; // Default from BaseNode
-    const gap = 50;
-    
-    const x1 = (containerWidth / 2) - nodeWidth - (gap / 2);
-    const x2 = (containerWidth / 2) + (gap / 2);
-    const y = (containerHeight / 2) - (nodeHeight / 2);
-
-    console.log('%c[Test]%c Firing test node:create event.', 'color: #8e8e8e; font-weight: bold;', 'color: inherit;');
-    events.publish('node:create', { x: x1, y: y, title: 'Welcome!' });
-    events.publish('node:create', { x: x2, y: y, title: 'Connect Me!' });
-    events.publish('node:create', { type: 'GroupNode', x: x1 - 50, y: y - 50, width: 550, height: 250 });
+    // Load the initial graph from graph.json
+    fetch('graph.json')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text(); // Get as text to pass to the event
+        })
+        .then(jsonString => {
+            console.log('%c[Test]%c Loading initial graph from graph.json', 'color: #8e8e8e; font-weight: bold;', 'color: inherit;');
+            events.publish('graph:load-content', jsonString);
+        })
+        .catch(error => {
+            console.error("Could not load initial graph.json:", error);
+            // If loading fails, it will still create the default settings node.
+        });
 }); 

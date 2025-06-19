@@ -1,0 +1,168 @@
+{
+  "metadata": {
+    "projectName": "Start...",
+    "thumbnailUrl": "",
+    "contextMenuSettings": {
+      "canvas": {
+        "cut": {
+          "label": "Cut",
+          "iconClass": "icon-scissors"
+        },
+        "copy": {
+          "label": "Copy",
+          "iconClass": "icon-copy"
+        },
+        "paste": {
+          "label": "Paste",
+          "iconClass": "icon-clipboard"
+        },
+        "delete": {
+          "label": "Delete",
+          "iconClass": "icon-trash-2"
+        },
+        "note": {
+          "label": "Note",
+          "iconClass": "icon-file-text"
+        },
+        "routingNode": {
+          "label": "Router",
+          "iconClass": "icon-network"
+        },
+        "group": {
+          "label": "Group",
+          "iconClass": "icon-group"
+        },
+        "log": {
+          "label": "Log",
+          "iconClass": "icon-terminal"
+        },
+        "settings": {
+          "label": "Settings",
+          "iconClass": "icon-settings"
+        },
+        "snapGrid": {
+          "label": "Grid Snap",
+          "iconClass": "icon-grid-2x2"
+        },
+        "snapObject": {
+          "label": "Obj Snap",
+          "iconClass": "icon-layout-panel-left"
+        }
+      },
+      "edge": {
+        "addRoutingNode": {
+          "label": "Add Routing Node",
+          "iconClass": "icon-network"
+        },
+        "delete": {
+          "label": "Delete",
+          "iconClass": "icon-trash-2"
+        }
+      }
+    }
+  },
+  "nodes": [
+    {
+      "id": "51b81ed5-1ba0-46f5-9a85-e79ab1198582",
+      "x": 155.44444444444443,
+      "y": -181.88888888888889,
+      "width": 345.55555555555554,
+      "height": 134,
+      "title": "Base Node",
+      "content": "",
+      "type": "BaseNode",
+      "color": "green",
+      "isPinned": false
+    },
+    {
+      "id": "5b3af5a1-6861-4c5d-bd50-3d8386e32c99",
+      "x": 360,
+      "y": 123,
+      "width": 30,
+      "height": 30,
+      "title": "",
+      "content": "",
+      "type": "RoutingNode",
+      "color": "default",
+      "isPinned": false
+    },
+    {
+      "id": "4be7dbce-27a6-4295-af33-aeef8ff04005",
+      "x": 1119.6666666666665,
+      "y": 557.8888888888889,
+      "width": 300,
+      "height": 200,
+      "title": "Event Log",
+      "content": "",
+      "type": "LogNode",
+      "color": "default",
+      "isPinned": false
+    },
+    {
+      "id": "5e2b474c-ed4e-49af-805d-8329d441f2d6",
+      "x": 161,
+      "y": -3,
+      "width": 842,
+      "height": 760.8888888888889,
+      "title": "My First Group",
+      "content": "",
+      "type": "GroupNode",
+      "color": "default",
+      "isPinned": false,
+      "containedNodeIds": [
+        "5b3af5a1-6861-4c5d-bd50-3d8386e32c99",
+        "e56e026e-d78f-43a3-970e-a794c40a42e7"
+      ]
+    },
+    {
+      "id": "e56e026e-d78f-43a3-970e-a794c40a42e7",
+      "x": 490.22222222222223,
+      "y": 82.4444444444444,
+      "width": 450,
+      "height": 623.3333333333334,
+      "title": "Settings",
+      "content": "",
+      "type": "SettingsNode",
+      "color": "default",
+      "isPinned": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "bdc1bc9b-1d63-42f9-ac7f-c83eb2f1b9d2",
+      "startNodeId": "51b81ed5-1ba0-46f5-9a85-e79ab1198582",
+      "endNodeId": "5b3af5a1-6861-4c5d-bd50-3d8386e32c99",
+      "startHandleId": "bottom",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge"
+    },
+    {
+      "id": "1128b137-c919-48ff-ba73-70b3b75ef110",
+      "startNodeId": "5b3af5a1-6861-4c5d-bd50-3d8386e32c99",
+      "endNodeId": "e56e026e-d78f-43a3-970e-a794c40a42e7",
+      "startHandleId": "right",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge"
+    },
+    {
+      "id": "73f2f335-1085-4f0a-96d0-ea3333849320",
+      "startNodeId": "5b3af5a1-6861-4c5d-bd50-3d8386e32c99",
+      "endNodeId": "e56e026e-d78f-43a3-970e-a794c40a42e7",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge"
+    },
+    {
+      "id": "742e1650-b6b8-4ae1-8271-f3255de87c1c",
+      "startNodeId": "5e2b474c-ed4e-49af-805d-8329d441f2d6",
+      "endNodeId": "4be7dbce-27a6-4295-af33-aeef8ff04005",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge"
+    }
+  ]
+}
