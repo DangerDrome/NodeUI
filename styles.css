@@ -987,8 +987,7 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
 
 /* Custom Scrollbar for Log Node */
 .log-container::-webkit-scrollbar {
-    width: 10px;
-
+    width: 16px;
 }
 
 .log-container::-webkit-scrollbar-track {
@@ -997,8 +996,8 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
 
 .log-container::-webkit-scrollbar-thumb {
     background-color: var(--icon-color);
-    border-radius: 4px;
-    border: 2px solid transparent; /* Creates padding around the thumb */
+    border-radius: 8px;
+    border: 3px solid transparent; /* Creates padding around the thumb */
     background-clip: content-box;
     transition: filter 0.2s;
     cursor: default;
@@ -1225,7 +1224,7 @@ input:checked + .slider:before {
 
 /* Custom Scrollbar for Settings Node */
 .settings-container::-webkit-scrollbar {
-    width: 10px;
+    width: 16px;
 }
 
 .settings-container::-webkit-scrollbar-track {
@@ -1234,8 +1233,8 @@ input:checked + .slider:before {
 
 .settings-container::-webkit-scrollbar-thumb {
     background-color: var(--icon-color);
-    border-radius: 4px;
-    border: 2px solid transparent;
+    border-radius: 8px;
+    border: 3px solid transparent;
     background-clip: content-box;
     cursor: default;
 }
@@ -1393,4 +1392,65 @@ input:checked + .slider:before {
 .context-menu-item-control .setting-row .settings-input,
 .theme-setting-card .setting-row .settings-input {
     width: 100%;
+}
+
+/* For color pickers, make the input auto-sized and align to the right */
+.theme-setting-card .color-picker-row {
+    grid-template-columns: 1fr auto;
+}
+
+.settings-card-title {
+    font-weight: 600;
+    color: var(--color-text-emphasis);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border-default);
+    margin-bottom: 4px;
+}
+
+.context-menu-settings-grid,
+.theme-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.settings-card {
+    background-color: var(--color-bg-default);
+    border-radius: var(--radius-small);
+    padding: 12px;
+    border: 1px solid var(--color-border-default);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Override for setting rows inside cards to prevent overflow */
+.settings-card .setting-row {
+    display: grid;
+    grid-template-columns: auto 1fr; /* Label=content width, input=rest */
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 0; /* The card's flex gap handles spacing */
+}
+
+.settings-card .setting-row .settings-input {
+    width: 100%;
+}
+
+/* When an input is in a flex container (like the icon preview),
+   it needs flex properties to size correctly, not a percentage width. */
+.settings-card .input-with-icon-preview .settings-input {
+    width: auto; /* Unset the width:100% from the rule above */
+    flex: 1; /* Take up remaining space within the flex wrapper */
+    min-width: 0; /* Allow shrinking */
+}
+
+/* For color pickers, make the input auto-sized and align to the right */
+.settings-card .color-picker-row {
+    grid-template-columns: 1fr auto;
+}
+
+#ui-settings-card .setting-row {
+    grid-template-columns: 1fr auto;
 }

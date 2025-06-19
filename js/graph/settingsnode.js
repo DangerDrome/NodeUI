@@ -117,11 +117,16 @@ class SettingsNode extends BaseNode {
         section.className = 'settings-section';
         section.innerHTML = '<h3>UI Settings</h3>';
 
-        section.appendChild(this.createToggle('snapToObjects', 'Snap to Objects'));
-        section.appendChild(this.createToggle('snapToGrid', 'Snap to Grid'));
-        section.appendChild(this.createSlider('snapThreshold', 'Snap Threshold', 1, 20, 1));
-        section.appendChild(this.createSlider('shakeSensitivity', 'Shake Sensitivity', 1, 10, 0.5));
+        const card = document.createElement('div');
+        card.className = 'settings-card';
+        card.id = 'ui-settings-card';
 
+        card.appendChild(this.createToggle('snapToObjects', 'Snap to Objects'));
+        card.appendChild(this.createToggle('snapToGrid', 'Snap to Grid'));
+        card.appendChild(this.createSlider('snapThreshold', 'Snap Threshold', 1, 20, 1));
+        card.appendChild(this.createSlider('shakeSensitivity', 'Shake Sensitivity', 1, 10, 0.5));
+        
+        section.appendChild(card);
         return section;
     }
 
@@ -197,10 +202,10 @@ class SettingsNode extends BaseNode {
      */
     createThemeSettingsCard(title, variables) {
         const card = document.createElement('div');
-        card.className = 'theme-setting-card';
+        card.className = 'settings-card';
 
         const cardTitle = document.createElement('div');
-        cardTitle.className = 'theme-setting-card-title';
+        cardTitle.className = 'settings-card-title';
         cardTitle.textContent = title;
         card.appendChild(cardTitle);
 
@@ -237,9 +242,11 @@ class SettingsNode extends BaseNode {
         
         const copyButton = this.createButton('Copy Markdown', 'icon-clipboard', 'copy-markdown-button');
         const screenshotButton = this.createButton('Take Screenshot', 'icon-camera', 'screenshot-button');
+        const saveScreenshotButton = this.createButton('Save Screenshot', 'icon-download', 'save-screenshot-button');
 
         buttonGroup.appendChild(copyButton);
         buttonGroup.appendChild(screenshotButton);
+        buttonGroup.appendChild(saveScreenshotButton);
         
         section.appendChild(previewContainer);
         section.appendChild(buttonGroup);
@@ -275,6 +282,20 @@ class SettingsNode extends BaseNode {
 
         this.element.querySelector('#screenshot-button').addEventListener('click', () => {
             events.publish('graph:screenshot');
+        });
+
+        this.element.querySelector('#save-screenshot-button').addEventListener('click', () => {
+            const dataUrl = this.nodeUiSettings.thumbnailUrl;
+            if (dataUrl) {
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = `${this.nodeUiSettings.projectName || 'graph'}-screenshot.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } else {
+                alert('Please take a screenshot first before saving.');
+            }
         });
 
         this.fileInput.addEventListener('change', (event) => {
@@ -421,7 +442,7 @@ class SettingsNode extends BaseNode {
      */
     createColorPicker(varName, label) {
         const row = document.createElement('div');
-        row.className = 'setting-row';
+        row.className = 'setting-row color-picker-row';
         const initialValue = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
         row.innerHTML = `
             <label for="${varName}-color">${label}</label>
@@ -633,10 +654,10 @@ class SettingsNode extends BaseNode {
      */
     createContextMenuItemControl(menuType, itemKey, itemData) {
         const control = document.createElement('div');
-        control.className = 'context-menu-item-control';
+        control.className = 'settings-card';
 
         const title = document.createElement('div');
-        title.className = 'context-menu-item-title';
+        title.className = 'settings-card-title';
         title.textContent = itemKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
         control.appendChild(title);
 
