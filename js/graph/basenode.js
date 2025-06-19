@@ -92,7 +92,7 @@ class BaseNode {
         titleBar.className = 'node-title-bar';
 
         const icon = document.createElement('div');
-        icon.className = 'node-icon icon-box';
+        icon.className = 'node-icon icon-file-text';
 
         const titleText = document.createElement('span');
         titleText.className = 'node-title-text';

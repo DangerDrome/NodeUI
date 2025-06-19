@@ -44,17 +44,7 @@ class EventEmitter {
         const eventCallbacks = this.events[eventName];
         const wildcardCallbacks = this.events['*'];
 
-        if (eventCallbacks) {
-            eventCallbacks.forEach((callback) => {
-                try {
-                    // Pass only the data to specific listeners
-                    callback(data);
-                } catch (error) {
-                    console.error(`Error in event handler for ${eventName}:`, error);
-                }
-            });
-        }
-
+        // Handle wildcard subscribers first to ensure logging occurs
         if (wildcardCallbacks) {
             wildcardCallbacks.forEach((callback) => {
                 try {
@@ -62,6 +52,17 @@ class EventEmitter {
                     callback(eventName, data);
                 } catch (error) {
                     console.error(`Error in wildcard event handler:`, error);
+                }
+            });
+        }
+
+        if (eventCallbacks) {
+            eventCallbacks.forEach((callback) => {
+                try {
+                    // Pass only the data to specific listeners
+                    callback(data);
+                } catch (error) {
+                    console.error(`Error in event handler for ${eventName}:`, error);
                 }
             });
         }

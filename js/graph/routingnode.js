@@ -36,7 +36,7 @@ class RoutingNode extends BaseNode {
         this.element.style.height = `${this.height}px`;
 
         const icon = document.createElement('div');
-        icon.className = 'node-icon icon-git-commit';
+        icon.className = 'node-icon icon-network';
         this.element.appendChild(icon);
 
         parentElement.appendChild(this.element);

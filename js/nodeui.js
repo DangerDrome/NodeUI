@@ -89,6 +89,26 @@ class NodeUI {
         this.projectName = 'Untitled Graph';
         this.thumbnailUrl = '';
 
+        this.contextMenuSettings = {
+            canvas: {
+                cut: { label: 'Cut', iconClass: 'icon-scissors' },
+                copy: { label: 'Copy', iconClass: 'icon-copy' },
+                paste: { label: 'Paste', iconClass: 'icon-clipboard' },
+                delete: { label: 'Delete', iconClass: 'icon-trash-2' },
+                note: { label: 'Note', iconClass: 'icon-file-text' },
+                routingNode: { label: 'Router', iconClass: 'icon-network' },
+                group: { label: 'Group', iconClass: 'icon-group' },
+                log: { label: 'Log', iconClass: 'icon-terminal' },
+                settings: { label: 'Settings', iconClass: 'icon-settings' },
+                snapGrid: { label: `Grid Snap`, iconClass: 'icon-grid-2x2' },
+                snapObject: { label: `Obj Snap`, iconClass: 'icon-layout-panel-left' }
+            },
+            edge: {
+                addRoutingNode: { label: 'Add Routing Node', iconClass: 'icon-network' },
+                delete: { label: 'Delete', iconClass: 'icon-trash-2' }
+            }
+        };
+
         this.contextMenu = new ContextMenu();
         this.longPressTimer = null;
         this.openPopoverNodeId = null;
@@ -258,6 +278,7 @@ class NodeUI {
         events.subscribe('settings:request', () => this.publishSettings());
         events.subscribe('graph:save', () => this.saveGraph());
         events.subscribe('graph:load-content', (json) => this.loadGraph(json));
+        events.subscribe('graph:screenshot', () => this.takeScreenshot());
     }
 
     /**
@@ -2146,71 +2167,37 @@ class NodeUI {
         const worldPos = this.getMousePosition({ clientX: x, clientY: y });
         let items = [];
 
-        // Add clipboard actions if not drawing an edge
-        if (!edgeStartInfo) {
-            const hasSelection = this.selectedNodes.size > 0 || this.selectedEdges.size > 0;
-            const clipboardHasContent = this.clipboard.nodes.length > 0;
-
-            items.push({
-                label: 'Cut',
-                iconClass: 'icon-scissors',
-                action: () => this.cutSelection(),
-                disabled: !hasSelection
-            });
-            items.push({
-                label: 'Copy',
-                iconClass: 'icon-copy',
-                action: () => this.copySelection(),
-                disabled: !hasSelection
-            });
-            items.push({
-                label: 'Paste',
-                iconClass: 'icon-clipboard',
-                action: () => this.paste(),
-                disabled: !clipboardHasContent
-            });
-            items.push({
-                label: 'Delete',
-                iconClass: 'icon-trash-2',
-                action: () => this.deleteSelection(),
-                disabled: !hasSelection
-            });
-            items.push({ isSeparator: true });
-        }
-
         // Define potential node types to create
         const nodeCreationActions = [
             { 
+                key: 'note',
                 type: 'BaseNode',
-                label: 'Note',
-                iconClass: 'icon-plus-square'
             },
             {
-                type: 'RoutingNode',
-                label: 'Create Routing Node',
-                iconClass: 'icon-git-commit'
-            },
-            {
+                key: 'group',
                 type: 'GroupNode',
-                label: 'Create Group',
-                iconClass: 'icon-group'
             },
             {
-                type: 'LogNode',
-                label: 'Create Log Node',
-                iconClass: 'icon-terminal'
+                key: 'routingNode',
+                type: 'RoutingNode',
             },
             {
+                key: 'settings',
                 type: 'SettingsNode',
-                label: 'Create Settings Node',
-                iconClass: 'icon-settings'
+            },
+            {
+                key: 'log',
+                type: 'LogNode',
             }
         ];
 
         nodeCreationActions.forEach(action => {
+            const menuConfig = this.contextMenuSettings.canvas[action.key];
+            if (!menuConfig) return;
+
             items.push({
-                label: action.label,
-                iconClass: action.iconClass,
+                label: menuConfig.label,
+                iconClass: menuConfig.iconClass,
                 action: () => {
                     let newNode;
                     if (action.type === 'RoutingNode') {
@@ -2223,7 +2210,7 @@ class NodeUI {
                         newNode = new SettingsNode({ x: worldPos.x, y: worldPos.y });
                     }
                     else {
-                        newNode = new BaseNode({ x: worldPos.x, y: worldPos.y, title: action.label, type: action.type });
+                        newNode = new BaseNode({ x: worldPos.x, y: worldPos.y, title: menuConfig.label, type: action.type });
                     }
                     this.addNode(newNode);
 
@@ -2245,26 +2232,57 @@ class NodeUI {
                 }
             });
         });
-
-        // Add a separator if there were creation actions and we are not in edge-draw mode
-        if (nodeCreationActions.length > 0 && items.length > 0 && !edgeStartInfo) {
-            items.push({ isSeparator: true });
-        }
         
         // Add other context menu items if not in edge-draw mode
         if (!edgeStartInfo) {
+            // Snap settings
+            items.push({ isSeparator: true });
+            const snapGridLabel = `${this.contextMenuSettings.canvas.snapGrid.label}: ${this.snapToGrid ? 'On' : 'Off'}`;
+            const snapObjectLabel = `${this.contextMenuSettings.canvas.snapObject.label}: ${this.snapToObjects ? 'On' : 'Off'}`;
+            
             items.push(
                 { 
-                    label: `Snap to Grid: ${this.snapToGrid ? 'On' : 'Off'}`,
-                    iconClass: 'icon-grid-2x2',
+                    label: snapGridLabel,
+                    iconClass: this.contextMenuSettings.canvas.snapGrid.iconClass,
                     action: () => events.publish('snap:grid-toggle') 
                 },
                 {
-                    label: `Snap to Object: ${this.snapToObjects ? 'On' : 'Off'}`,
-                    iconClass: 'icon-magnet',
+                    label: snapObjectLabel,
+                    iconClass: this.contextMenuSettings.canvas.snapObject.iconClass,
                     action: () => events.publish('snap:object-toggle')
                 }
             );
+
+            // Clipboard actions
+            items.push({ isSeparator: true });
+            const hasSelection = this.selectedNodes.size > 0 || this.selectedEdges.size > 0;
+            const clipboardHasContent = this.clipboard.nodes.length > 0;
+            const menu = this.contextMenuSettings.canvas;
+
+            items.push({
+                label: menu.cut.label,
+                iconClass: menu.cut.iconClass,
+                action: () => this.cutSelection(),
+                disabled: !hasSelection
+            });
+            items.push({
+                label: menu.copy.label,
+                iconClass: menu.copy.iconClass,
+                action: () => this.copySelection(),
+                disabled: !hasSelection
+            });
+            items.push({
+                label: menu.paste.label,
+                iconClass: menu.paste.iconClass,
+                action: () => this.paste(),
+                disabled: !clipboardHasContent
+            });
+            items.push({
+                label: menu.delete.label,
+                iconClass: menu.delete.iconClass,
+                action: () => this.deleteSelection(),
+                disabled: !hasSelection
+            });
         }
 
         this.contextMenu.show(x, y, items);
@@ -2281,11 +2299,12 @@ class NodeUI {
         if (!edge) return;
 
         const hasSelection = this.selectedNodes.size > 0 || this.selectedEdges.size > 0;
+        const menu = this.contextMenuSettings.edge;
 
         const items = [
             {
-                label: 'Add Routing Node',
-                iconClass: 'icon-git-commit',
+                label: menu.addRoutingNode.label,
+                iconClass: menu.addRoutingNode.iconClass,
                 action: () => {
                     // Find the midpoint of the edge to place the new node
                     const p1 = edge.startPosition;
@@ -2305,8 +2324,8 @@ class NodeUI {
                 }
             },
             {
-                label: 'Delete',
-                iconClass: 'icon-trash-2',
+                label: menu.delete.label,
+                iconClass: menu.delete.iconClass,
                 action: () => this.deleteSelection(),
                 disabled: !hasSelection
             }
@@ -3302,7 +3321,8 @@ class NodeUI {
             snapThreshold: this.snapThreshold,
             shakeSensitivity: this.shakeSensitivity,
             projectName: this.projectName,
-            thumbnailUrl: this.thumbnailUrl
+            thumbnailUrl: this.thumbnailUrl,
+            contextMenuSettings: this.contextMenuSettings
         };
         events.publish('settings:response', settings);
     }
@@ -3314,8 +3334,12 @@ class NodeUI {
     updateSetting({ key, value }) {
         if (this.hasOwnProperty(key)) {
             this[key] = value;
-            console.log(`Setting updated: ${key} = ${value}`);
-            this.publishSettings(); // Publish updated settings
+            this.publishSettings();
+            console.log(`Setting updated: ${key} =`, value);
+        } else if (key === 'contextMenuSettings') {
+            this.contextMenuSettings = value;
+            this.publishSettings();
+            console.log(`Setting updated: contextMenuSettings =`, value);
         }
     }
 
@@ -3326,7 +3350,8 @@ class NodeUI {
         const data = {
             metadata: {
                 projectName: this.projectName,
-                thumbnailUrl: this.thumbnailUrl
+                thumbnailUrl: this.thumbnailUrl,
+                contextMenuSettings: this.contextMenuSettings
             },
             nodes: [],
             edges: []
@@ -3395,6 +3420,10 @@ class NodeUI {
                 if (data.metadata) {
                     this.projectName = data.metadata.projectName || 'Untitled Graph';
                     this.thumbnailUrl = data.metadata.thumbnailUrl || '';
+                    if(data.metadata.contextMenuSettings) {
+                        // Deep merge to preserve defaults for any missing keys
+                        this.contextMenuSettings = this.deepMerge(this.contextMenuSettings, data.metadata.contextMenuSettings);
+                    }
                     this.publishSettings(); // Publish updated settings
                 }
 
@@ -3475,6 +3504,115 @@ class NodeUI {
             });
             this.clearSelection();
         }
+    }
+
+    /**
+     * Captures the current graph view as a Base64 PNG image using html2canvas.
+     */
+    async takeScreenshot() {
+        console.log("Starting screenshot with html2canvas...");
+        try {
+            const padding = 50;
+
+            // 1. Calculate bounding box of all non-pinned content
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            let hasContent = false;
+
+            this.nodes.forEach(node => {
+                if (!node.isPinned) {
+                    minX = Math.min(minX, node.x);
+                    minY = Math.min(minY, node.y);
+                    maxX = Math.max(maxX, node.x + node.width);
+                    maxY = Math.max(maxY, node.y + node.height);
+                    hasContent = true;
+                }
+            });
+
+            if (!hasContent) {
+                console.warn("No non-pinned content to screenshot.");
+                return;
+            }
+
+            // Also consider edges in the bounding box calculation
+            this.edges.forEach(edge => {
+                if(this.nodes.get(edge.startNodeId)?.isPinned || this.nodes.get(edge.endNodeId)?.isPinned) return;
+                const points = [edge.startPosition, ...edge.routingPoints, edge.endPosition];
+                points.forEach(p => {
+                    minX = Math.min(minX, p.x);
+                    minY = Math.min(minY, p.y);
+                    maxX = Math.max(maxX, p.x);
+                    maxY = Math.max(maxY, p.y);
+                });
+            });
+
+            // 2. Prepare for screenshot
+            const captureArea = this.container;
+            const originalScroll = { x: captureArea.scrollLeft, y: captureArea.scrollTop };
+            const { scale, offsetX, offsetY } = this.panZoom;
+            
+            // The capture dimensions in world coordinates
+            const captureWidth = (maxX - minX) + (padding * 2);
+            const captureHeight = (maxY - minY) + (padding * 2);
+
+            // 3. Temporarily hide non-graph elements and apply styles
+            this.selectionState.selectionBox.style.display = 'none';
+            document.querySelectorAll('.resize-handle').forEach(h => h.style.display = 'none');
+            
+            const canvas = await html2canvas(captureArea, {
+                backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-bg-default').trim(),
+                x: (minX - padding) * scale + offsetX,
+                y: (minY - padding) * scale + offsetY,
+                width: captureWidth * scale,
+                height: captureHeight * scale,
+                scale: 2 // Increase resolution
+            });
+
+            // 4. Restore UI elements
+            this.selectionState.selectionBox.style.display = 'block';
+            document.querySelectorAll('.resize-handle').forEach(h => h.style.display = '');
+
+            // 5. Update thumbnail
+            const dataUrl = canvas.toDataURL('image/png');
+            this.thumbnailUrl = dataUrl;
+            events.publish('setting:update', { key: 'thumbnailUrl', value: dataUrl });
+            console.log("Screenshot captured and thumbnail updated via html2canvas.");
+
+        } catch (error) {
+            console.error("Error taking screenshot with html2canvas:", error);
+        }
+    }
+
+    /**
+     * Deeply merges two objects. The source object's properties overwrite the target's.
+     * @param {object} target The target object.
+     * @param {object} source The source object.
+     * @returns {object} The merged object.
+     */
+    deepMerge(target, source) {
+        const output = { ...target };
+        if (this.isObject(target) && this.isObject(source)) {
+            Object.keys(source).forEach(key => {
+                if (this.isObject(source[key])) {
+                    if (!(key in target)) {
+                        Object.assign(output, { [key]: source[key] });
+                    } else {
+                        output[key] = this.deepMerge(target[key], source[key]);
+                    }
+                } else {
+                    Object.assign(output, { [key]: source[key] });
+                }
+            });
+        }
+        return output;
+    }
+    
+    /**
+     * Utility to check if a variable is a non-null object.
+     * @param {*} item The variable to check.
+     * @returns {boolean}
+     */
+    isObject(item) {
+        return (item && typeof item === 'object' && !Array.isArray(item));
     }
 }
 

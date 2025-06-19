@@ -71,6 +71,7 @@ class SettingsNode extends BaseNode {
         container.appendChild(this.createUISettingsSection());
         container.appendChild(this.createThemeSection());
         container.appendChild(this.createProjectSection());
+        container.appendChild(this.createContextMenuSettingsSection());
         
         wrapper.appendChild(container);
         contentArea.appendChild(wrapper);
@@ -158,11 +159,31 @@ class SettingsNode extends BaseNode {
         const previewContainer = document.createElement('div');
         previewContainer.id = 'project-markdown-preview';
         
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'button-group';
+        
         const copyButton = this.createButton('Copy Markdown', 'icon-clipboard', 'copy-markdown-button');
+        const screenshotButton = this.createButton('Take Screenshot', 'icon-camera', 'screenshot-button');
+
+        buttonGroup.appendChild(copyButton);
+        buttonGroup.appendChild(screenshotButton);
         
         section.appendChild(previewContainer);
-        section.appendChild(copyButton);
+        section.appendChild(buttonGroup);
 
+        return section;
+    }
+
+    /**
+     * Creates the "Context Menu" section with inputs for customizing menu items.
+     * @returns {HTMLElement}
+     */
+    createContextMenuSettingsSection() {
+        const section = document.createElement('div');
+        section.className = 'settings-section';
+        section.innerHTML = '<h3>Context Menu</h3>';
+        section.id = 'context-menu-settings-section';
+        // Content will be populated dynamically by populateContextMenuSettings
         return section;
     }
 
@@ -177,6 +198,10 @@ class SettingsNode extends BaseNode {
 
         this.element.querySelector('#load-graph-button').addEventListener('click', () => {
             this.fileInput.click();
+        });
+
+        this.element.querySelector('#screenshot-button').addEventListener('click', () => {
+            events.publish('graph:screenshot');
         });
 
         this.fileInput.addEventListener('change', (event) => {
@@ -225,6 +250,16 @@ class SettingsNode extends BaseNode {
             this.copyProjectMarkdown();
         });
 
+        // Context Menu Settings (delegated event listener)
+        this.element.querySelector('#context-menu-settings-section').addEventListener('input', (e) => {
+            if (e.target.dataset.path) {
+                const path = e.target.dataset.path;
+                const value = e.target.value;
+                this.updateNestedSetting(this.nodeUiSettings, path, value);
+                events.publish('setting:update', { key: 'contextMenuSettings', value: this.nodeUiSettings.contextMenuSettings });
+            }
+        });
+
         // Theme
         this.cssVariables.forEach(({ name }) => {
             const input = this.element.querySelector(`[data-variable="${name}"]`);
@@ -259,6 +294,9 @@ class SettingsNode extends BaseNode {
             this.element.querySelector('#thumbnail-url-input').value = this.nodeUiSettings.thumbnailUrl;
         }
         this.updateMarkdownPreview();
+
+        // Context Menu
+        this.populateContextMenuSettings();
     }
 
     /**
@@ -343,12 +381,12 @@ class SettingsNode extends BaseNode {
      * @param {string} id - The unique ID for the input element.
      * @returns {HTMLElement}
      */
-    createTextInput(key, label, id) {
+    createTextInput(key, label, id, value = '') {
         const row = document.createElement('div');
         row.className = 'setting-row';
         row.innerHTML = `
             <label for="${id}">${label}</label>
-            <input type="text" id="${id}" class="settings-input" data-key="${key}">
+            <input type="text" id="${id}" class="settings-input" data-path="${key}" value="${value}">
         `;
         return row;
     }
@@ -493,5 +531,116 @@ class SettingsNode extends BaseNode {
         }
         
         previewEl.innerHTML = html;
+    }
+
+    /**
+     * Creates a separator element.
+     * @returns {HTMLElement}
+     */
+    createSeparator() {
+        const separator = document.createElement('hr');
+        separator.className = 'settings-separator';
+        return separator;
+    }
+
+    /**
+     * Populates the context menu settings section based on the current settings.
+     */
+    populateContextMenuSettings() {
+        const section = this.element.querySelector('#context-menu-settings-section');
+        if (!section || !this.nodeUiSettings.contextMenuSettings) return;
+
+        // Clear previous content
+        while (section.children.length > 1) { // Keep the h3 title
+            section.removeChild(section.lastChild);
+        }
+
+        const settings = this.nodeUiSettings.contextMenuSettings;
+
+        for (const menuType in settings) { // 'canvas', 'edge'
+            const subHeader = document.createElement('h4');
+            subHeader.textContent = menuType.charAt(0).toUpperCase() + menuType.slice(1);
+            section.appendChild(subHeader);
+
+            for (const itemKey in settings[menuType]) { // 'copy', 'paste', etc.
+                const item = settings[menuType][itemKey];
+                const itemLabel = itemKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                
+                // Input for the label
+                const labelRow = this.createTextInput(
+                    `${menuType}.${itemKey}.label`,
+                    `${itemLabel} Label`,
+                    `${menuType}-${itemKey}-label-input`,
+                    item.label
+                );
+                section.appendChild(labelRow);
+                
+                // Input for the icon
+                const iconRow = this.createIconInputRow(
+                    `${menuType}.${itemKey}.iconClass`,
+                    `${itemLabel} Icon`,
+                    `${menuType}-${itemKey}-icon-input`,
+                    item.iconClass
+                );
+                section.appendChild(iconRow);
+            }
+        }
+    }
+
+    /**
+     * Helper to create a text input row with an icon preview.
+     * @param {string} path - The setting path.
+     * @param {string} label - The text label for the input.
+     * @param {string} id - The unique ID for the input element.
+     * @param {string} value - The initial value for the input.
+     * @returns {HTMLElement}
+     */
+    createIconInputRow(path, label, id, value = '') {
+        const row = document.createElement('div');
+        row.className = 'setting-row';
+
+        const labelEl = document.createElement('label');
+        labelEl.htmlFor = id;
+        labelEl.textContent = label;
+
+        const inputContainer = document.createElement('div');
+        inputContainer.className = 'input-with-icon-preview';
+
+        const inputEl = document.createElement('input');
+        inputEl.type = 'text';
+        inputEl.id = id;
+        inputEl.className = 'settings-input';
+        inputEl.dataset.path = path;
+        inputEl.value = value;
+
+        const iconPreview = document.createElement('span');
+        // The specific icon class is added here to get the mask-image
+        iconPreview.className = `icon-preview ${value}`; 
+
+        inputEl.addEventListener('input', (e) => {
+            // Update the preview in real-time as the user types
+            iconPreview.className = `icon-preview ${e.target.value}`;
+        });
+
+        inputContainer.appendChild(inputEl);
+        inputContainer.appendChild(iconPreview);
+        
+        row.appendChild(labelEl);
+        row.appendChild(inputContainer);
+        
+        return row;
+    }
+
+    /**
+     * Updates a value in a nested object based on a dot-notation path.
+     * @param {object} obj - The object to update.
+     * @param {string} path - The path to the property (e.g., "canvas.copy.label").
+     * @param {*} value - The new value to set.
+     */
+    updateNestedSetting(obj, path, value) {
+        const keys = path.split('.');
+        const lastKey = keys.pop();
+        const lastObj = keys.reduce((o, key) => o[key] || (o[key] = {}), obj);
+        lastObj[lastKey] = value;
     }
 } 
