@@ -129,6 +129,7 @@ class NodeUI {
 
         this.initialPinchDistance = null;
         this.initialScale = 1;
+        this.isPinching = false;
 
         this.init();
     }
@@ -783,6 +784,7 @@ class NodeUI {
             event.preventDefault(); // Prevent default browser actions
             this.panZoom.isPanning = false; // Stop panning when pinching
             this.draggingState.isDragging = false; // Stop dragging when pinching
+            this.isPinching = true;
             this.initialPinchDistance = this.getPinchDistance(event);
             this.initialScale = this.panZoom.scale;
             return;
@@ -986,16 +988,50 @@ class NodeUI {
      * @param {TouchEvent} event 
      */
     onTouchEnd(event) {
-        // Double tap to fit view
+        // If the gesture was a pinch, prevent it from being treated as a tap
+        if (this.isPinching) {
+            // This logic ensures that when the two fingers from a pinch are lifted,
+            // it doesn't accidentally trigger a double-tap action.
+            if (event.touches.length < 2) {
+                this.isPinching = false;
+                this.lastTap = 0; // Invalidate the tap history
+            }
+            return;
+        }
+
+        // Double tap to zoom or fit view
         const now = new Date().getTime();
         const timesince = now - this.lastTap;
         if ((timesince < 300) && (timesince > 0)) {
-            // Double tap detected
-            this.frameSelection();
-            this.lastTap = 0; // Reset tap time
-            return; // Exit to prevent other touchend actions
+            const touch = event.changedTouches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            // Check if the tap was on the background or on an element
+            const isBackgroundTap = target && (target === this.container || target === this.svg || target.closest('.grid-canvas') || target.closest('.node-container'));
+
+            if (isBackgroundTap) {
+                // On background: incrementally zoom in
+                const oldScale = this.panZoom.scale;
+                const newScale = Math.min(3, oldScale + 0.4); // Zoom in, capped at 3x
+
+                const rect = this.container.getBoundingClientRect();
+                const mouseX = touch.clientX - rect.left;
+                const mouseY = touch.clientY - rect.top;
+
+                // Adjust offset to zoom towards the tap position
+                this.panZoom.offsetX = mouseX - (mouseX - this.panZoom.offsetX) * (newScale / oldScale);
+                this.panZoom.offsetY = mouseY - (mouseY - this.panZoom.offsetY) * (newScale / oldScale);
+                
+                this.animatePanZoom(newScale, this.panZoom.offsetX, this.panZoom.offsetY, 150);
+
+            } else {
+                // On an element: frame the selection
+                this.frameSelection();
+            }
+
+            this.lastTap = 0; // Reset tap time to prevent triple-tap issues
+            return; 
         }
-        this.lastTap = new Date().getTime();
+        this.lastTap = now;
 
         // If the touch ends before the timer, it's not a long press
         clearTimeout(this.longPressTimer);
