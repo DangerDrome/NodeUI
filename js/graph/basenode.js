@@ -174,15 +174,6 @@ class BaseNode {
 
         // Add blur listener to disable editing and save
         contentArea.addEventListener('blur', saveContent);
-
-        // Add keydown listener to save on Enter
-        contentArea.addEventListener('keydown', (event) => {
-            // Save on Enter without Shift
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                contentArea.blur(); // Trigger the blur event to save
-            }
-        });
     }
 
     /**

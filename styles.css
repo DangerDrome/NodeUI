@@ -327,6 +327,12 @@ body {
     color: var(--color-text-default);
     overflow: auto;
     overflow-wrap: break-word;
+    white-space: pre-wrap;
+    outline: none; /* Disable default browser outline for contenteditable */
+}
+
+.node-content[contenteditable="true"] {
+    cursor: text;
 }
 
 .node-content h1 {
