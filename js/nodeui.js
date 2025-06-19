@@ -3223,8 +3223,18 @@ class NodeUI {
         let maxY = -Infinity;
 
         const hasSelection = this.selectedNodes.size > 0 || this.selectedEdges.size > 0;
-        const nodesToFrame = hasSelection ? Array.from(this.selectedNodes).map(id => this.nodes.get(id)) : Array.from(this.nodes.values());
-        const edgesToFrame = hasSelection ? Array.from(this.selectedEdges).map(id => this.edges.get(id)) : Array.from(this.edges.values());
+        
+        // Filter to only consider unpinned nodes and the edges between them for framing
+        const nodesToFrame = (hasSelection ? Array.from(this.selectedNodes).map(id => this.nodes.get(id)) : Array.from(this.nodes.values()))
+            .filter(node => node && !node.isPinned); 
+        
+        const edgesToFrame = (hasSelection ? Array.from(this.selectedEdges).map(id => this.edges.get(id)) : Array.from(this.edges.values()))
+            .filter(edge => {
+                if (!edge) return false;
+                const startNode = this.nodes.get(edge.startNodeId);
+                const endNode = this.nodes.get(edge.endNodeId);
+                return startNode && !startNode.isPinned && endNode && !endNode.isPinned;
+            });
 
         // Bounding box for nodes
         nodesToFrame.forEach(node => {
@@ -3424,6 +3434,15 @@ class NodeUI {
             if (node instanceof GroupNode) {
                 nodeData.containedNodeIds = Array.from(node.containedNodeIds);
             }
+
+            // If node is pinned, its coords are in screen space. Convert to world space for saving.
+            if (node.isPinned) {
+                nodeData.x = (node.x - this.panZoom.offsetX) / this.panZoom.scale;
+                nodeData.y = (node.y - this.panZoom.offsetY) / this.panZoom.scale;
+                nodeData.width = node.width / this.panZoom.scale;
+                nodeData.height = node.height / this.panZoom.scale;
+            }
+
             data.nodes.push(nodeData);
         });
 
@@ -3480,11 +3499,14 @@ class NodeUI {
             let hasContent = false;
             if (data.nodes && data.nodes.length > 0) {
                 data.nodes.forEach(node => {
-                    minX = Math.min(minX, node.x);
-                    minY = Math.min(minY, node.y);
-                    maxX = Math.max(maxX, node.x + node.width);
-                    maxY = Math.max(maxY, node.y + node.height);
-                    hasContent = true;
+                    // Only consider unpinned nodes for the initial framing calculation
+                    if (!node.isPinned) {
+                        minX = Math.min(minX, node.x);
+                        minY = Math.min(minY, node.y);
+                        maxX = Math.max(maxX, node.x + node.width);
+                        maxY = Math.max(maxY, node.y + node.height);
+                        hasContent = true;
+                    }
                 });
             }
 
@@ -3515,12 +3537,22 @@ class NodeUI {
                 // Defer node creation and animation
                 setTimeout(() => {
                     const idMap = new Map();
+                    const nodesToPin = []; // Keep track of nodes to pin after creation
+
                     data.nodes.forEach(nodeData => {
                         const oldId = nodeData.id;
                         const newId = crypto.randomUUID();
                         idMap.set(oldId, newId);
-                        nodeData.id = newId;
-                        events.publish('node:create', nodeData);
+
+                        const shouldBePinned = nodeData.isPinned;
+
+                        // Create the node as unpinned initially
+                        const newNodeData = { ...nodeData, id: newId, isPinned: false };
+                        events.publish('node:create', newNodeData);
+
+                        if (shouldBePinned) {
+                            nodesToPin.push(newId);
+                        }
                     });
 
                     this.nodes.forEach(node => {
@@ -3539,6 +3571,15 @@ class NodeUI {
                         edgeData.endNodeId = idMap.get(edgeData.endNodeId);
                         if (edgeData.startNodeId && edgeData.endNodeId) {
                             events.publish('edge:create', edgeData);
+                        }
+                    });
+
+                    // After all nodes are in the DOM, pin the ones that need to be pinned.
+                    // This triggers the `reparentNode` logic correctly.
+                    nodesToPin.forEach(nodeId => {
+                        const node = this.nodes.get(nodeId);
+                        if (node) {
+                            this.updateNode({ nodeId: nodeId, isPinned: true });
                         }
                     });
                     
