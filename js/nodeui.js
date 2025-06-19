@@ -1005,11 +1005,20 @@ class NodeUI {
         if ((timesince < 300) && (timesince > 0)) {
             const touch = event.changedTouches[0];
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
-            // Check if the tap was on the background or on an element
-            const isBackgroundTap = target && (target === this.container || target === this.svg || target.closest('.grid-canvas') || target.closest('.node-container'));
+            
+            // Differentiate between a tap on a node and a tap on the background
+            const tappedNode = target.closest('.node');
 
-            if (isBackgroundTap) {
-                // On background: incrementally zoom in
+            if (tappedNode) {
+                // On a node: select it (if not already) and frame it.
+                // The first tap usually handles selection via onMouseDown.
+                if (!this.selection.nodes.has(tappedNode.id)) {
+                    this.clearSelection();
+                    this.toggleNodeSelection(tappedNode.id, true);
+                }
+                this.frameSelection();
+            } else {
+                // On background: incrementally zoom in towards the tap point
                 const oldScale = this.panZoom.scale;
                 const newScale = Math.min(3, oldScale + 0.4); // Zoom in, capped at 3x
 
@@ -1017,15 +1026,11 @@ class NodeUI {
                 const mouseX = touch.clientX - rect.left;
                 const mouseY = touch.clientY - rect.top;
 
-                // Adjust offset to zoom towards the tap position
-                this.panZoom.offsetX = mouseX - (mouseX - this.panZoom.offsetX) * (newScale / oldScale);
-                this.panZoom.offsetY = mouseY - (mouseY - this.panZoom.offsetY) * (newScale / oldScale);
+                // Calculate the target offset without modifying the current state
+                const targetOffsetX = mouseX - (mouseX - this.panZoom.offsetX) * (newScale / oldScale);
+                const targetOffsetY = mouseY - (mouseY - this.panZoom.offsetY) * (newScale / oldScale);
                 
-                this.animatePanZoom(newScale, this.panZoom.offsetX, this.panZoom.offsetY, 150);
-
-            } else {
-                // On an element: frame the selection
-                this.frameSelection();
+                this.animatePanZoom(newScale, targetOffsetX, targetOffsetY, 150);
             }
 
             this.lastTap = 0; // Reset tap time to prevent triple-tap issues
