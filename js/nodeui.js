@@ -3460,6 +3460,10 @@ class NodeUI {
                         events.publish('edge:create', edgeData);
                     }
                 });
+
+                // Frame the newly loaded content
+                this.frameSelection();
+
                 console.log("Graph loaded.");
             }, 100);
 
