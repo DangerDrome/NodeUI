@@ -80,6 +80,31 @@ class BaseNode {
         this.createResizeHandles();
         this.createPopoverContainer();
 
+        // Prevent node drag from firing when interacting with content.
+        contentArea.addEventListener('mousedown', (event) => {
+            event.stopPropagation();
+        });
+
+        // Double-click to edit
+        contentArea.addEventListener('dblclick', () => {
+            if (contentArea.contentEditable !== 'true') {
+                // Don't allow editing on specialized nodes that override this behavior
+                if (this.constructor.name === 'BaseNode') {
+                    contentArea.isEditing = true;
+                    contentArea.contentEditable = 'true';
+                    contentArea.innerText = this.content || '';
+                    contentArea.focus();
+                    // Place cursor at the end
+                    const selection = window.getSelection();
+                    const range = document.createRange();
+                    range.selectNodeContents(contentArea);
+                    range.collapse(false);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            }
+        });
+
         return this.element;
     }
 
@@ -155,23 +180,6 @@ class BaseNode {
             }
         };
 
-        contentArea.addEventListener('dblclick', () => {
-            // Don't allow editing on specialized nodes that override this behavior
-            if (this.constructor.name === 'BaseNode') {
-                contentArea.isEditing = true;
-                contentArea.contentEditable = 'true';
-                contentArea.innerText = this.content || '';
-                contentArea.focus();
-                // Place cursor at the end
-                const selection = window.getSelection();
-                const range = document.createRange();
-                range.selectNodeContents(contentArea);
-                range.collapse(false);
-                selection.removeAllRanges();
-                selection.addRange(range);
-            }
-        });
-
         // Add blur listener to disable editing and save
         contentArea.addEventListener('blur', saveContent);
     }
@@ -186,9 +194,25 @@ class BaseNode {
             contentArea.innerText = this.content || '';
             return;
         }
+        if (typeof hljs === 'undefined') {
+            console.warn('highlight.js is not loaded. Cannot highlight code.');
+        }
+
+        // Configure marked to use highlight.js for code blocks
+        marked.setOptions({
+            highlight: function(code, lang) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+            },
+            gfm: true, // Enable GitHub Flavored Markdown
+            breaks: true // Interpret carriage returns as <br>
+        });
+
         // Use 'marked.parse' which is the modern way to call it
         const dirtyHtml = marked.parse(this.content || '');
-        contentArea.innerHTML = dirtyHtml;
+
+        // Sanitize the HTML to prevent XSS attacks before inserting it.
+        contentArea.innerHTML = DOMPurify.sanitize(dirtyHtml);
     }
 
     /**

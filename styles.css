@@ -228,7 +228,7 @@ body {
     position: relative;
     background-color: transparent;
     color: var(--color-text-subtle);
-    padding: 12px;
+    padding: 16px;
     font-size: var(--font-size-small);
     font-weight: 600;
     user-select: none;
@@ -296,11 +296,13 @@ body {
 }
 
 .node-content {
-    padding: 8px;
+    padding: 16px;
+    padding-right: 26px; /* Add extra padding to move scrollbar left */
     flex-grow: 1;
     font-size: var(--font-size-medium);
     color: var(--color-text-default);
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
     overflow-wrap: break-word;
     white-space: pre-wrap;
     outline: none; /* Disable default browser outline for contenteditable */
@@ -316,6 +318,38 @@ body {
     margin: 0;
     padding: 0;
     color: var(--h1-color);
+}
+
+/* Add styles for tables inside node content */
+.node-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: var(--font-size-small);
+}
+
+.node-content th,
+.node-content td {
+    border: 1px solid var(--color-border-default);
+    padding: 8px;
+    text-align: left;
+}
+
+.node-content th {
+    background-color: var(--color-bg-hover);
+    font-weight: 600;
+    color: var(--color-text-emphasis);
+}
+
+.node-content tr:nth-child(even) {
+    background-color: rgba(0,0,0,0.1);
+}
+
+/* Fix for list indentation after padding change */
+.node-content ul,
+.node-content ol {
+    padding-left: 24px; /* Adjust default list padding */
+    margin: 1em 0;
 }
 
 /* Resize Handles */
@@ -464,11 +498,19 @@ body {
 }
 
 .node-content::-webkit-scrollbar-thumb {
-    background-color: var(--icon-color);
+    background-color: transparent; /* Hide by default */
     border-radius: 8px;
-    border: 3px solid transparent;
+    border: 6px solid transparent;
     background-clip: content-box;
     cursor: default;
+    min-height: 40px;
+    transition: background-color 0.2s; /* Smooth transition */
+}
+
+/* Show scrollbar thumb on hover or when node is selected */
+.node:hover .node-content::-webkit-scrollbar-thumb,
+.node.is-selected .node-content::-webkit-scrollbar-thumb {
+    background-color: var(--icon-color);
 }
 
 .node-content::-webkit-scrollbar-thumb:hover {
@@ -1176,11 +1218,12 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
 .log-container {
     height: 100%;
     overflow-y: auto;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 12px;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-small);
     padding: 8px;
-    background-color: rgba(0,0,0,0.2);
-    color: var(--color-text-subtle);
+    padding-right: 18px; /* Add extra padding to move scrollbar left */
+    white-space: pre-wrap;
+    word-break: break-all;
 }
 
 .log-container[contenteditable="true"] {
@@ -1210,20 +1253,23 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
 }
 
 .log-container::-webkit-scrollbar-thumb {
-    background-color: var(--icon-color);
+    background-color: transparent; /* Hide by default */
     border-radius: 8px;
-    border: 3px solid transparent; /* Creates padding around the thumb */
+    border: 6px solid transparent; /* Creates padding around the thumb */
     background-clip: content-box;
-    transition: filter 0.2s;
+    transition: background-color 0.2s, filter 0.2s; /* Add transition */
     cursor: default;
+    min-height: 40px;
+}
+
+/* Show scrollbar on hover or when log node is selected */
+.log-node:hover .log-container::-webkit-scrollbar-thumb,
+.log-node.is-selected .log-container::-webkit-scrollbar-thumb {
+    background-color: var(--icon-color);
 }
 
 .log-container::-webkit-scrollbar-thumb:hover {
     filter: brightness(1.2);
-}
-
-.log-container::-webkit-scrollbar:hover {
-    cursor: default;
 }
 
 /* Settings Node Specific Styles */
@@ -1240,8 +1286,11 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
 .settings-container {
     height: 100%;
     overflow-y: auto;
-    overflow-x: hidden;
-    padding: 8px;
+    padding: 16px;
+    padding-right: 26px; /* Add extra padding to move scrollbar left */
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
     background-color: rgba(0,0,0,0.2);
 }
 
@@ -1447,11 +1496,19 @@ input:checked + .slider:before {
 }
 
 .settings-container::-webkit-scrollbar-thumb {
-    background-color: var(--icon-color);
+    background-color: transparent; /* Hide by default */
     border-radius: 8px;
-    border: 3px solid transparent;
+    border: 6px solid transparent;
     background-clip: content-box;
     cursor: default;
+    min-height: 40px;
+    transition: background-color 0.2s, filter 0.2s; /* Add transition */
+}
+
+/* Show scrollbar on hover or when settings node is selected */
+.settings-node:hover .settings-container::-webkit-scrollbar-thumb,
+.settings-node.is-selected .settings-container::-webkit-scrollbar-thumb {
+    background-color: var(--icon-color);
 }
 
 .settings-container::-webkit-scrollbar-thumb:hover {
