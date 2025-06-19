@@ -89,6 +89,13 @@ class BaseNode {
             }
         });
 
+        // Prevent native drag on images, which conflicts with node dragging.
+        contentArea.addEventListener('dragstart', (event) => {
+            if (event.target.tagName === 'IMG') {
+                event.preventDefault();
+            }
+        });
+
         // Double-click to edit
         contentArea.addEventListener('dblclick', () => {
             if (contentArea.contentEditable !== 'true') {
