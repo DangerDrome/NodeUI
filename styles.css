@@ -1007,6 +1007,10 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
     filter: brightness(1.2);
 }
 
+.log-container::-webkit-scrollbar:hover {
+    cursor: default;
+}
+
 /* Settings Node Specific Styles */
 .settings-node .node-content {
     padding: 0;
@@ -1021,12 +1025,38 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
 .settings-container {
     height: 100%;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 8px;
     background-color: rgba(0,0,0,0.2);
 }
 
 .settings-section {
     margin-bottom: 24px;
+}
+
+.context-menu-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.context-menu-item-control {
+    background-color: var(--color-bg-default);
+    border-radius: var(--radius-small);
+    padding: 12px;
+    border: 1px solid var(--color-border-default);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.context-menu-item-title {
+    font-weight: 600;
+    color: var(--color-text-emphasis);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border-default);
+    margin-bottom: 4px;
 }
 
 .settings-node .settings-section h3 {
@@ -1053,6 +1083,7 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0; /* Allow the container to shrink smaller than its content */
 }
 
 .icon-preview {
@@ -1211,8 +1242,12 @@ input:checked + .slider:before {
     filter: brightness(1.2);
 }
 
+.settings-container::-webkit-scrollbar:hover {
+    cursor: default;
+}
+
 /* Settings Node Icon */
-.icon-settings { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sliders-vertical"><line x1="8" x2="8" y1="21" y2="12"/><line x1="8" x2="8" y1="8" y2="3"/><line x1="16" x2="16" y1="21" y2="16"/><line x1="16" x2="16" y1="12" y2="3"/><line x1="12" x2="12" y1="21" y2="17"/><line x1="12" x2="12" y1="13" y2="3"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sliders-vertical"><line x1="8" x2="8" y1="21" y2="12"/><line x1="8" x2="8" y1="8" y2="3"/><line x1="16" x2="16" y1="21" y2="16"/><line x1="16" x2="16" y1="12" y2="3"/><line x1="12" x2="12" y1="21" y2="17"/><line x1="12" x2="12" y1="13" y2="3"/></svg>'); }
+.icon-settings { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sliders-vertical"><line x1="8" x2="8" y1="21" y2="12"/><line x1="8" x2="8" y1="8" y2="3"/><line x1="16" x2="16" y1="21" y2="16"/><line x1="16" x2="16" y1="12" y2="3"/><line x1="12" x2="12" y1="21" y2="17"/><line x1="12" x2="12" y1="13" y2="3"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sliders-vertical"><line x1="8" x2="8" y1="21" y2="12"/><line x1="8" x2="8" y1="8" y2="3"/><line x1="16" x2="16" y1="21" y2="16"/><line x1="16" x2="16" y1="12" y2="3"/><line x1="12" x2="12" y1="21" y2="17"/><line x1="12" x2="12" y1="13" y2="3"/></svg>'); }
 .icon-download { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>'); }
 .icon-upload { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>'); }
 
@@ -1295,4 +1330,25 @@ input:checked + .slider:before {
     border: none;
     border-top: 1px solid var(--color-border-default);
     margin: 8px 0;
+}
+
+/* Override for setting rows inside the context menu item cards to prevent overflow */
+.context-menu-item-control .setting-row {
+    display: grid;
+    grid-template-columns: auto 1fr; /* Label=content width, input=rest */
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 0; /* The card's flex gap handles spacing */
+}
+
+.context-menu-item-control .setting-row .settings-input {
+    width: 100%;
+}
+
+/* When an input is in a flex container (like the icon preview),
+   it needs flex properties to size correctly, not a percentage width. */
+.context-menu-item-control .input-with-icon-preview .settings-input {
+    width: auto; /* Unset the width:100% from the rule above */
+    flex: 1; /* Take up remaining space within the flex wrapper */
+    min-width: 0; /* Allow shrinking */
 }

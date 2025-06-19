@@ -20,8 +20,6 @@ class SettingsNode extends BaseNode {
         this.cssVariables = [];
         this.settingsSubscription = null;
         this.fileInput = null; // To hold the file input element
-
-        this.collectCssVariables();
     }
 
     /**
@@ -59,6 +57,9 @@ class SettingsNode extends BaseNode {
      * @param {HTMLElement} contentArea - The element to render content into.
      */
     renderContent(contentArea) {
+        // Collect variables just-in-time for rendering to ensure stylesheets are loaded.
+        this.collectCssVariables();
+
         contentArea.innerHTML = ''; // Clear base content
         
         const wrapper = document.createElement('div');
@@ -67,10 +68,10 @@ class SettingsNode extends BaseNode {
         const container = document.createElement('div');
         container.className = 'settings-container';
         
+        container.appendChild(this.createProjectSection());
         container.appendChild(this.createGraphActionsSection());
         container.appendChild(this.createUISettingsSection());
         container.appendChild(this.createThemeSection());
-        container.appendChild(this.createProjectSection());
         container.appendChild(this.createContextMenuSettingsSection());
         
         wrapper.appendChild(container);
@@ -436,26 +437,34 @@ class SettingsNode extends BaseNode {
      */
     collectCssVariables() {
         this.cssVariables = [];
-        try {
-            for (const sheet of document.styleSheets) {
-                // Check if the sheet is accessible
-                if (sheet.href && sheet.href.startsWith(window.location.origin)) {
-                    for (const rule of sheet.cssRules) {
-                        if (rule.type === CSSRule.STYLE_RULE && rule.selectorText === ':root') {
-                            for (const style of rule.style) {
-                                if (style.startsWith('--')) {
-                                    this.cssVariables.push({
-                                        name: style,
-                                        value: rule.style.getPropertyValue(style).trim()
-                                    });
-                                }
+        // Iterate over all stylesheets
+        for (const sheet of document.styleSheets) {
+            try {
+                // This will throw a security error for cross-origin stylesheets,
+                // which is what we want to skip.
+                const rules = sheet.cssRules; 
+                for (const rule of rules) {
+                    // Find the :root selector
+                    if (rule.type === CSSRule.STYLE_RULE && rule.selectorText === ':root') {
+                        // Iterate over the styles in the :root rule
+                        for (const style of rule.style) {
+                            if (style.startsWith('--')) {
+                                this.cssVariables.push({
+                                    name: style,
+                                    value: rule.style.getPropertyValue(style).trim()
+                                });
                             }
                         }
                     }
                 }
+            } catch (e) {
+                // Log a warning if we can't access a stylesheet (e.g., CORS)
+                if (e instanceof DOMException && e.name === 'SecurityError') {
+                    console.warn(`Could not access CSS rules from stylesheet: ${sheet.href}. This is expected for cross-origin stylesheets.`);
+                } else {
+                    console.error("An unexpected error occurred while collecting CSS variables:", e);
+                }
             }
-        } catch (e) {
-            console.warn("Could not access stylesheets to collect CSS variables.", e);
         }
     }
 
@@ -544,6 +553,43 @@ class SettingsNode extends BaseNode {
     }
 
     /**
+     * Creates a self-contained control for a single context menu item.
+     * @param {string} menuType e.g., 'canvas'
+     * @param {string} itemKey e.g., 'copy'
+     * @param {object} itemData The data for the menu item ({ label, iconClass })
+     * @returns {HTMLElement}
+     */
+    createContextMenuItemControl(menuType, itemKey, itemData) {
+        const control = document.createElement('div');
+        control.className = 'context-menu-item-control';
+
+        const title = document.createElement('div');
+        title.className = 'context-menu-item-title';
+        title.textContent = itemKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+        control.appendChild(title);
+
+        // Label input
+        const labelRow = document.createElement('div');
+        labelRow.className = 'setting-row';
+        labelRow.innerHTML = `
+            <label for="${menuType}-${itemKey}-label">Label</label>
+            <input type="text" id="${menuType}-${itemKey}-label" class="settings-input" data-path="${menuType}.${itemKey}.label" value="${itemData.label}">
+        `;
+        control.appendChild(labelRow);
+
+        // Icon input with preview
+        const iconRow = this.createIconInputRow(
+            `${menuType}.${itemKey}.iconClass`,
+            `Icon`,
+            `${menuType}-${itemKey}-icon-input`,
+            itemData.iconClass
+        );
+        control.appendChild(iconRow);
+
+        return control;
+    }
+
+    /**
      * Populates the context menu settings section based on the current settings.
      */
     populateContextMenuSettings() {
@@ -562,28 +608,14 @@ class SettingsNode extends BaseNode {
             subHeader.textContent = menuType.charAt(0).toUpperCase() + menuType.slice(1);
             section.appendChild(subHeader);
 
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'context-menu-settings-grid';
+
             for (const itemKey in settings[menuType]) { // 'copy', 'paste', etc.
-                const item = settings[menuType][itemKey];
-                const itemLabel = itemKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-                
-                // Input for the label
-                const labelRow = this.createTextInput(
-                    `${menuType}.${itemKey}.label`,
-                    `${itemLabel} Label`,
-                    `${menuType}-${itemKey}-label-input`,
-                    item.label
-                );
-                section.appendChild(labelRow);
-                
-                // Input for the icon
-                const iconRow = this.createIconInputRow(
-                    `${menuType}.${itemKey}.iconClass`,
-                    `${itemLabel} Icon`,
-                    `${menuType}-${itemKey}-icon-input`,
-                    item.iconClass
-                );
-                section.appendChild(iconRow);
+                const control = this.createContextMenuItemControl(menuType, itemKey, settings[menuType][itemKey]);
+                gridContainer.appendChild(control);
             }
+            section.appendChild(gridContainer);
         }
     }
 
