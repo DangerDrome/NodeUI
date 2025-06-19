@@ -362,10 +362,10 @@ class SettingsNode extends BaseNode {
                     const newColorHex = e.target.value;
                     const originalValue = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
                     
-                    // If original was rgba, preserve alpha channel.
                     if (originalValue.startsWith('rgba')) {
-                        const alpha = originalValue.substring(originalValue.lastIndexOf(',') + 1, originalValue.lastIndexOf(')')).trim();
-                        
+                        const match = originalValue.match(/(\\d+\\.?\\d*)/g);
+                        const alpha = (match && match.length === 4) ? match[3] : '1';
+
                         const r = parseInt(newColorHex.slice(1, 3), 16);
                         const g = parseInt(newColorHex.slice(3, 5), 16);
                         const b = parseInt(newColorHex.slice(5, 7), 16);
@@ -461,15 +461,19 @@ class SettingsNode extends BaseNode {
         const initialValue = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
         
         let colorForInput = initialValue;
-        // The color input type only supports hex format. We need to convert rgba.
         if (initialValue.startsWith('rgba')) {
             try {
-                const parts = initialValue.substring(initialValue.indexOf('(') + 1, initialValue.lastIndexOf(')')).split(/,\\s*/);
-                const r = parseInt(parts[0]);
-                const g = parseInt(parts[1]);
-                const b = parseInt(parts[2]);
-                const toHex = c => ('0' + c.toString(16)).slice(-2);
-                colorForInput = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+                // Use a regex to robustly extract all numbers from the rgba string
+                const match = initialValue.match(/(\\d+\\.?\\d*)/g);
+                if (match && match.length >= 3) {
+                    const r = parseInt(match[0]);
+                    const g = parseInt(match[1]);
+                    const b = parseInt(match[2]);
+                    const toHex = c => ('0' + c.toString(16)).slice(-2);
+                    colorForInput = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+                } else {
+                    throw new Error("Could not parse numbers from rgba string.");
+                }
             } catch (e) {
                 console.error(`Could not parse rgba value: ${initialValue}`, e);
                 colorForInput = '#000000'; // Default to black on error
