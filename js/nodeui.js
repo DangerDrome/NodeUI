@@ -294,6 +294,11 @@ class NodeUI {
         events.subscribe('graph:save', () => this.saveGraph());
         events.subscribe('graph:load-content', (json) => this.loadGraph(json));
         events.subscribe('graph:screenshot', () => this.takeScreenshot());
+        events.subscribe('contextmenu:hidden', () => {
+            if (this.edgeDrawingState.isDrawing) {
+                this.cancelDrawingEdge();
+            }
+        });
     }
 
     /**
@@ -748,7 +753,21 @@ class NodeUI {
                 const { nodeId, handlePosition } = event.target.dataset;
                 this.endDrawingEdge(nodeId, handlePosition);
             } else {
-                this.cancelDrawingEdge();
+                // If the mouseup is on the context menu, let the menu handle it.
+                if (event.target.closest('#context-menu')) {
+                    return;
+                }
+
+                const state = this.edgeDrawingState;
+                const edgeStartInfo = {
+                    startNodeId: state.startNodeId,
+                    startHandleId: state.startHandlePosition
+                };
+                // Keep the temp edge visually connected to where the menu will appear
+                const mousePos = this.getMousePosition(event);
+                this.updateDrawingEdge(mousePos.x, mousePos.y);
+
+                this.showCanvasContextMenu(event.clientX, event.clientY, edgeStartInfo);
             }
             return;
         }
@@ -1063,7 +1082,16 @@ class NodeUI {
                 const { nodeId, handlePosition } = endElement.dataset;
                 this.endDrawingEdge(nodeId, handlePosition);
             } else {
-                this.cancelDrawingEdge();
+                const state = this.edgeDrawingState;
+                const edgeStartInfo = {
+                    startNodeId: state.startNodeId,
+                    startHandleId: state.startHandlePosition
+                };
+                // Keep the temp edge visually connected to where the menu will appear
+                const mousePos = this.getMousePosition(touch);
+                this.updateDrawingEdge(mousePos.x, mousePos.y);
+
+                this.showCanvasContextMenu(touch.clientX, touch.clientY, edgeStartInfo);
             }
             return;
         }
@@ -2375,16 +2403,16 @@ class NodeUI {
                         const startNode = this.nodes.get(edgeStartInfo.startNodeId);
                         if (startNode) {
                             const endHandlePosition = this.getOptimalHandle(startNode, newNode);
-                            // Add a small delay to ensure the new node is in the DOM
-                            setTimeout(() => {
-                                events.publish('edge:create', {
-                                    startNodeId: edgeStartInfo.startNodeId,
-                                    startHandleId: edgeStartInfo.startHandleId,
-                                    endNodeId: newNode.id,
-                                    endHandleId: endHandlePosition
-                                });
-                            }, 0);
+                            events.publish('edge:create', {
+                                startNodeId: edgeStartInfo.startNodeId,
+                                startHandleId: edgeStartInfo.startHandleId,
+                                endNodeId: newNode.id,
+                                endHandleId: endHandlePosition
+                            });
                         }
+                    }
+                    if (this.edgeDrawingState.isDrawing) {
+                        this.cancelDrawingEdge();
                     }
                 }
             });

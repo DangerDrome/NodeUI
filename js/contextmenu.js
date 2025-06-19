@@ -10,9 +10,10 @@ class ContextMenu {
         this.menuElement.classList.add('context-menu');
         document.body.appendChild(this.menuElement);
 
-        // Hide on click outside
-        document.addEventListener('click', (event) => {
-            if (this.menuElement && !this.menuElement.contains(event.target)) {
+        // Hide on mousedown outside. Using mousedown is more reliable than click
+        // because it prevents the menu from being hidden by the same click event that showed it (e.g., on mouseup).
+        document.addEventListener('mousedown', (event) => {
+            if (this.menuElement.style.display === 'block' && !this.menuElement.contains(event.target)) {
                 this.hide();
             }
         });
@@ -115,8 +116,9 @@ class ContextMenu {
     }
 
     hide() {
-        if (this.menuElement) {
+        if (this.menuElement && this.menuElement.style.display !== 'none') {
             this.menuElement.style.display = 'none';
+            events.publish('contextmenu:hidden');
         }
     }
 } 
