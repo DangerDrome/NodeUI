@@ -618,6 +618,7 @@ g[data-color="purple"] .edge-label-background { fill: var(--color-node-purple-bo
     font-size: 12px;
     font-family: var(--font-sans);
     pointer-events: none; /* So it doesn't interfere with edge clicking */
+    dominant-baseline: middle;
 }
 
 .edge-label-editor {

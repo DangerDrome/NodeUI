@@ -1648,7 +1648,7 @@ class NodeUI {
             if (len > 0 && edge.label) {
                 const midPoint = path.getPointAtLength(len / 2);
                 edge.labelElement.setAttribute('x', midPoint.x);
-                edge.labelElement.setAttribute('y', midPoint.y - 10); // Offset a bit above the line
+                edge.labelElement.setAttribute('y', midPoint.y); // Offset a bit above the line
 
                 edge.labelBackgroundElement.style.display = 'block';
 
