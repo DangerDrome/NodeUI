@@ -3465,62 +3465,94 @@ class NodeUI {
 
             this.clearAll();
 
-            // Defer execution to allow the DOM to clear
-            setTimeout(() => {
-                // Load metadata if it exists
-                if (data.metadata) {
-                    this.projectName = data.metadata.projectName || 'Untitled Graph';
-                    this.thumbnailUrl = data.metadata.thumbnailUrl || '';
-                    if(data.metadata.contextMenuSettings) {
-                        // Deep merge to preserve defaults for any missing keys
-                        this.contextMenuSettings = this.deepMerge(this.contextMenuSettings, data.metadata.contextMenuSettings);
-                    }
-                    this.publishSettings(); // Publish updated settings
+            // Load metadata first, as it's independent of content
+            if (data.metadata) {
+                this.projectName = data.metadata.projectName || 'Untitled Graph';
+                this.thumbnailUrl = data.metadata.thumbnailUrl || '';
+                if(data.metadata.contextMenuSettings) {
+                    this.contextMenuSettings = this.deepMerge(this.contextMenuSettings, data.metadata.contextMenuSettings);
                 }
+                this.publishSettings();
+            }
 
-                // Create nodes first, mapping old IDs to new ones in case of conflicts
-                const idMap = new Map();
-                data.nodes.forEach(nodeData => {
-                    // It's safer to generate new IDs to avoid any potential weirdness
-                    const oldId = nodeData.id;
-                    const newId = crypto.randomUUID();
-                    idMap.set(oldId, newId);
-                    nodeData.id = newId;
-
-                    // Let the node be created with the old contained IDs for now.
-                    // We will map them to the new IDs after all nodes are created.
-                    events.publish('node:create', nodeData);
+            // --- Pre-calculate framing ---
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            let hasContent = false;
+            if (data.nodes && data.nodes.length > 0) {
+                data.nodes.forEach(node => {
+                    minX = Math.min(minX, node.x);
+                    minY = Math.min(minY, node.y);
+                    maxX = Math.max(maxX, node.x + node.width);
+                    maxY = Math.max(maxY, node.y + node.height);
+                    hasContent = true;
                 });
+            }
 
-                // After ALL nodes are created and have new IDs, update the group memberships
-                this.nodes.forEach(node => {
-                    if (node instanceof GroupNode) {
-                        const newContainedIds = new Set();
-                        // node.containedNodeIds currently holds the OLD IDs from the JSON file
-                        node.containedNodeIds.forEach(oldId => {
-                            const newId = idMap.get(oldId);
-                            if (newId) {
-                                newContainedIds.add(newId);
-                            }
-                        });
-                        node.containedNodeIds = newContainedIds;
-                    }
-                });
+            if (hasContent) {
+                const padding = 100;
+                const selectionWidth = (maxX - minX) + padding * 2;
+                const selectionHeight = (maxY - minY) + padding * 2;
+                const containerRect = this.container.getBoundingClientRect();
+                
+                const targetScale = Math.min(
+                    containerRect.width / selectionWidth, 
+                    containerRect.height / selectionHeight,
+                    1.5 // Cap max zoom level
+                );
 
-                // Create edges with the newly mapped node IDs
-                data.edges.forEach(edgeData => {
-                    edgeData.startNodeId = idMap.get(edgeData.startNodeId);
-                    edgeData.endNodeId = idMap.get(edgeData.endNodeId);
-                    if (edgeData.startNodeId && edgeData.endNodeId) {
-                        events.publish('edge:create', edgeData);
-                    }
-                });
+                const selectionCenterX = minX + (maxX - minX) / 2;
+                const selectionCenterY = minY + (maxY - minY) / 2;
+                const targetOffsetX = (containerRect.width / 2) - (selectionCenterX * targetScale);
+                const targetOffsetY = (containerRect.height / 2) - (selectionCenterY * targetScale);
 
-                // Frame the newly loaded content
-                this.frameSelection();
+                // Set initial state for subtle zoom-in effect
+                const initialScale = targetScale * 0.9;
+                this.panZoom.scale = initialScale;
+                this.panZoom.offsetX = (containerRect.width / 2) - (selectionCenterX * initialScale);
+                this.panZoom.offsetY = (containerRect.height / 2) - (selectionCenterY * initialScale);
+                this.updateCanvasTransform();
 
-                console.log("Graph loaded.");
-            }, 100);
+                // Defer node creation and animation
+                setTimeout(() => {
+                    const idMap = new Map();
+                    data.nodes.forEach(nodeData => {
+                        const oldId = nodeData.id;
+                        const newId = crypto.randomUUID();
+                        idMap.set(oldId, newId);
+                        nodeData.id = newId;
+                        events.publish('node:create', nodeData);
+                    });
+
+                    this.nodes.forEach(node => {
+                        if (node instanceof GroupNode) {
+                            const newContainedIds = new Set();
+                            node.containedNodeIds.forEach(oldId => {
+                                const newId = idMap.get(oldId);
+                                if (newId) newContainedIds.add(newId);
+                            });
+                            node.containedNodeIds = newContainedIds;
+                        }
+                    });
+
+                    data.edges.forEach(edgeData => {
+                        edgeData.startNodeId = idMap.get(edgeData.startNodeId);
+                        edgeData.endNodeId = idMap.get(edgeData.endNodeId);
+                        if (edgeData.startNodeId && edgeData.endNodeId) {
+                            events.publish('edge:create', edgeData);
+                        }
+                    });
+                    
+                    this.animatePanZoom(targetScale, targetOffsetX, targetOffsetY, 400);
+                    console.log("Graph loaded.");
+                }, 10);
+
+            } else {
+                 // Reset pan and zoom if loading an empty graph
+                this.panZoom.scale = 1;
+                this.panZoom.offsetX = 0;
+                this.panZoom.offsetY = 0;
+                this.updateCanvasTransform();
+            }
 
         } catch (error) {
             console.error("Failed to load graph:", error);
