@@ -3432,21 +3432,23 @@ class NodeUI {
                     idMap.set(oldId, newId);
                     nodeData.id = newId;
 
-                    // Ensure containedNodeIds are preserved for groups (will be mapped later)
-                    if (nodeData.type === 'GroupNode') {
-                        nodeData.oldContainedIds = nodeData.containedNodeIds;
-                    }
-
+                    // Let the node be created with the old contained IDs for now.
+                    // We will map them to the new IDs after all nodes are created.
                     events.publish('node:create', nodeData);
                 });
 
-                // Update containedNodeIds in groups to use the new IDs
+                // After ALL nodes are created and have new IDs, update the group memberships
                 this.nodes.forEach(node => {
-                    if (node instanceof GroupNode && node.oldContainedIds) {
-                        node.containedNodeIds = new Set(
-                            node.oldContainedIds.map(oldId => idMap.get(oldId)).filter(Boolean)
-                        );
-                        delete node.oldContainedIds;
+                    if (node instanceof GroupNode) {
+                        const newContainedIds = new Set();
+                        // node.containedNodeIds currently holds the OLD IDs from the JSON file
+                        node.containedNodeIds.forEach(oldId => {
+                            const newId = idMap.get(oldId);
+                            if (newId) {
+                                newContainedIds.add(newId);
+                            }
+                        });
+                        node.containedNodeIds = newContainedIds;
                     }
                 });
 
