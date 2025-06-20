@@ -268,6 +268,9 @@ class NodeUI {
         this.container.addEventListener('dragover', this.onDragOver.bind(this));
         this.container.addEventListener('dragleave', this.onDragLeave.bind(this));
         this.container.addEventListener('drop', this.onDrop.bind(this));
+
+        // Add paste event listener for URLs
+        document.removeEventListener('paste', this.onPaste.bind(this));
     }
 
     /**
@@ -1180,7 +1183,7 @@ class NodeUI {
      * Handles keyboard shortcuts for cut, copy, and paste.
      * @param {KeyboardEvent} event 
      */
-    onKeyDown(event) {
+    async onKeyDown(event) {
         // Use event.metaKey for Command key on macOS
         const isModKey = event.ctrlKey || event.metaKey;
         const target = event.target;
@@ -1198,7 +1201,60 @@ class NodeUI {
             this.cutSelection();
         } else if (isModKey && key === 'v' && !isEditingContent) {
             event.preventDefault();
-            this.paste();
+            
+            // Priority 1: If the internal clipboard has nodes, paste them.
+            if (this.clipboard.nodes.length > 0) {
+                this.paste();
+                return;
+            }
+
+            // Priority 2: If internal clipboard is empty, try to paste from the system clipboard.
+            try {
+                const clipboardText = await navigator.clipboard.readText();
+                if (!clipboardText) return; // Nothing to paste
+
+                const videoUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+|(\.mp4|\.webm|\.ogg)$/i;
+    
+                // Determine position for new node
+                const position = this.getMousePosition(this.lastMousePosition);
+                let nodeData;
+
+                if (videoUrlRegex.test(clipboardText)) {
+                    // It's a video link
+                    events.publish('log:info', `Pasting video from system clipboard.`);
+                    nodeData = {
+                        width: 350,
+                        height: 300,
+                        title: 'Pasted Video',
+                        content: `![video](${clipboardText})`
+                    };
+                } else {
+                    // It's regular text
+                    events.publish('log:info', `Pasting text from system clipboard.`);
+                    nodeData = {
+                        width: 250,
+                        height: 150,
+                        title: 'Pasted Text',
+                        content: clipboardText
+                    };
+                }
+
+                // Create the new node
+                events.publish('node:create', {
+                    x: position.x - nodeData.width / 2,
+                    y: position.y - nodeData.height / 2,
+                    width: nodeData.width,
+                    height: nodeData.height,
+                    title: nodeData.title,
+                    content: nodeData.content,
+                    type: 'BaseNode',
+                    color: 'default'
+                });
+
+            } catch (err) {
+                // This can happen if clipboard is empty or doesn't contain text.
+                console.warn('Could not read from system clipboard or content was not text.', err);
+            }
         } else if (key === 'g' && !isModKey && !isEditingContent) {
             event.preventDefault();
             this.groupSelection();
@@ -2122,7 +2178,8 @@ class NodeUI {
             }
         });
         
-        console.log(`Copied ${this.clipboard.nodes.length} nodes and ${this.clipboard.edges.length} edges.`);
+        events.publish('log:info', `Copied ${this.clipboard.nodes.length} nodes and ${this.clipboard.edges.length} edges to internal clipboard.`);
+        events.publish('clipboard:changed', this.clipboard);
     }
 
     /**
@@ -2136,6 +2193,7 @@ class NodeUI {
         this.clipboard.edges.forEach(edge => events.publish('edge:delete', edge.id));
         
         this.clearSelection();
+        events.publish('clipboard:changed', this.clipboard);
     }
 
     /**
@@ -2143,6 +2201,8 @@ class NodeUI {
      */
     paste() {
         if (this.clipboard.nodes.length === 0) return;
+        const pasteCount = this.clipboard.nodes.length;
+        events.publish('log:info', `Pasting ${pasteCount} nodes from internal clipboard.`);
 
         const idMap = new Map(); // Maps old IDs to new IDs
         const nodesToPin = [];   // Keep track of nodes that should be pinned after creation
@@ -2234,7 +2294,11 @@ class NodeUI {
             selectedNodeIds: Array.from(this.selectedNodes)
         });
 
-        console.log(`Pasted ${this.clipboard.nodes.length} nodes.`);
+        // Clear the clipboard after pasting to prevent accidental re-pasting of nodes
+        this.clipboard = { nodes: [], edges: [] };
+        events.publish('clipboard:changed', this.clipboard);
+
+        console.log(`Pasted ${pasteCount} nodes.`);
     }
 
     // --- Edge Cutting Logic ---
@@ -4067,6 +4131,28 @@ class NodeUI {
                 return;
             }
 
+            // Handle video embedding
+            if (file.type.startsWith('video/')) {
+                assetDb.saveFile(file).then(fileId => {
+                    const nodeWidth = 350;
+                    const nodeHeight = 300;
+
+                    events.publish('node:create', {
+                        x: filePosition.x - nodeWidth / 2,
+                        y: filePosition.y - nodeHeight / 2,
+                        width: nodeWidth,
+                        height: nodeHeight,
+                        title: file.name,
+                        content: `![video](local-video://${fileId})`,
+                        type: 'BaseNode',
+                        color: 'default'
+                    });
+                }).catch(error => {
+                    console.error('Failed to save video to asset database:', error);
+                });
+                return;
+            }
+
             // Handle image embedding
             if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
@@ -4240,6 +4326,43 @@ class NodeUI {
             }
         }
         return null;
+    }
+
+    /**
+     * Handles pasting content from the clipboard, such as URLs.
+     * @param {ClipboardEvent} event
+     */
+    onPaste(event) {
+        // Ignore paste events if the user is editing text inside an input or a node.
+        if (event.target.isContentEditable || event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+            return;
+        }
+
+        // Get pasted text from clipboard
+        const pastedText = event.clipboardData.getData('text/plain').trim();
+        if (!pastedText) return;
+
+        // Regex to specifically check for video links (YouTube, .mp4, etc.)
+        const videoUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+|(\.mp4|\.webm|\.ogg)$/i;
+
+        if (videoUrlRegex.test(pastedText)) {
+            event.preventDefault(); // We're handling it, so prevent default paste.
+            
+            const position = this.getMousePosition(this.lastMousePosition);
+            const nodeWidth = 350;
+            const nodeHeight = 300; // Give it a bit more height for video controls
+
+            events.publish('node:create', {
+                x: position.x - nodeWidth / 2,
+                y: position.y - nodeHeight / 2,
+                width: nodeWidth,
+                height: nodeHeight,
+                title: 'Pasted Video',
+                content: `![video](${pastedText})`,
+                type: 'BaseNode',
+                color: 'default' // Or a specific color for videos
+            });
+        }
     }
 }
 

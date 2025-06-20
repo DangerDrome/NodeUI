@@ -43,6 +43,9 @@ class LogNode extends BaseNode {
         // Subscribe to all events
         this.eventSubscription = events.subscribe('*', this.logEventHandler.bind(this));
 
+        events.subscribe('log:info', this.addLogEntry.bind(this));
+        events.subscribe('clipboard:changed', (data) => this.updateClipboardView(data));
+
         return this.element;
     }
 
@@ -148,5 +151,32 @@ class LogNode extends BaseNode {
             this.eventSubscription.unsubscribe();
             this.eventSubscription = null;
         }
+    }
+
+    /**
+     * Updates the clipboard view with the current items.
+     * @param {object} [clipboardData={nodes: [], edges: []}]
+     */
+    updateClipboardView(clipboardData = { nodes: [], edges: [] }) {
+        const { nodes = [], edges = [] } = clipboardData;
+        
+        let content = '<h3>Clipboard</h3><div class="log-clipboard-content">';
+        if (nodes.length === 0 && edges.length === 0) {
+            content += '<span class="log-clipboard-empty">Clipboard is empty.</span>';
+        } else {
+            if (nodes.length > 0) {
+                content += `<div><strong>Nodes (${nodes.length}):</strong><ul>`;
+                nodes.forEach(node => {
+                    content += `<li>${node.title || 'Untitled Node'}</li>`;
+                });
+                content += '</ul></div>';
+            }
+            if (edges.length > 0) {
+                content += `<div><strong>Edges (${edges.length})</strong></div>`;
+            }
+        }
+        content += '</div>';
+        
+        this.clipboardContainer.innerHTML = content;
     }
 } 

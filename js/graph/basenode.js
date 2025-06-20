@@ -199,31 +199,28 @@ class BaseNode {
      * Renders the node's markdown content into the given element.
      * @param {HTMLElement} contentArea The element to render into.
      */
-    renderMarkdown(contentArea) {
-        if (typeof marked === 'undefined') {
-            console.warn('marked.js is not loaded. Cannot render markdown.');
+    async renderMarkdown(contentArea) {
+        if (!window.markdownProcessor) {
+            console.warn('Markdown processor (remark) is not ready.');
             contentArea.innerText = this.content || '';
             return;
         }
-        if (typeof hljs === 'undefined') {
-            console.warn('highlight.js is not loaded. Cannot highlight code.');
+
+        try {
+            const file = await window.markdownProcessor.process(this.content || '');
+            const dirtyHtml = String(file);
+
+            // Sanitize the HTML to prevent XSS attacks before inserting it.
+            contentArea.innerHTML = DOMPurify.sanitize(dirtyHtml, {
+                ADD_TAGS: ['iframe', 'div'],
+                ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'src', 'style'],
+                // Allow YouTube and other video sources, including blob URLs
+                ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|ftp|tel|callto|sms|blob):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+            });
+        } catch (error) {
+            console.error('Error processing markdown:', error);
+            contentArea.innerText = this.content || '';
         }
-
-        // Configure marked to use highlight.js for code blocks
-        marked.setOptions({
-            highlight: function(code, lang) {
-                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-                return hljs.highlight(code, { language }).value;
-            },
-            gfm: true, // Enable GitHub Flavored Markdown
-            breaks: true // Interpret carriage returns as <br>
-        });
-
-        // Use 'marked.parse' which is the modern way to call it
-        const dirtyHtml = marked.parse(this.content || '');
-
-        // Sanitize the HTML to prevent XSS attacks before inserting it.
-        contentArea.innerHTML = DOMPurify.sanitize(dirtyHtml);
     }
 
     /**

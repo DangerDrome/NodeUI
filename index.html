@@ -20,15 +20,87 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <!-- External Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    
+    <script type="module">
+        import {unified} from 'https://esm.sh/unified'
+        import {visit} from 'https://esm.sh/unist-util-visit'
+        import remarkParse from 'https://esm.sh/remark-parse'
+        import remarkGfm from 'https://esm.sh/remark-gfm'
+        import remarkBreaks from 'https://esm.sh/remark-breaks'
+        import remarkRehype from 'https://esm.sh/remark-rehype'
+        import rehypeRaw from 'https://esm.sh/rehype-raw'
+        import rehypeHighlight from 'https://esm.sh/rehype-highlight'
+        import rehypeStringify from 'https://esm.sh/rehype-stringify'
+
+        function remarkVideo() {
+            return async (tree) => {
+                const nodesToTransform = [];
+
+                visit(tree, 'image', (node) => {
+                    if (node.alt && node.alt.toLowerCase() === 'video') {
+                        nodesToTransform.push(node);
+                    }
+                });
+
+                for (const node of nodesToTransform) {
+                    const url = node.url.trim();
+
+                    if (url.startsWith('local-video://')) {
+                        try {
+                            const fileId = url.substring('local-video://'.length);
+                            const file = await assetDb.getFile(fileId);
+                            const blobUrl = URL.createObjectURL(file);
+                            node.type = 'html';
+                            node.value = `<video controls width="100%"><source src="${blobUrl}"></video>`;
+                        } catch (error) {
+                            console.error(`Failed to load local video ${url}:`, error);
+                            node.type = 'html';
+                            node.value = `<p>Error loading video: ${url}</p>`;
+                        }
+                    } else {
+                        const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/;
+                        const youtubeMatch = url.match(youtubeRegex);
+
+                        if (youtubeMatch) {
+                            const videoId = youtubeMatch[1];
+                            node.type = 'html';
+                            node.value = `
+                                <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;">
+                                    <iframe 
+                                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                                        src="https://www.youtube.com/embed/${videoId}" 
+                                        frameborder="0" 
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                        allowfullscreen>
+                                    </iframe>
+                                </div>`;
+                        } else {
+                            node.type = 'html';
+                            node.value = `<video controls width="100%"><source src="${url}"></video>`;
+                        }
+                    }
+                }
+            };
+        }
+
+        window.markdownProcessor = unified()
+            .use(remarkParse)
+            .use(remarkGfm)
+            .use(remarkBreaks)
+            .use(remarkVideo)
+            .use(remarkRehype, { allowDangerousHtml: true })
+            .use(rehypeRaw)
+            .use(rehypeHighlight)
+            .use(rehypeStringify)
+    </script>
 
     <!-- NodeUI Scripts -->
     <script src="js/events.js"></script>
     <script src="js/logs.js"></script>
+    <script src="js/database.js"></script>
     <script src="js/ui.js"></script>
     
     <!-- Base Classes -->
