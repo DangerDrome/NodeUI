@@ -4107,6 +4107,29 @@ class NodeUI {
                 return;
             }
 
+            // Handle markdown file embedding
+            if (file.type === 'text/markdown' || file.name.endsWith('.md') || file.name.endsWith('.markdown')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const markdownContent = e.target.result;
+                    const nodeWidth = 200;
+                    const nodeHeight = 120;
+
+                    events.publish('node:create', {
+                        x: filePosition.x - nodeWidth / 2,
+                        y: filePosition.y - nodeHeight / 2,
+                        width: nodeWidth,
+                        height: nodeHeight,
+                        title: file.name.replace(/\.(md|markdown)$/i, ''),
+                        content: markdownContent,
+                        type: 'BaseNode',
+                        color: 'default'
+                    });
+                };
+                reader.readAsText(file);
+                return;
+            }
+
             console.warn("Unsupported file type dropped:", file.name, file.type);
         });
     }

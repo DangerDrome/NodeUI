@@ -314,7 +314,6 @@ body {
     overflow-wrap: break-word;
     white-space: pre-wrap;
     outline: none; /* Disable default browser outline for contenteditable */
-    scrollbar-width: none; /* For Firefox */
 }
 
 .node-content[contenteditable="true"] {
@@ -508,7 +507,7 @@ body {
 
 /* Custom scrollbar for node content */
 .node-content::-webkit-scrollbar {
-    display: none; /* For Webkit browsers */
+    width: 16px;
 }
 
 .node-content::-webkit-scrollbar-track {
