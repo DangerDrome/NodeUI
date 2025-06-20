@@ -175,26 +175,8 @@ class NodeUI {
         this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         this.svg.classList.add('node-ui-canvas');
 
-        const edgeDefs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        this.createMarkers();
         
-        // A single, generic marker that inherits color from the edge
-        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-        marker.id = 'arrowhead';
-        marker.setAttribute('viewBox', '0 0 10 10');
-        marker.setAttribute('refX', '8');
-        marker.setAttribute('refY', '5');
-        marker.setAttribute('markerWidth', '6');
-        marker.setAttribute('markerHeight', '6');
-        marker.setAttribute('orient', 'auto-start-reverse');
-        
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
-        path.style.fill = 'currentColor'; // Inherit color from the path it's attached to
-        marker.appendChild(path);
-        edgeDefs.appendChild(marker);
-        
-        this.svg.appendChild(edgeDefs);
-
         this.canvasGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         this.svg.appendChild(this.canvasGroup);
         
@@ -223,6 +205,37 @@ class NodeUI {
         this.subscribeToEvents();
 
         console.log('%c[NodeUI]%c Service initialized.', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
+    }
+
+    /**
+     * Creates SVG markers for edge arrowheads for each color state.
+     */
+    createMarkers() {
+        const edgeDefs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        const colors = ['default', 'red', 'green', 'blue', 'yellow', 'purple'];
+        const states = ['border', 'border-hover'];
+
+        colors.forEach(color => {
+            states.forEach(state => {
+                const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+                marker.id = `arrowhead-${color}-${state}`;
+                marker.setAttribute('viewBox', '0 0 10 10');
+                marker.setAttribute('refX', '8');
+                marker.setAttribute('refY', '5');
+                marker.setAttribute('markerWidth', '6');
+                marker.setAttribute('markerHeight', '6');
+                marker.setAttribute('orient', 'auto-start-reverse');
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+                path.style.fill = `var(--color-node-${color}-${state})`;
+                
+                marker.appendChild(path);
+                edgeDefs.appendChild(marker);
+            });
+        });
+
+        this.svg.appendChild(edgeDefs);
     }
 
     /**
@@ -1528,13 +1541,15 @@ class NodeUI {
         // Create a temporary path element
         const tempEdge = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         tempEdge.classList.add('edge', 'edge-drawing');
-        tempEdge.setAttribute('marker-end', 'url(#arrowhead)');
-        
-        // Set the drawing color for both stroke and marker fill
-        const drawColor = getComputedStyle(startNode.element).getPropertyValue(`--color-node-${startNode.color}-border`);
-        tempEdge.style.stroke = drawColor;
-        tempEdge.style.color = drawColor;
 
+        const nodeColor = startNode.color || 'default';
+        // Use the hover state for the marker since this is an active interaction
+        tempEdge.setAttribute('marker-end', `url(#arrowhead-${nodeColor}-border-hover)`);
+        
+        // Set the --edge-draw-color variable for this specific edge to match the start node's hover color
+        const drawColor = getComputedStyle(document.documentElement).getPropertyValue(`--color-node-${nodeColor}-border-hover`).trim();
+        tempEdge.style.setProperty('--edge-draw-color', drawColor);
+        
         this.canvasGroup.appendChild(tempEdge);
         this.edgeDrawingState.tempEdgeElement = tempEdge;
     }
@@ -1763,7 +1778,7 @@ class NodeUI {
             case 'top':    paddedEndPos.y -= padding; break;
             case 'bottom': paddedEndPos.y += padding; break;
             case 'left':   paddedEndPos.x -= padding; break;
-            case 'right':  paddedEndPos.x -= padding; break;
+            case 'right':  paddedEndPos.x += padding; break;
             case 'auto':   break; // No padding for auto-oriented end
         }
 
@@ -1839,6 +1854,10 @@ class NodeUI {
                 const nodeColor = node.color || 'default';
                 edge.groupElement.dataset.color = nodeColor;
                 
+                // Update the marker based on the new color
+                const markerState = edge.groupElement.classList.contains('is-hovered') ? 'border-hover' : 'border';
+                edge.element.setAttribute('marker-end', `url(#arrowhead-${nodeColor}-${markerState})`);
+
                 this.updateEdge(edge.id);
             } else if (edge.endNodeId === nodeId) {
                 // If the node is the end of an edge, only its position changes.

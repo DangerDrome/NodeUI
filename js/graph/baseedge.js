@@ -97,12 +97,20 @@ class BaseEdge {
         if (startNodeEl) {
             const nodeColor = startNodeEl.dataset.color || 'default';
             this.groupElement.dataset.color = nodeColor;
-            this.element.setAttribute('marker-end', 'url(#arrowhead)');
+            this.element.setAttribute('marker-end', `url(#arrowhead-${nodeColor}-border)`);
         }
 
         // Add hover effects to the group to show routing handles and trigger CSS changes
-        this.hitArea.addEventListener('mouseenter', () => this.groupElement.classList.add('is-hovered'));
-        this.hitArea.addEventListener('mouseleave', () => this.groupElement.classList.remove('is-hovered'));
+        this.hitArea.addEventListener('mouseenter', () => {
+            this.groupElement.classList.add('is-hovered');
+            const nodeColor = this.groupElement.dataset.color || 'default';
+            this.element.setAttribute('marker-end', `url(#arrowhead-${nodeColor}-border-hover)`);
+        });
+        this.hitArea.addEventListener('mouseleave', () => {
+            this.groupElement.classList.remove('is-hovered');
+            const nodeColor = this.groupElement.dataset.color || 'default';
+            this.element.setAttribute('marker-end', `url(#arrowhead-${nodeColor}-border)`);
+        });
         
         this.hitArea.addEventListener('click', (event) => {
             event.stopPropagation();

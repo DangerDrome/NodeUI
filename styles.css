@@ -529,6 +529,14 @@ body {
 
 /* 7. EDGE STYLES
 -------------------------------------------------------------------------------- */
+/* 
+ * Arrowhead Color Control
+ * The arrowhead's fill is controlled by the `.edge-arrowhead` class.
+ * By default, it's set to 'currentColor', which means its color is inherited
+ * from the 'color' CSS property of the .edge path it is attached to.
+ * To change the arrow color, change the 'color' property in the rules below.
+ */
+
 .edge {
     fill: none;
     stroke-width: 2px;
@@ -538,12 +546,15 @@ body {
     color: var(--color-node-default-border-hover);
 }
 
-/* 
- * Arrowhead Color Control
- * The arrowhead's fill is set to 'currentColor' in the SVG marker definition (in nodeui.js).
- * This means its color is controlled by the 'color' CSS property of the .edge path it is attached to.
- * To change the arrow color, change the 'color' property in the rules below.
- */
+.edge-arrowhead {
+    /* The fill is now set directly on the marker path via JS/CSS variables. */
+    /* This class is kept for potential future use but has no direct styling. */
+    transition: fill 0.2s ease;
+}
+
+.edge-arrowhead.is-hovered {
+    fill: var(--color-node-default-border-hover);
+}
 
 /* Utility class to hide an arrowhead on a specific edge */
 .edge.no-arrowhead {
@@ -557,20 +568,20 @@ g.is-hovered .edge {
 }
 
 /* Color overrides based on parent group's data-color attribute */
-g[data-color="red"] .edge { stroke: var(--color-node-red-border); color: var(--color-node-red-border) !important; }
-g[data-color="red"].is-hovered .edge { stroke: var(--color-node-red-border-hover); color: var(--color-node-red-border-hover) !important; }
+g[data-color="red"] .edge { stroke: var(--color-node-red-border); color: var(--color-node-red-border); }
+g[data-color="red"].is-hovered .edge { stroke: var(--color-node-red-border-hover); color: var(--color-node-red-border-hover); }
 
-g[data-color="green"] .edge { stroke: var(--color-node-green-border); color: var(--color-node-green-border) !important; }
-g[data-color="green"].is-hovered .edge { stroke: var(--color-node-green-border-hover); color: var(--color-node-green-border-hover) !important; }
+g[data-color="green"] .edge { stroke: var(--color-node-green-border); color: var(--color-node-green-border); }
+g[data-color="green"].is-hovered .edge { stroke: var(--color-node-green-border-hover); color: var(--color-node-green-border-hover); }
 
-g[data-color="blue"] .edge { stroke: var(--color-node-blue-border); color: var(--color-node-blue-border) !important; }
-g[data-color="blue"].is-hovered .edge { stroke: var(--color-node-blue-border-hover); color: var(--color-node-blue-border-hover) !important; }
+g[data-color="blue"] .edge { stroke: var(--color-node-blue-border); color: var(--color-node-blue-border); }
+g[data-color="blue"].is-hovered .edge { stroke: var(--color-node-blue-border-hover); color: var(--color-node-blue-border-hover); }
 
-g[data-color="yellow"] .edge { stroke: var(--color-node-yellow-border); color: var(--color-node-yellow-border) !important; }
-g[data-color="yellow"].is-hovered .edge { stroke: var(--color-node-yellow-border-hover); color: var(--color-node-yellow-border-hover) !important; }
+g[data-color="yellow"] .edge { stroke: var(--color-node-yellow-border); color: var(--color-node-yellow-border); }
+g[data-color="yellow"].is-hovered .edge { stroke: var(--color-node-yellow-border-hover); color: var(--color-node-yellow-border-hover); }
 
-g[data-color="purple"] .edge { stroke: var(--color-node-purple-border); color: var(--color-node-purple-border) !important; }
-g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border-hover); color: var(--color-node-purple-border-hover) !important; }
+g[data-color="purple"] .edge { stroke: var(--color-node-purple-border); color: var(--color-node-purple-border); }
+g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border-hover); color: var(--color-node-purple-border-hover); }
 
 .edge-hit-area {
     fill: none;
@@ -1144,7 +1155,7 @@ g[data-color="purple"] .edge-label-background { fill: var(--color-node-purple-bo
 .icon-camera { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-camera"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-camera"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>'); }
 .icon-network { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-network"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-network"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg>'); }
 .icon-file-text { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>'); }
-.icon-edit { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-3"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-3"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>');}
+.icon-edit { -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-3"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-3"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'); }
 
 /* Added for clipboard */
 .icon-scissors {
