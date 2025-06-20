@@ -34,6 +34,14 @@
     --color-accent: #3ecf8e;
     --color-danger: #e5484d;
 
+    /* Canvas Background */
+    --color-bg-canvas: transparent;
+    --color-bg-canvas-red: rgba(229, 72, 77, 0.1);
+    --color-bg-canvas-green: rgba(62, 207, 142, 0.1);
+    --color-bg-canvas-blue: rgba(0, 144, 255, 0.1);
+    --color-bg-canvas-yellow: rgba(249, 199, 79, 0.1);
+    --color-bg-canvas-purple: rgba(157, 78, 221, 0.1);
+
     /* Node Colors */
     --color-node-default-bg: rgba(58, 58, 58, 0.5);
     --color-node-default-border: rgba(90, 90, 90, 0.8);
@@ -129,6 +137,7 @@ body {
     position: relative;
     overflow: hidden;
     cursor: default;
+    background-color: var(--color-bg-canvas);
 }
 
 #pinned-node-container {
@@ -818,6 +827,15 @@ g[data-color="purple"] .edge-label-background { fill: var(--color-node-purple-bo
     height: 24px;
 }
 
+.context-menu-swatch {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border-default);
+    margin: 4px; /* Center it inside the 24x24 icon container */
+}
+
 .context-menu-separator {
     height: 0;
     padding: 0;
@@ -844,6 +862,17 @@ g[data-color="purple"] .edge-label-background { fill: var(--color-node-purple-bo
     opacity: 0.5;
 }
 
+.context-menu li.has-submenu {
+    justify-content: space-between;
+}
+
+.submenu-arrow {
+    margin-left: 16px;
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+}
+
 .context-menu-input {
     width: 100%;
     background-color: var(--color-bg-default);
@@ -858,6 +887,7 @@ g[data-color="purple"] .edge-label-background { fill: var(--color-node-purple-bo
 
 .icon-anchor, .icon-aperture, .icon-bomb, .icon-bot, .icon-bug, .icon-cloud-lightning, .icon-codesandbox, .icon-cpu, .icon-database, .icon-diamond, .icon-feather, .icon-figma, .icon-ghost,
 .icon-scissors, .icon-copy, .icon-clipboard, .icon-pin, .icon-terminal, .icon-settings, .icon-download, .icon-upload, .icon-check, .icon-camera, .icon-network, .icon-file-text, .icon-layout-panel-left,
+.icon-droplet, .icon-paint-roller, .icon-play, .icon-paint-bucket,
 .icon-edit {
     display: inline-block;
     width: 16px;
@@ -870,6 +900,18 @@ g[data-color="purple"] .edge-label-background { fill: var(--color-node-purple-bo
 .icon-layout-panel-left {
     -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-panel-left"><rect width="7" height="18" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>');
     mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-panel-left"><rect width="7" height="18" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>');
+}
+.icon-droplet {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-droplet"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-2-1-2H6s-1 0-1 2a7 7 0 0 0 7 7z"/><path d="M12 2a7 7 0 0 0-7 7c0 2 1 2 1 2h12s1 0 1-2a7 7 0 0 0-7-7z"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-droplet"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-2-1-2H6s-1 0-1 2a7 7 0 0 0 7 7z"/><path d="M12 2a7 7 0 0 0-7 7c0 2 1 2 1 2h12s1 0 1-2a7 7 0 0 0-7-7z"/></svg>');
+}
+.icon-paint-roller {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-paint-roller"><rect width="16" height="6" x="2" y="12" rx="2"/><path d="M18 12v-2a4 4 0 0 0-4-4H8"/><path d="M6 12V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-paint-roller"><rect width="16" height="6" x="2" y="12" rx="2"/><path d="M18 12v-2a4 4 0 0 0-4-4H8"/><path d="M6 12V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>');
+}
+.icon-play {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play"><polygon points="6 3 20 12 6 21 6 3"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play"><polygon points="6 3 20 12 6 21 6 3"/></svg>');
 }
 .icon-box { 
     -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-box"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></svg>');
@@ -1024,6 +1066,17 @@ g[data-color="purple"] .edge-label-background { fill: var(--color-node-purple-bo
     opacity: 0.5;
 }
 
+.context-menu li.has-submenu {
+    justify-content: space-between;
+}
+
+.submenu-arrow {
+    margin-left: 16px;
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+}
+
 .context-menu-input {
     width: 100%;
     background-color: var(--color-bg-default);
@@ -1076,6 +1129,7 @@ g[data-color="purple"] .edge-label-background { fill: var(--color-node-purple-bo
 .icon-box, .icon-sun-medium, .icon-more-horizontal, .icon-plus-square, .icon-grid-2x2, .icon-magnet, .icon-plus, .icon-trash-2, .icon-git-commit, .icon-group, .icon-refresh-cw,
 .icon-anchor, .icon-aperture, .icon-bomb, .icon-bot, .icon-bug, .icon-cloud-lightning, .icon-codesandbox, .icon-cpu, .icon-database, .icon-diamond, .icon-feather, .icon-figma, .icon-ghost,
 .icon-scissors, .icon-copy, .icon-clipboard, .icon-pin, .icon-terminal, .icon-settings, .icon-download, .icon-upload, .icon-check, .icon-camera, .icon-network, .icon-file-text, .icon-layout-panel-left,
+.icon-droplet, .icon-paint-roller, .icon-play, .icon-paint-bucket,
 .icon-edit {
     display: inline-block;
     width: 16px;
@@ -1089,6 +1143,18 @@ g[data-color="purple"] .edge-label-background { fill: var(--color-node-purple-bo
 .icon-layout-panel-left {
     -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-panel-left"><rect width="7" height="18" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>');
     mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-panel-left"><rect width="7" height="18" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>');
+}
+.icon-droplet {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-droplet"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-2-1-2H6s-1 0-1 2a7 7 0 0 0 7 7z"/><path d="M12 2a7 7 0 0 0-7 7c0 2 1 2 1 2h12s1 0 1-2a7 7 0 0 0-7-7z"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-droplet"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-2-1-2H6s-1 0-1 2a7 7 0 0 0 7 7z"/><path d="M12 2a7 7 0 0 0-7 7c0 2 1 2 1 2h12s1 0 1-2a7 7 0 0 0-7-7z"/></svg>');
+}
+.icon-paint-roller {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-paint-roller"><rect width="16" height="6" x="2" y="12" rx="2"/><path d="M18 12v-2a4 4 0 0 0-4-4H8"/><path d="M6 12V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-paint-roller"><rect width="16" height="6" x="2" y="12" rx="2"/><path d="M18 12v-2a4 4 0 0 0-4-4H8"/><path d="M6 12V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>');
+}
+.icon-play {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play"><polygon points="6 3 20 12 6 21 6 3"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play"><polygon points="6 3 20 12 6 21 6 3"/></svg>');
 }
 .icon-box { 
     -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-box"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></svg>');
@@ -1771,4 +1837,13 @@ input:checked + .slider:before {
 
 #ui-settings-card .setting-row {
     grid-template-columns: 1fr auto;
+}
+
+.icon-paint-bucket {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-paint-bucket"><path d="m14 12-5.228 5.228a2.828 2.828 0 0 0 4 4L18 16"/><path d="m14 12-8.502-8.502a2.828 2.828 0 1 0-4 4L10 16.5"/><path d="M12 2a2 2 0 0 0-2 2v4h4V4a2 2 0 0 0-2-2z"/><path d="M4 14a2 2 0 1 0 4 0 2 2 0 1 0-4 0z"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-paint-bucket"><path d="m14 12-5.228 5.228a2.828 2.828 0 0 0 4 4L18 16"/><path d="m14 12-8.502-8.502a2.828 2.828 0 1 0-4 4L10 16.5"/><path d="M12 2a2 2 0 0 0-2 2v4h4V4a2 2 0 0 0-2-2z"/><path d="M4 14a2 2 0 1 0 4 0 2 2 0 1 0-4 0z"/></svg>');
+}
+.icon-play {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play"><polygon points="6 3 20 12 6 21 6 3"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play"><polygon points="6 3 20 12 6 21 6 3"/></svg>');
 }

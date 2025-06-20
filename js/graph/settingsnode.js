@@ -78,6 +78,17 @@ class SettingsNode extends BaseNode {
         contentArea.appendChild(wrapper);
 
         this.addEventListeners();
+        this.addSettingChangeListeners();
+        this.populateSettings();
+
+        // Prevent the node from dragging when interacting with its content,
+        // but still allow dragging from the background of the panel.
+        container.addEventListener('mousedown', (e) => {
+            // Check if the mousedown event originated on an interactive element.
+            if (e.target.closest('input, button, label, .slider')) {
+                e.stopPropagation();
+            }
+        });
     }
 
     /**
@@ -125,6 +136,7 @@ class SettingsNode extends BaseNode {
         card.appendChild(this.createToggle('snapToGrid', 'Snap to Grid'));
         card.appendChild(this.createSlider('snapThreshold', 'Snap Threshold', 1, 20, 1));
         card.appendChild(this.createSlider('shakeSensitivity', 'Shake Sensitivity', 1, 10, 0.5));
+        card.appendChild(this.createSlider('edgeGravity', 'Edge Gravity', 0, 100, 1));
         
         section.appendChild(card);
         return section;
@@ -326,6 +338,10 @@ class SettingsNode extends BaseNode {
             events.publish('setting:update', { key: 'shakeSensitivity', value: parseFloat(e.target.value) });
             this.updateSliderLabel('shakeSensitivity', e.target.value);
         });
+        this.element.querySelector('#edgeGravity-slider').addEventListener('input', (e) => {
+            events.publish('setting:update', { key: 'edgeGravity', value: parseFloat(e.target.value) });
+            this.updateSliderLabel('edgeGravity', e.target.value);
+        });
 
         // Project Settings
         const debouncedProjectUpdate = this.debounce((key, value) => {
@@ -391,9 +407,11 @@ class SettingsNode extends BaseNode {
         this.element.querySelector('#snapToGrid-toggle').checked = this.nodeUiSettings.snapToGrid > 0;
         this.element.querySelector('#snapThreshold-slider').value = this.nodeUiSettings.snapThreshold;
         this.element.querySelector('#shakeSensitivity-slider').value = this.nodeUiSettings.shakeSensitivity;
+        this.element.querySelector('#edgeGravity-slider').value = this.nodeUiSettings.edgeGravity;
         
         this.updateSliderLabel('snapThreshold', this.nodeUiSettings.snapThreshold);
         this.updateSliderLabel('shakeSensitivity', this.nodeUiSettings.shakeSensitivity);
+        this.updateSliderLabel('edgeGravity', this.nodeUiSettings.edgeGravity);
 
         // Project Settings
         if (this.nodeUiSettings.projectName !== undefined) {
@@ -803,5 +821,19 @@ class SettingsNode extends BaseNode {
         const lastKey = keys.pop();
         const lastObj = keys.reduce((o, key) => o[key] || (o[key] = {}), obj);
         lastObj[lastKey] = value;
+    }
+
+    /**
+     * Adds event listeners for setting changes.
+     */
+    addSettingChangeListeners() {
+        // Implementation of addSettingChangeListeners method
+    }
+
+    /**
+     * Populates settings based on the current state.
+     */
+    populateSettings() {
+        // Implementation of populateSettings method
     }
 } 

@@ -85,6 +85,7 @@ class NodeUI {
         this.snapToObjects = true;
         this.snapThreshold = 5;
         this.shakeSensitivity = 6.5; // Higher number = less sensitive shake detection
+        this.edgeGravity = 0;
 
         this.projectName = 'Untitled Graph';
         this.thumbnailUrl = '';
@@ -101,7 +102,8 @@ class NodeUI {
                 log: { label: 'Log', iconClass: 'icon-terminal' },
                 settings: { label: 'Settings', iconClass: 'icon-settings' },
                 snapGrid: { label: `Grid Snap`, iconClass: 'icon-grid-2x2' },
-                snapObject: { label: `Obj Snap`, iconClass: 'icon-layout-panel-left' }
+                snapObject: { label: `Obj Snap`, iconClass: 'icon-layout-panel-left' },
+                changeBackground: { label: 'Background', iconClass: 'icon-paint-bucket' }
             },
             edge: {
                 addRoutingNode: { label: 'Add Routing Node', iconClass: 'icon-network' },
@@ -203,6 +205,7 @@ class NodeUI {
         
         this.bindEventListeners();
         this.subscribeToEvents();
+        this.startPhysicsLoop(); // Start the physics simulation
 
         console.log('%c[NodeUI]%c Service initialized.', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
     }
@@ -1733,7 +1736,7 @@ class NodeUI {
             return this.calculateCurve(points[0], points[1], startHandle, endHandle);
         }
 
-        // Use Catmull-Rom for the intermediate points
+        // Use Catmull-Rom for the intermediate points, with gravity sagging
         for (let i = 0; i < points.length - 1; i++) {
             let p0 = i > 0 ? points[i - 1] : points[i];
             let p1 = points[i];
@@ -1744,6 +1747,14 @@ class NodeUI {
             let cp1y = p1.y + (p2.y - p0.y) / 6;
             let cp2x = p2.x - (p3.x - p1.x) / 6;
             let cp2y = p2.y - (p3.y - p1.y) / 6;
+
+            // Apply gravity
+            if (this.edgeGravity > 0) {
+                const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                const sag = (dist / 200) * this.edgeGravity;
+                cp1y += sag;
+                cp2y += sag;
+            }
 
             d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
         }
@@ -1759,51 +1770,98 @@ class NodeUI {
      * @returns {string} The SVG path `d` attribute string.
      */
     calculateCurve(startPos, endPos, startHandle, endHandle) {
-        const maxPadding = parseInt(getComputedStyle(this.container).getPropertyValue('--edge-padding')) || 8;
+        const edge = this.findEdgeByPositions(startPos, endPos);
+        let sag = 0;
+
+        if (this.edgeGravity > 0 && edge) {
+            if (edge.physics.isSettled) {
+                const dist = Math.hypot(endPos.x - startPos.x, endPos.y - startPos.y);
+                sag = (dist / 150) * this.edgeGravity;
+                edge.physics.sag = sag; // Set initial resting sag
+            } else {
+                sag = edge.physics.sag;
+            }
+        }
         
-        const distance = Math.hypot(endPos.x - startPos.x, endPos.y - startPos.y);
+        return this._getCurvedPathD(startPos, endPos, startHandle, endHandle, sag);
+    }
+
+    /**
+     * A pure function to calculate the SVG path data for a cubic Bézier curve,
+     * with an optional vertical sag.
+     * @param {{x:number, y:number}} startPos The start point.
+     * @param {{x:number, y:number}} endPos The end point.
+     * @param {string} startHandle The orientation of the start handle.
+     * @param {string} endHandle The orientation of the end handle.
+     * @param {number} [sag=0] - The amount of vertical sag to apply.
+     * @returns {string} The SVG path `d` attribute string.
+     */
+    _getCurvedPathD(startPos, endPos, startHandle, endHandle, sag = 0) {
+        // P0 and P3 are the start and end points of the edge, but we will draw from p1 to p2.
+        const p0 = { ...startPos };
+        const p3 = { ...endPos };
+
+        // Determine the padded start/end points (p1/p2) for the S-curve.
+        const maxPadding = parseInt(getComputedStyle(this.container).getPropertyValue('--edge-padding')) || 8;
+        const distance = Math.hypot(p3.x - p0.x, p3.y - p0.y);
         const padding = Math.min(maxPadding, distance / 2.5);
 
-        let paddedStartPos = { ...startPos };
-        let paddedEndPos = { ...endPos };
+        let p1 = { ...p0 }; // This will be the padded start point of the visible curve
+        let p2 = { ...p3 }; // This will be the padded end point of the visible curve
 
         switch (startHandle) {
-            case 'top':    paddedStartPos.y -= padding; break;
-            case 'bottom': paddedStartPos.y += padding; break;
-            case 'left':   paddedStartPos.x -= padding; break;
-            case 'right':  paddedStartPos.x += padding; break;
+            case 'top':    p1.y -= padding; break;
+            case 'bottom': p1.y += padding; break;
+            case 'left':   p1.x -= padding; break;
+            case 'right':  p1.x += padding; break;
         }
 
         switch (endHandle) {
-            case 'top':    paddedEndPos.y -= padding; break;
-            case 'bottom': paddedEndPos.y += padding; break;
-            case 'left':   paddedEndPos.x -= padding; break;
-            case 'right':  paddedEndPos.x += padding; break;
-            case 'auto':   break; // No padding for auto-oriented end
+            case 'top':    p2.y -= padding; break;
+            case 'bottom': p2.y += padding; break;
+            case 'left':   p2.x -= padding; break;
+            case 'right':  p2.x += padding; break;
         }
 
-        const offset = Math.min(100, Math.hypot(paddedEndPos.x - paddedStartPos.x, paddedEndPos.y - paddedStartPos.y) / 2);
-        let cp1x = paddedStartPos.x;
-        let cp1y = paddedStartPos.y;
-        let cp2x = paddedEndPos.x;
-        let cp2y = paddedEndPos.y;
+        // Determine the control points for the Bezier curve
+        const offset = Math.min(100, distance / 2);
+        let cp1 = { ...p1 };
+        let cp2 = { ...p2 };
 
         switch (startHandle) {
-            case 'top': cp1y -= offset; break;
-            case 'bottom': cp1y += offset; break;
-            case 'left': cp1x -= offset; break;
-            case 'right': cp1x += offset; break;
+            case 'top':    cp1.y -= offset; break;
+            case 'bottom': cp1.y += offset; break;
+            case 'left':   cp1.x -= offset; break;
+            case 'right':  cp1.x += offset; break;
         }
 
         switch (endHandle) {
-            case 'top':    cp2y -= offset; break;
-            case 'bottom': cp2y += offset; break;
-            case 'left':   cp2x -= offset; break;
-            case 'right':  cp2x += offset; break;
-            // No special control point for 'auto'
+            case 'top':    cp2.y -= offset; break;
+            case 'bottom': cp2.y += offset; break;
+            case 'left':   cp2.x -= offset; break;
+            case 'right':  cp2.x += offset; break;
         }
 
-        return `M ${paddedStartPos.x} ${paddedStartPos.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${paddedEndPos.x} ${paddedEndPos.y}`;
+        // Apply tapered sag. The sag is reduced for vertical connections to
+        // create a more natural exit angle from the node before hanging.
+        if (sag > 0) {
+            let sag1 = sag;
+            let sag2 = sag;
+
+            // Reduce sag effect on the control point if the handle is vertical.
+            if (startHandle === 'top' || startHandle === 'bottom') {
+                sag1 *= 0.25;
+            }
+            if (endHandle === 'top' || endHandle === 'bottom') {
+                sag2 *= 0.25;
+            }
+
+            cp1.y += sag1;
+            cp2.y += sag2;
+        }
+
+        // The path starts from the padded point (p1), not the handle center (p0).
+        return `M ${p1.x} ${p1.y} C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${p2.x} ${p2.y}`;
     }
 
     /**
@@ -1832,21 +1890,24 @@ class NodeUI {
 
         // Force-update edges connected to pinned nodes so they follow the pan/zoom
         this.pinnedNodes.forEach(nodeId => {
-            this.updateConnectedEdges(nodeId);
+            this.updateConnectedEdges(nodeId, false); // Don't pluck during simple pan/zoom
         });
     }
 
     /**
      * Updates all edges connected to a given node.
      * @param {string} nodeId - The ID of the node that has moved.
+     * @param {boolean} pluck - Whether to "pluck" the edge to start physics.
      */
-    updateConnectedEdges(nodeId) {
+    updateConnectedEdges(nodeId, pluck = true) {
         const node = this.nodes.get(nodeId);
         if (!node) return;
         
         // This method is called on visual updates (move, resize, color change)
         this.edges.forEach(edge => {
+            let needsUpdate = false;
             if (edge.startNodeId === nodeId) {
+                needsUpdate = true;
                 // If the node is the start of an edge, its position and color change.
                 edge.startPosition = this.getHandlePosition(edge.startNodeId, edge.startHandleId);
                 
@@ -1860,10 +1921,14 @@ class NodeUI {
 
                 this.updateEdge(edge.id);
             } else if (edge.endNodeId === nodeId) {
+                needsUpdate = true;
                 // If the node is the end of an edge, only its position changes.
                 // The color is determined by the start node.
                 edge.endPosition = this.getHandlePosition(edge.endNodeId, edge.endHandleId);
                 this.updateEdge(edge.id);
+            }
+            if (needsUpdate && pluck && this.edgeGravity) {
+                this.pluckEdge(edge);
             }
         });
         
@@ -2439,8 +2504,33 @@ class NodeUI {
         
         // Add other context menu items if not in edge-draw mode
         if (!edgeStartInfo) {
+            // Background color submenu
+            const backgroundSubmenu = [];
+            const colors = ['default', 'red', 'green', 'blue', 'yellow', 'purple'];
+            
+            colors.forEach(color => {
+                // The value to set for the overlay. 'transparent' for default, or the var for others.
+                const finalValue = color === 'default' ? 'transparent' : `var(--color-bg-canvas-${color})`;
+            
+                // The color for the swatch preview. The actual color for colored ones, the base color for default.
+                const swatchColorVar = color === 'default' ? '--color-bg-default' : `--color-bg-canvas-${color}`;
+                
+                backgroundSubmenu.push({
+                    label: color.charAt(0).toUpperCase() + color.slice(1),
+                    iconHtml: `<span class="context-menu-swatch" style="background-color: var(${swatchColorVar})"></span>`,
+                    action: () => {
+                        document.documentElement.style.setProperty('--color-bg-canvas', finalValue);
+                    }
+                });
+            });
+
             // Snap settings
             items.push({ isSeparator: true });
+            items.push({
+                label: this.contextMenuSettings.canvas.changeBackground.label,
+                iconClass: this.contextMenuSettings.canvas.changeBackground.iconClass,
+                submenu: backgroundSubmenu
+            });
             const snapGridLabel = `${this.contextMenuSettings.canvas.snapGrid.label}: ${this.snapToGrid ? 'On' : 'Off'}`;
             const snapObjectLabel = `${this.contextMenuSettings.canvas.snapObject.label}: ${this.snapToObjects ? 'On' : 'Off'}`;
             
@@ -3541,6 +3631,7 @@ class NodeUI {
             snapToObjects: this.snapToObjects,
             snapThreshold: this.snapThreshold,
             shakeSensitivity: this.shakeSensitivity,
+            edgeGravity: this.edgeGravity,
             projectName: this.projectName,
             thumbnailUrl: this.thumbnailUrl,
             contextMenuSettings: this.contextMenuSettings
@@ -3557,6 +3648,11 @@ class NodeUI {
             this[key] = value;
             this.publishSettings();
             console.log(`Setting updated: ${key} =`, value);
+
+            // If a visual setting that affects edges is changed, redraw them all
+            if (key === 'edgeGravity') {
+                this.edges.forEach(edge => this.updateEdge(edge.id));
+            }
         } else if (key === 'contextMenuSettings') {
             this.contextMenuSettings = value;
             this.publishSettings();
@@ -4028,6 +4124,99 @@ class NodeUI {
             // In the future, other properties could be updated here.
             this.updateEdge(data.edgeId); // Re-render the edge to show the new label
         }
+    }
+
+    /**
+     * Starts the physics simulation loop.
+     */
+    startPhysicsLoop() {
+        const stiffness = 0.02;
+        const damping = 0.90;
+
+        const update = () => {
+            let hasUnsettledEdges = false;
+
+            this.edges.forEach(edge => {
+                if (edge.physics.isSettled) return;
+
+                // If gravity is turned off mid-simulation, settle the edge.
+                if (this.edgeGravity === 0) {
+                    edge.physics.isSettled = true;
+                    edge.physics.sag = 0;
+                    edge.physics.velocity = 0;
+                    this.updateEdge(edge.id);
+                    return;
+                }
+
+                hasUnsettledEdges = true;
+
+                if (edge.routingPoints.length > 0) {
+                    edge.physics.isSettled = true;
+                    return;
+                }
+                
+                const startPos = edge.startPosition;
+                const endPos = edge.endPosition;
+                const dist = Math.hypot(endPos.x - startPos.x, endPos.y - startPos.y);
+                const restingSag = (dist / 150) * this.edgeGravity;
+
+                const force = (restingSag - edge.physics.sag) * stiffness;
+                
+                edge.physics.velocity += force;
+                edge.physics.velocity *= damping;
+                edge.physics.sag += edge.physics.velocity;
+                
+                const pathData = this._getCurvedPathD(edge.startPosition, edge.endPosition, edge.startHandleId, edge.endHandleId, edge.physics.sag);
+                if (edge.element) {
+                    edge.element.setAttribute('d', pathData);
+                    edge.hitArea.setAttribute('d', pathData);
+                }
+
+                if (Math.abs(edge.physics.velocity) < 0.01 && Math.abs(restingSag - edge.physics.sag) < 0.01) {
+                    edge.physics.isSettled = true;
+                    this.updateEdge(edge.id);
+                }
+            });
+
+            if (hasUnsettledEdges) {
+                requestAnimationFrame(update);
+            }
+        };
+
+        events.subscribe('physics:start', () => {
+            requestAnimationFrame(update);
+        });
+    }
+
+    /**
+     * "Plucks" an edge, giving its control point velocity and starting the physics simulation.
+     * @param {BaseEdge} edge 
+     */
+    pluckEdge(edge) {
+        if (!edge || this.edgeGravity === 0) return;
+        
+        // Give it a little push when plucked
+        edge.physics.velocity += 2;
+        
+        if (edge.physics.isSettled) {
+            edge.physics.isSettled = false;
+            events.publish('physics:start');
+        }
+    }
+
+    /**
+     * Finds an edge based on its start and end positions. Note: This is a fallback and can be slow.
+     * @param {{x:number, y:number}} startPos
+     * @param {{x:number, y:number}} endPos
+     * @returns {BaseEdge|null}
+     */
+    findEdgeByPositions(startPos, endPos) {
+        for (const edge of this.edges.values()) {
+            if (edge.startPosition === startPos && edge.endPosition === endPos) {
+                return edge;
+            }
+        }
+        return null;
     }
 }
 
