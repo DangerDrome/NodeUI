@@ -21,7 +21,7 @@
 :root {
     /* Base Font */
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-    
+
     /* --- Palette --- */
     /* Core UI Colors */
     --color-bg-default: #1c1c1c;
@@ -196,7 +196,7 @@ body {
     position: absolute;
     pointer-events: auto;
     background-color: var(--color-node-default-bg);
-    border: 1px solid var(--color-node-default-border);
+    border: var(--border-width-thin) solid var(--color-node-default-border);
     border-radius: var(--radius-medium);
     box-shadow: var(--shadow-small);
     display: flex;
@@ -209,27 +209,32 @@ body {
 }
 
 /* Node States */
+/** Node hover state */
 .node:hover {
     border-color: var(--icon-color, var(--color-accent));
 }
 
+/** Node dragging state */
 .node.is-dragging {
     border-color: var(--color-accent);
     box-shadow: var(--shadow-large);
     z-index: 1000;
 }
 
+/** Node selected state */
 .node.is-selected {
     border-color: var(--icon-color, var(--color-accent));
     box-shadow: 0 0 0 2px var(--color-accent-glow), var(--shadow-large);
 }
 
+/** Pinned node state */
 .node.is-pinned .node-pin-icon {
     opacity: 1;
     color: var(--node-accent-color, var(--color-accent)) !important;
 }
 
 /* Node Parts */
+/** Node title bar container */
 .node-title-bar {
     display: flex;
     align-items: center;
@@ -241,10 +246,11 @@ body {
     font-size: var(--font-size-small);
     font-weight: 600;
     user-select: none;
-    border-bottom: 1px solid var(--icon-color, var(--color-border-default));
+    border-bottom: var(--border-width-thin) solid var(--icon-color, var(--color-border-default));
     border-radius: calc(var(--radius-medium) - 1px) calc(var(--radius-medium) - 1px) 0 0;
 }
 
+/** Base style for icons in the node title bar */
 .node-icon {
     flex-shrink: 0; /* Prevent icon from shrinking */
     display: flex;
@@ -253,6 +259,7 @@ body {
     opacity: 0.5;
 }
 
+/** Pin icon style */
 .node-pin-icon {
     flex-shrink: 0;
     cursor: pointer;
@@ -265,6 +272,7 @@ body {
     transition: opacity 0.2s, background-color 0.2s, color 0.2s, filter 0.2s;
 }
 
+/** Cycle color icon style */
 .node-cycle-color-icon {
     flex-shrink: 0; /* Prevent icons from shrinking */
     cursor: pointer;
@@ -277,17 +285,20 @@ body {
     transition: opacity 0.2s, background-color 0.2s, color 0.2s, filter 0.2s;
 }
 
+/** Settings icon style */
 .node-settings-icon {
     opacity: 0.5;
     min-width: 20px;
 }
 
+/** Show icons on node hover */
 .node:hover .node-pin-icon,
 .node:hover .node-cycle-color-icon,
 .node:hover .node-settings-icon {
     opacity: 1;
 }
 
+/** Hover effect for title bar icons */
 .node-pin-icon:hover,
 .node-cycle-color-icon:hover,
 .node-settings-icon:hover {
@@ -295,6 +306,7 @@ body {
     filter: brightness(1.2);
 }
 
+/** Node title text style */
 .node-title-text {
     flex-grow: 1; /* Allow title to take up remaining space */
     text-align: center; /* Center the title text */
@@ -304,6 +316,7 @@ body {
     padding: 0 4px; /* Add some padding */
 }
 
+/** Main content area of the node */
 .node-content {
     padding: 16px;
     flex-grow: 1;
@@ -316,10 +329,12 @@ body {
     outline: none; /* Disable default browser outline for contenteditable */
 }
 
+/** Cursor for editable content */
 .node-content[contenteditable="true"] {
     cursor: text;
 }
 
+/** H1 heading style inside node content */
 .node-content h1 {
     font-size: var(--h1-font-size);
     font-weight: var(--h1-font-weight);
@@ -345,13 +360,15 @@ body {
     font-size: var(--font-size-small);
 }
 
+/** Table header and cell style */
 .node-content th,
 .node-content td {
-    border: 1px solid var(--color-border-default);
+    border: var(--border-width-thin) solid var(--color-border-default);
     padding: 8px;
     text-align: left;
 }
 
+/** Table header specific style */
 .node-content th {
     background-color: var(--color-bg-hover);
     font-weight: 600;
