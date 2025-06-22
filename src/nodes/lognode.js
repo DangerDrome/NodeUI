@@ -154,29 +154,28 @@ class LogNode extends BaseNode {
     }
 
     /**
+     * Adds a simple log entry without event details.
+     * @param {string} message - The message to log.
+     */
+    addLogEntry(message) {
+        if (!this.logContainer) return;
+
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log-entry';
+        logEntry.style.color = 'var(--color-text-secondary)';
+        logEntry.textContent = message;
+
+        this.logContainer.appendChild(logEntry);
+        this.logContainer.scrollTop = this.logContainer.scrollHeight;
+    }
+
+    /**
      * Updates the clipboard view with the current items.
      * @param {object} [clipboardData={nodes: [], edges: []}]
      */
     updateClipboardView(clipboardData = { nodes: [], edges: [] }) {
-        const { nodes = [], edges = [] } = clipboardData;
-        
-        let content = '<h3>Clipboard</h3><div class="log-clipboard-content">';
-        if (nodes.length === 0 && edges.length === 0) {
-            content += '<span class="log-clipboard-empty">Clipboard is empty.</span>';
-        } else {
-            if (nodes.length > 0) {
-                content += `<div><strong>Nodes (${nodes.length}):</strong><ul>`;
-                nodes.forEach(node => {
-                    content += `<li>${node.title || 'Untitled Node'}</li>`;
-                });
-                content += '</ul></div>';
-            }
-            if (edges.length > 0) {
-                content += `<div><strong>Edges (${edges.length})</strong></div>`;
-            }
-        }
-        content += '</div>';
-        
-        this.clipboardContainer.innerHTML = content;
+        // For now, just log the clipboard change as an event
+        // In the future, this could create a dedicated clipboard view section
+        this.logEventHandler('clipboard:changed', clipboardData);
     }
 } 

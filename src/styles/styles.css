@@ -184,6 +184,23 @@ body {
     transform-origin: 0 0;
 }
 
+/* Explicit z-index to maintain proper layering */
+.grid-canvas {
+    z-index: 0;
+}
+
+.group-container {
+    z-index: 1;
+}
+
+.node-ui-canvas {
+    z-index: 500; /* Between groups (0-499) and nodes (10000+) */
+}
+
+.node-container {
+    z-index: 1000;
+}
+
 .grid-dot {
     fill: var(--color-border-default);
 }
@@ -440,11 +457,24 @@ body {
 
 /* Style for group nodes */
 .group-node {
-    background-color: rgba(18, 18, 18, 0.95); /* Groups should not hide edges */
+    background-color: rgba(18, 18, 18, 0.95); /* Very transparent so edges show through */
     border-style: dashed;
     backdrop-filter: none; /* Override the base node blur effect */
-    z-index: 0;
+    /* Swap default and hover states for groups */
+    border-color: var(--icon-color, var(--color-accent));
 }
+
+/* On hover, groups revert to their base color */
+.group-node:hover {
+    border-color: var(--color-node-default-border);
+}
+
+/* Override hover state for colored groups */
+.group-node[data-color="red"]:hover { border-color: var(--color-node-red-border); }
+.group-node[data-color="green"]:hover { border-color: var(--color-node-green-border); }
+.group-node[data-color="blue"]:hover { border-color: var(--color-node-blue-border); }
+.group-node[data-color="yellow"]:hover { border-color: var(--color-node-yellow-border); }
+.group-node[data-color="purple"]:hover { border-color: var(--color-node-purple-border); }
 
 .group-node .node-title-bar {
     background-color: transparent;

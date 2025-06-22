@@ -115,7 +115,7 @@ class NodeUI {
         this.contextMenu = new ContextMenu();
         this.longPressTimer = null;
         this.openPopoverNodeId = null;
-        this.maxGroupZIndex = 0;
+        this.maxGroupZIndex = 100; // Start at 100, max 499 to stay below edges at z-index 500
         this.maxNodeZIndex = 10000; // Large offset to separate node/group layers
         this.selectionDebounceTimer = null;
         this.pinnedNodes = new Set();
@@ -1354,15 +1354,25 @@ class NodeUI {
         const nodesMoved = this.getNodesToMove(targetNode.id);
 
         // If any node is dropped on an edge, split the edge
-        let edgeToSplit = null;
-        for (const edge of this.edges.values()) {
-            if (this.isPointOnEdge(targetNode, edge)) {
-                edgeToSplit = edge;
-                break;
+        // Skip edge splitting for GroupNodes to prevent breaking connections to contained nodes
+        if (!(targetNode instanceof GroupNode)) {
+            let edgeToSplit = null;
+            const nodesToCheckForSplitting = nodesMoved;
+            
+            for (const edge of this.edges.values()) {
+                // Don't split edges connected to any node that's being moved
+                if (nodesToCheckForSplitting.has(edge.startNodeId) || nodesToCheckForSplitting.has(edge.endNodeId)) {
+                    continue;
+                }
+                
+                if (this.isPointOnEdge(targetNode, edge)) {
+                    edgeToSplit = edge;
+                    break;
+                }
             }
-        }
-        if (edgeToSplit) {
-            this.splitEdgeWithNode(edgeToSplit, targetNode, true);
+            if (edgeToSplit) {
+                this.splitEdgeWithNode(edgeToSplit, targetNode, true);
+            }
         }
 
         targetNode.element.classList.remove('is-dragging');
@@ -2244,6 +2254,13 @@ class NodeUI {
                 isPinned: false, // Create as unpinned; will be updated to pinned later
                 containedNodeIds: nodeData.containedNodeIds
             };
+
+            // Update containedNodeIds for GroupNodes to use the new mapped IDs
+            if (nodeData.type === 'GroupNode' && nodeData.containedNodeIds) {
+                newNodeData.containedNodeIds = nodeData.containedNodeIds.map(oldChildId => 
+                    idMap.get(oldChildId) || oldChildId
+                ).filter(id => id); // Remove any undefined IDs
+            }
 
             // Instantiate the correct class based on the node type
             if (newNodeData.type === 'RoutingNode') {
@@ -3418,9 +3435,15 @@ class NodeUI {
             return 0;
         });
         
-        // Assign z-indices to groups from the group pool
+        // Assign z-indices to groups from the group pool (max 499 to stay below edges)
         groups.forEach(node => {
-            if(node.element) node.element.style.zIndex = this.maxGroupZIndex++;
+            if(node.element) {
+                node.element.style.zIndex = this.maxGroupZIndex++;
+                // Ensure groups never exceed z-index 499 to stay below edges
+                if (this.maxGroupZIndex > 499) {
+                    this.maxGroupZIndex = 100; // Reset to start of range
+                }
+            }
         });
         
         // Then assign z-indices to regular nodes from the node pool
@@ -3934,7 +3957,7 @@ class NodeUI {
         nodeIds.forEach(id => this.removeNode(id));
         
         this.clearSelection();
-        this.maxGroupZIndex = 0;
+        this.maxGroupZIndex = 100;
         this.maxNodeZIndex = 10000;
         this.projectName = 'Untitled Graph';
         this.thumbnailUrl = '';

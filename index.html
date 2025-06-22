@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NodeUI</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="src/styles/styles.css">
 </head>
 <body>
     <div id="app">
@@ -97,22 +97,20 @@
             .use(rehypeStringify)
     </script>
 
-    <!-- NodeUI Scripts -->
-    <script src="js/events.js"></script>
-    <script src="js/logs.js"></script>
-    <script src="js/database.js"></script>
-    <script src="js/ui.js"></script>
+    <!-- Core Scripts -->
+    <script src="src/core/events.js"></script>
+    <script src="src/core/database.js"></script>
     
     <!-- Base Classes -->
-    <script src="js/graph/basenode.js"></script>
-    <script src="js/graph/baseedge.js"></script>
-    <script src="js/graph/routingnode.js"></script>
-    <script src="js/graph/groupnode.js"></script>
-    <script src="js/graph/lognode.js"></script>
-    <script src="js/graph/settingsnode.js"></script>
+    <script src="src/nodes/basenode.js"></script>
+<script src="src/nodes/baseedge.js"></script>
+<script src="src/nodes/routingnode.js"></script>
+<script src="src/nodes/groupnode.js"></script>
+<script src="src/nodes/lognode.js"></script>
+<script src="src/nodes/settingsnode.js"></script>
 
     <!-- App -->
-    <script src="js/contextmenu.js"></script>
-    <script src="js/nodeui.js"></script>
+    <script src="src/core/contextmenu.js"></script>
+    <script src="src/core/nodeui.js"></script>
 </body>
 </html> 
