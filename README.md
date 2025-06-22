@@ -30,7 +30,9 @@ NodeUI/
   ├── index.html          # Main entry point
   ├── src/
   │   ├── styles/
-  │   │   └── styles.css # Global styles
+  │   │   ├── styles.css # Global styles
+  │   │   ├── icons.css # Icon styles
+  │   │   ├── components.css # Component styles
   │   ├── core/          # Core system modules
   │   │   ├── main.js              # Main application orchestrator
   │   │   ├── events.js            # Event system

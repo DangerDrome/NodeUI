@@ -1,28 +1,25 @@
 # Active Context
 
 ## Current Focus
-The NodeUI refactoring is **fully complete and stabilized**. The architecture has been further improved by merging `DragHandler` and `SelectionManager` into `InteractionHandler`, consolidating all user interaction, selection, and drag logic into a single handler. All references to the old `dragHandler` have been removed, and drag functionality is fully restored and tested.
+The current focus is on improving the project's CSS architecture by separating icon definitions from component styles. This refactoring will enhance maintainability, readability, and scalability of the stylesheets.
 
 ## Recent Changes
-- **Merged DragHandler and SelectionManager into InteractionHandler**
-- **All drag and selection logic now handled by InteractionHandler**
-- **Removed all references to dragHandler**
-- **Fixed and verified drag functionality**
-- **Maintained all previous features and user interactions**
+- **Refactored CSS**: Separated `icons.css` and `components.css` from the main `styles.css` file.
+- **Consolidated icon styles**: All icon-related CSS is now in `icons.css`.
+- **Consolidated component styles**: All component-related CSS is now in `components.css`.
 
 ## Active Decisions
-- Continue to use a single, consolidated handler for all user interactions
-- Maintain clear delegation and separation for rendering, file, context menu, and node management
+- Keep a clean separation between icon and component styles.
+- Ensure all new styles are added to the appropriate file.
 
 ## Next Steps
-- Monitor for any further edge cases
-- Continue documenting the new architecture
-- Plan for new features and optimizations
+- Continue to identify and refactor any monolithic files.
+- Update documentation to reflect the new CSS structure.
 
 ## Known Issues
-- None. All core features, including drag and selection, are working as intended.
+- None.
 
 ## Current Status
-- **Project**: NodeUI Refactor - **COMPLETE & STABLE**
-- **Phase**: Maintenance
-- **Progress**: 100% - All functionality preserved and improved 
+- **Project**: CSS Refactoring
+- **Phase**: Implementation
+- **Progress**: 100% - CSS files have been successfully refactored. 

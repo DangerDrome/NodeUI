@@ -31,7 +31,9 @@ NodeUI/
   ├── index.html          # Main entry point
   ├── src/                # Source code
   │   ├── styles/        # Stylesheets
-  │   │   └── styles.css # Global styles
+  │   │   ├── styles.css # Global styles
+  │   │   ├── icons.css # Icon styles
+  │   │   ├── components.css # Component styles
   │   ├── core/          # Core system modules
   │   │   ├── nodeui.js           # Core application orchestration
   │   │   ├── canvasrenderer.js   # Canvas rendering and SVG operations
