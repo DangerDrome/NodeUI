@@ -1,13 +1,16 @@
 /**
- * @fileoverview Manages edge drawing operations including starting, updating, and finishing edge creation.
+ * @fileoverview Handles edge drawing, routing cut operations, and edge routing 
+ * point manipulation for the graph application.
  */
 
-class EdgeDrawingHandler {
+class Edges {
     /**
      * @param {NodeUI} nodeUI - The main NodeUI instance.
      */
     constructor(nodeUI) {
         this.nodeUI = nodeUI;
+        
+        // Edge drawing state
         this.edgeDrawingState = {
             isDrawing: false,
             startNodeId: null,
@@ -15,7 +18,22 @@ class EdgeDrawingHandler {
             startPosition: null,
             tempEdgeElement: null
         };
+
+        // Routing cut state
+        this.routingCutState = {
+            isRouting: false,
+            cutLine: null
+        };
+
+        // Edge routing state
+        this.routingState = {
+            isRouting: false,
+            edgeId: null,
+            pointIndex: -1
+        };
     }
+
+    // --- Edge Drawing Methods ---
 
     /**
      * Starts the process of drawing a new edge.
@@ -108,7 +126,7 @@ class EdgeDrawingHandler {
      * Gets the current edge drawing state.
      * @returns {Object} The current edge drawing state.
      */
-    getState() {
+    getDrawingState() {
         return this.edgeDrawingState;
     }
 
@@ -119,4 +137,88 @@ class EdgeDrawingHandler {
     isDrawing() {
         return this.edgeDrawingState.isDrawing;
     }
-} 
+
+    // --- Routing Cut Methods ---
+
+    /**
+     * Starts the routing cut line drawing.
+     * @param {MouseEvent} event 
+     */
+    startRoutingCut(event) {
+        this.routingCutState.isRouting = true;
+        // Delegate to CanvasRenderer for visual
+        this.nodeUI.canvasRenderer.startRoutingCut(event);
+    }
+
+    /**
+     * Updates the routing cut line as the mouse moves.
+     * @param {MouseEvent} event 
+     */
+    updateRoutingCut(event) {
+        if (!this.routingCutState.isRouting) return;
+        this.nodeUI.canvasRenderer.updateRoutingCut(event);
+    }
+
+    /**
+     * Ends the routing cut line and creates a routing node at the intersection.
+     */
+    endRoutingCut() {
+        if (!this.routingCutState.isRouting) return;
+        this.nodeUI.canvasRenderer.endRoutingCut();
+        this.routingCutState.isRouting = false;
+    }
+
+    /**
+     * Gets the routing cut state.
+     * @returns {Object} The routing cut state.
+     */
+    getRoutingCutState() {
+        return this.routingCutState;
+    }
+
+    // --- Edge Routing Methods ---
+
+    /**
+     * Starts edge routing for a specific edge and point.
+     * @param {string} edgeId - The ID of the edge to route.
+     * @param {number} pointIndex - The index of the routing point.
+     */
+    startEdgeRouting(edgeId, pointIndex) {
+        this.routingState.isRouting = true;
+        this.routingState.edgeId = edgeId;
+        this.routingState.pointIndex = parseInt(pointIndex);
+    }
+
+    /**
+     * Updates edge routing as the mouse moves.
+     * @param {MouseEvent} event 
+     */
+    updateEdgeRouting(event) {
+        if (!this.routingState.isRouting) return;
+        const edge = this.nodeUI.edges.get(this.routingState.edgeId);
+        if (edge) {
+            const point = this.nodeUI.getMousePosition(event);
+            edge.routingPoints[this.routingState.pointIndex] = point;
+            this.nodeUI.updateEdge(edge.id);
+            this.nodeUI.renderRoutingPoints(edge);
+        }
+    }
+
+    /**
+     * Ends edge routing.
+     */
+    endEdgeRouting() {
+        this.routingState.isRouting = false;
+    }
+
+    /**
+     * Gets the edge routing state.
+     * @returns {Object} The edge routing state.
+     */
+    getRoutingState() {
+        return this.routingState;
+    }
+}
+
+// Attach to window for global access
+window.Edges = Edges; 

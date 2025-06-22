@@ -1,14 +1,237 @@
 /**
- * @fileoverview Handles context menu operations including menu display, 
- * edge editing, and snap settings management.
+ * @fileoverview Handles context menu display, edge editing, and UI interaction 
+ * logic for the graph application.
  */
 
-class ContextMenuHandler {
+class ContextMenu {
     /**
      * @param {NodeUI} nodeUI - Reference to the main NodeUI instance.
      */
     constructor(nodeUI) {
         this.nodeUI = nodeUI;
+        this.menuElement = null;
+        this.activeSubmenu = null;
+        this.submenuHideTimer = null;
+        this.init();
+    }
+
+    /**
+     * Initializes the context menu element and event listeners.
+     */
+    init() {
+        this.menuElement = document.createElement('div');
+        this.menuElement.id = 'context-menu';
+        this.menuElement.classList.add('context-menu');
+        document.body.appendChild(this.menuElement);
+
+        document.addEventListener('mousedown', (event) => {
+            if (this.menuElement.style.display === 'block' && !this.menuElement.contains(event.target)) {
+                if (this.activeSubmenu && this.activeSubmenu.contains(event.target)) return;
+                this.hide();
+            }
+        });
+    }
+
+    /**
+     * Shows the context menu with the specified items.
+     * @param {number} x - The screen x-coordinate.
+     * @param {number} y - The screen y-coordinate.
+     * @param {Array} items - The menu items to display.
+     */
+    show(x, y, items) {
+        this.hide(); // Hide any existing menu before showing a new one
+        this.menuElement.innerHTML = '';
+        
+        const itemList = document.createElement('ul');
+        items.forEach(item => {
+            const li = this.createMenuItem(item);
+            itemList.appendChild(li);
+        });
+
+        this.menuElement.appendChild(itemList);
+        this.menuElement.style.left = `${x}px`;
+        this.menuElement.style.top = `${y}px`;
+        this.menuElement.style.display = 'block';
+    }
+
+    /**
+     * Creates a menu item element.
+     * @param {Object} item - The menu item configuration.
+     * @returns {HTMLElement} The created menu item element.
+     */
+    createMenuItem(item) {
+        const li = document.createElement('li');
+
+        if (item.isSeparator) {
+            li.className = 'context-menu-separator';
+        } else {
+            li.className = 'context-menu-item';
+            if (item.disabled) {
+                li.classList.add('is-disabled');
+            }
+
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'context-menu-icon';
+            if (item.iconClass) {
+                iconSpan.classList.add(item.iconClass);
+            } else if (item.iconHtml) {
+                iconSpan.innerHTML = item.iconHtml;
+            }
+            
+            const labelSpan = document.createElement('span');
+            labelSpan.textContent = item.label;
+
+            li.appendChild(iconSpan);
+            li.appendChild(labelSpan);
+
+            if (item.submenu) {
+                li.classList.add('has-submenu');
+                const arrow = document.createElement('span');
+                arrow.className = 'submenu-arrow';
+                arrow.innerHTML = '<span class="icon-play"></span>';
+                li.appendChild(arrow);
+                
+                li.addEventListener('mouseenter', () => this.showSubmenu(li, item.submenu));
+                li.addEventListener('mouseleave', () => this.scheduleHideSubmenu());
+
+            } else if (item.inlineEdit) {
+                li.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    if (item.disabled) return;
+                    this.transformToInput(li, item);
+                });
+            } else {
+                li.addEventListener('click', () => {
+                    if (item.action && typeof item.action === 'function' && !item.disabled) {
+                        item.action();
+                    }
+                    this.hide();
+                });
+            }
+        }
+        return li;
+    }
+
+    /**
+     * Shows a submenu for a menu item.
+     * @param {HTMLElement} parentLi - The parent menu item element.
+     * @param {Array} submenuItems - The submenu items to display.
+     */
+    showSubmenu(parentLi, submenuItems) {
+        if (this.activeSubmenu) {
+            this.hideSubmenu();
+        }
+        clearTimeout(this.submenuHideTimer);
+
+        const submenuElement = document.createElement('div');
+        submenuElement.className = 'context-menu'; // Submenus are just another context menu
+        
+        const itemList = document.createElement('ul');
+        submenuItems.forEach(item => {
+            const li = this.createMenuItem(item);
+            itemList.appendChild(li);
+        });
+        submenuElement.appendChild(itemList);
+
+        submenuElement.addEventListener('mouseenter', () => clearTimeout(this.submenuHideTimer));
+        submenuElement.addEventListener('mouseleave', () => this.scheduleHideSubmenu());
+
+        this.activeSubmenu = submenuElement;
+        document.body.appendChild(this.activeSubmenu);
+
+        const parentRect = parentLi.getBoundingClientRect();
+        const subRect = submenuElement.getBoundingClientRect();
+
+        let subX = parentRect.right;
+        let subY = parentRect.top;
+
+        if (subX + subRect.width > window.innerWidth) {
+            subX = parentRect.left - subRect.width;
+        }
+        if (subY + subRect.height > window.innerHeight) {
+            subY = window.innerHeight - subRect.height;
+        }
+
+        submenuElement.style.left = `${subX}px`;
+        submenuElement.style.top = `${subY}px`;
+        submenuElement.style.display = 'block';
+    }
+
+    /**
+     * Schedules hiding the submenu after a delay.
+     */
+    scheduleHideSubmenu() {
+        this.submenuHideTimer = setTimeout(() => {
+            this.hideSubmenu();
+        }, 300);
+    }
+    
+    /**
+     * Hides the active submenu.
+     */
+    hideSubmenu() {
+        if (this.activeSubmenu) {
+            this.activeSubmenu.remove();
+            this.activeSubmenu = null;
+        }
+    }
+
+    /**
+     * Transforms a menu item into an input field for editing.
+     * @param {HTMLElement} liElement - The menu item element to transform.
+     * @param {Object} item - The menu item configuration.
+     */
+    transformToInput(liElement, item) {
+        this.hideSubmenu(); // Hide any open submenu when starting an edit
+        liElement.innerHTML = ''; // Clear icon and label
+        liElement.style.padding = '4px';
+        liElement.style.gap = '0';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'context-menu-input';
+        input.value = item.initialValue || '';
+
+        liElement.appendChild(input);
+        input.focus();
+        input.select();
+
+        const finishEditing = (save) => {
+            if (save && item.onEdit) {
+                item.onEdit(input.value);
+            }
+            this.hide();
+        };
+
+        const onBlur = () => {
+            finishEditing(true);
+            input.removeEventListener('blur', onBlur);
+            input.removeEventListener('keydown', onKeyDown);
+        };
+
+        const onKeyDown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                input.blur(); // Triggers blur which saves and hides
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                finishEditing(false);
+            }
+        };
+
+        input.addEventListener('blur', onBlur);
+        input.addEventListener('keydown', onKeyDown);
+    }
+
+    /**
+     * Hides the context menu.
+     */
+    hide() {
+        if (this.menuElement && this.menuElement.style.display !== 'none') {
+            this.menuElement.style.display = 'none';
+            this.hideSubmenu();
+            events.publish('contextmenu:hidden');
+        }
     }
 
     /**
@@ -138,7 +361,7 @@ class ContextMenuHandler {
                             });
                         }
                     }
-                    if (this.nodeUI.edgeDrawingHandler.isDrawing) {
+                    if (this.nodeUI.edgeHandler.isDrawing()) {
                         this.nodeUI.cancelDrawingEdge();
                     }
                 }
@@ -222,7 +445,7 @@ class ContextMenuHandler {
             });
         }
 
-        this.nodeUI.contextMenu.show(x, y, items);
+        this.show(x, y, items);
     }
 
     /**
@@ -277,7 +500,7 @@ class ContextMenuHandler {
                 disabled: !hasSelection
             }
         ];
-        this.nodeUI.contextMenu.show(x, y, items);
+        this.show(x, y, items);
     }
 
     /**
@@ -388,4 +611,7 @@ class ContextMenuHandler {
             return dy > 0 ? 'top' : 'bottom';
         }
     }
-} 
+}
+
+// Attach to window for global access
+window.ContextMenu = ContextMenu; 

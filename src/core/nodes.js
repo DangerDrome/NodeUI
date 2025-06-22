@@ -1,9 +1,9 @@
 /**
- * @fileoverview Handles node and edge management operations including addition, 
- * removal, updates, popovers, color cycling, and grouping.
+ * @fileoverview Manages node and edge lifecycle including creation, deletion, 
+ * updates, grouping, and hierarchy management.
  */
 
-class NodeManager {
+class Nodes {
     /**
      * @param {NodeUI} nodeUI - Reference to the main NodeUI instance.
      */
@@ -280,7 +280,7 @@ class NodeManager {
      * @param {string} startNodeId The ID of the node initiating the action.
      */
     bringToFront(startNodeId) {
-        const nodesToFront = this.nodeUI.dragHandler.getNodesToMove(startNodeId);
+        const nodesToFront = this.nodeUI.interactionHandler.getNodesToMove(startNodeId);
         
         const groups = [];
         const regularNodes = [];
@@ -300,8 +300,8 @@ class NodeManager {
         // Sort groups so that parent groups come before their children.
         // This ensures parents get a lower z-index.
         groups.sort((a, b) => {
-            if (this.nodeUI.dragHandler.isDescendant(b, a)) return -1; // a contains b, so a should be first
-            if (this.nodeUI.dragHandler.isDescendant(a, b)) return 1;  // b contains a, so b should be first
+            if (this.nodeUI.interactionHandler.isDescendant(b, a)) return -1; // a contains b, so a should be first
+            if (this.nodeUI.interactionHandler.isDescendant(a, b)) return 1;  // b contains a, so b should be first
             return 0;
         });
         
@@ -353,7 +353,7 @@ class NodeManager {
 
         // Remove newly contained nodes from any previous parent
         containedNodeIds.forEach(nodeId => {
-            const oldParent = this.nodeUI.dragHandler.findParentGroup(nodeId);
+            const oldParent = this.nodeUI.interactionHandler.findParentGroup(nodeId);
             if (oldParent) {
                 oldParent.removeContainedNode(nodeId);
             }
@@ -427,4 +427,7 @@ class NodeManager {
         }
         this.nodeUI.updateConnectedEdges(nodeId);
     }
-} 
+}
+
+// Attach to window for global access
+window.Nodes = Nodes; 

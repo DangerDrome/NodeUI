@@ -1,7 +1,9 @@
 /**
- * CanvasRenderer handles SVG/canvas setup and marker creation for NodeUI.
+ * @fileoverview Handles all canvas rendering operations including SVG manipulation, 
+ * visual updates, physics simulation, and canvas transformations.
  */
-class CanvasRenderer {
+
+class Canvas {
     constructor(nodeUI) {
         this.nodeUI = nodeUI;
     }
@@ -663,7 +665,7 @@ class CanvasRenderer {
         line.setAttribute('x2', mousePos.x);
         line.setAttribute('y2', mousePos.y);
         this.nodeUI.canvasGroup.appendChild(line);
-        this.nodeUI.routingHandler.getRoutingCutState().cutLine = line;
+        this.nodeUI.edgeHandler.getRoutingCutState().cutLine = line;
     }
 
     /**
@@ -671,19 +673,19 @@ class CanvasRenderer {
      * @param {MouseEvent} event 
      */
     updateRoutingCut(event) {
-        if (!this.nodeUI.routingHandler.getRoutingCutState().cutLine) return;
+        if (!this.nodeUI.edgeHandler.getRoutingCutState().cutLine) return;
         const mousePos = this.getMousePosition(event);
-        this.nodeUI.routingHandler.getRoutingCutState().cutLine.setAttribute('x2', mousePos.x);
-        this.nodeUI.routingHandler.getRoutingCutState().cutLine.setAttribute('y2', mousePos.y);
+        this.nodeUI.edgeHandler.getRoutingCutState().cutLine.setAttribute('x2', mousePos.x);
+        this.nodeUI.edgeHandler.getRoutingCutState().cutLine.setAttribute('y2', mousePos.y);
     }
 
     /**
      * Ends the routing cut line and creates a routing node at the intersection.
      */
     endRoutingCut() {
-        if (!this.nodeUI.routingHandler.getRoutingCutState().cutLine) return;
+        if (!this.nodeUI.edgeHandler.getRoutingCutState().cutLine) return;
 
-        const line = this.nodeUI.routingHandler.getRoutingCutState().cutLine;
+        const line = this.nodeUI.edgeHandler.getRoutingCutState().cutLine;
         const p1 = { x: parseFloat(line.getAttribute('x1')), y: parseFloat(line.getAttribute('y1')) };
         const p2 = { x: parseFloat(line.getAttribute('x2')), y: parseFloat(line.getAttribute('y2')) };
         let hasCut = false;
@@ -715,7 +717,7 @@ class CanvasRenderer {
         });
 
         line.remove();
-        this.nodeUI.routingHandler.getRoutingCutState().cutLine = null;
+        this.nodeUI.edgeHandler.getRoutingCutState().cutLine = null;
     }
 
     /**
@@ -823,4 +825,4 @@ class CanvasRenderer {
 }
 
 // Attach to window for global access
-window.CanvasRenderer = CanvasRenderer; 
+window.Canvas = Canvas; 

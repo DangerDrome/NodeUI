@@ -28,15 +28,19 @@ To get started with NodeUI, simply open the `index.html` file in a modern web br
 ```
 NodeUI/
   ├── index.html          # Main entry point
-  ├── src/                # Source code
-  │   ├── styles/        # Stylesheets
+  ├── src/
+  │   ├── styles/
   │   │   └── styles.css # Global styles
   │   ├── core/          # Core system modules
-  │   │   ├── nodeui.js     # Core application
-  │   │   ├── events.js     # Event system
-  │   │   ├── database.js   # Data persistence
-  │   │   └── contextmenu.js # Context menu system
-  │   └── nodes/           # Node implementations
+  │   │   ├── main.js              # Main application orchestrator
+  │   │   ├── events.js            # Event system
+  │   │   ├── canvas.js            # Canvas rendering and physics
+  │   │   ├── file.js              # File operations and data handling
+  │   │   ├── contextMenu.js       # Context menus and UI interactions
+  │   │   ├── nodes.js             # Node lifecycle management
+  │   │   ├── interactions.js      # All user interactions, drag, and selection
+  │   │   └── edges.js             # Edge drawing and routing
+  │   └── nodes/
   │       ├── basenode.js
   │       ├── groupnode.js
   │       ├── lognode.js
@@ -44,6 +48,8 @@ NodeUI/
   │       └── settingsnode.js
   └── graph.json         # Graph state storage
 ```
+
+**Note:** All drag and selection logic is now handled by `interactions.js`. The codebase is fully modular, with each core file focused on a single responsibility.
 
 ## How to Use
 

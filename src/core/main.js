@@ -1,15 +1,15 @@
 /**
- * @fileoverview Manages the main canvas, including rendering nodes, edges,
+ * @fileoverview Main application orchestrator that manages the canvas, including rendering nodes, edges,
  * and handling all user interactions like panning, zooming, and dragging.
  */
 
-class NodeUI {
+class Main {
     /**
      * @param {HTMLElement} container - The container element for the canvas.
      */
     constructor(container) {
         if (!container) {
-            throw new Error("A container element is required for NodeUI.");
+            throw new Error("A container element is required for Main.");
         }
         this.container = container;
         this.nodes = new Map();
@@ -93,7 +93,7 @@ class NodeUI {
             }
         };
 
-        this.contextMenu = new ContextMenu();
+        this.contextMenuHandler = new ContextMenu(this);
         this.longPressTimer = null;
         this.openPopoverNodeId = null;
         this.maxGroupZIndex = 100; // Start at 100, max 499 to stay below edges at z-index 500
@@ -115,9 +115,7 @@ class NodeUI {
         this.initialScale = 1;
         this.isPinching = false;
 
-        this.dragHandler = new DragHandler(this);
-        this.edgeDrawingHandler = new EdgeDrawingHandler(this);
-        this.routingHandler = new RoutingHandler(this);
+        this.edgeHandler = new Edges(this);
 
         this.init();
     }
@@ -127,17 +125,16 @@ class NodeUI {
      */
     init() {
         // this.container.innerHTML = ''; // Clear any previous content
-        this.canvasRenderer = new CanvasRenderer(this);
-        this.fileHandler = new FileHandler(this);
-        this.contextMenuHandler = new ContextMenuHandler(this);
-        this.nodeManager = new NodeManager(this);
-        this.selectionManager = new SelectionManager(this);
-        this.interactionHandler = new InteractionHandler(this);
+        this.canvasRenderer = new Canvas(this);
+        this.fileHandler = new File(this);
+        this.contextMenuHandler = new ContextMenu(this);
+        this.nodeManager = new Nodes(this);
+        this.interactionHandler = new Interactions(this);
         this.canvasRenderer.initCanvas();
         this.bindEventListeners();
         this.subscribeToEvents();
         this.startPhysicsLoop(); // Start the physics simulation
-        console.log('%c[NodeUI]%c Service initialized.', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
+        console.log('%c[Main]%c Service initialized.', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
     }
 
     /**
@@ -172,8 +169,8 @@ class NodeUI {
         document.removeEventListener('paste', this.fileHandler.onPaste.bind(this.fileHandler));
 
         events.subscribe('contextmenu:hidden', () => {
-            if (this.edgeDrawingHandler.isDrawing()) {
-                this.edgeDrawingHandler.cancelDrawingEdge();
+            if (this.edgeHandler.isDrawing()) {
+                this.edgeHandler.cancelDrawingEdge();
             }
         });
     }
@@ -348,16 +345,14 @@ class NodeUI {
      * @param {number} clientY - The clientY from the triggering event.
      */
     startDrag(nodeId, clientX, clientY, isPinned = false) {
-        // Moved to DragHandler
-        this.dragHandler.startDrag(nodeId, clientX, clientY, isPinned);
+        this.interactionHandler.startDrag(nodeId, clientX, clientY, isPinned);
     }
 
     /**
      * Ends the current dragging state and publishes the result.
      */
     endDrag() {
-        // Moved to DragHandler
-        this.dragHandler.endDrag();
+        this.interactionHandler.endDrag();
     }
 
     /**
@@ -366,16 +361,14 @@ class NodeUI {
      * @returns {Set<string>} A set of node IDs that should be moved.
      */
     getNodesToMove(startNodeId) {
-        // Moved to DragHandler
-        return this.dragHandler.getNodesToMove(startNodeId);
+        return this.interactionHandler.getNodesToMove(startNodeId);
     }
 
     /**
      * Checks for and applies grouping changes after a drag operation.
      */
     updateGroupingForMovedNodes() {
-        // Moved to DragHandler
-        this.dragHandler.updateGroupingForMovedNodes();
+        this.interactionHandler.updateGroupingForMovedNodes();
     }
 
     /**
@@ -385,8 +378,7 @@ class NodeUI {
      * @returns {GroupNode|null} The best target group or null if none.
      */
     findBestTargetGroup(node) {
-        // Moved to DragHandler
-        return this.dragHandler.findBestTargetGroup(node);
+        return this.interactionHandler.findBestTargetGroup(node);
     }
 
     /**
@@ -396,8 +388,7 @@ class NodeUI {
      * @returns {boolean}
      */
     isPointOnEdge(node, edge) {
-        // Moved to DragHandler
-        return this.dragHandler.isPointOnEdge(node, edge);
+        return this.interactionHandler.isPointOnEdge(node, edge);
     }
 
     /**
@@ -407,8 +398,7 @@ class NodeUI {
      * @param {boolean} removeOriginalEdge Whether to remove the original edge
      */
     splitEdgeWithNode(edge, node, removeOriginalEdge = true) {
-        // Moved to DragHandler
-        this.dragHandler.splitEdgeWithNode(edge, node, removeOriginalEdge);
+        this.interactionHandler.splitEdgeWithNode(edge, node, removeOriginalEdge);
     }
 
     // --- Edge Drawing Logic ---
@@ -419,7 +409,7 @@ class NodeUI {
      * @param {string} handlePosition - The position of the starting handle.
      */
     startDrawingEdge(nodeId, handlePosition) {
-        this.edgeDrawingHandler.startDrawingEdge(nodeId, handlePosition);
+        this.edgeHandler.startDrawingEdge(nodeId, handlePosition);
     }
 
     /**
@@ -428,7 +418,7 @@ class NodeUI {
      * @param {number} endY - The current Y-coordinate of the mouse.
      */
     updateDrawingEdge(endX, endY) {
-        this.edgeDrawingHandler.updateDrawingEdge(endX, endY);
+        this.edgeHandler.updateDrawingEdge(endX, endY);
     }
 
     /**
@@ -437,14 +427,14 @@ class NodeUI {
      * @param {string} endHandlePosition - The position of the handle where the edge ends.
      */
     endDrawingEdge(endNodeId, endHandlePosition) {
-        this.edgeDrawingHandler.endDrawingEdge(endNodeId, endHandlePosition);
+        this.edgeHandler.endDrawingEdge(endNodeId, endHandlePosition);
     }
 
     /**
      * Cancels the current edge drawing operation.
      */
     cancelDrawingEdge() {
-        this.edgeDrawingHandler.cancelDrawingEdge();
+        this.edgeHandler.cancelDrawingEdge();
     }
 
     /**
@@ -586,14 +576,14 @@ class NodeUI {
      * Selects all nodes on the canvas.
      */
     selectAll() {
-        this.selectionManager.selectAll();
+        this.interactionHandler.selectAll();
     }
 
     /**
      * Finishes the selection process and identifies selected nodes.
      */
     endSelection() {
-        this.selectionManager.endSelection();
+        this.interactionHandler.endSelection();
     }
 
     /**
@@ -603,7 +593,7 @@ class NodeUI {
      * @returns {boolean} True if the node is inside the selection.
      */
     isNodeInSelection(node, selectionRect) {
-        return this.selectionManager.isNodeInSelection(node, selectionRect);
+        return this.interactionHandler.isNodeInSelection(node, selectionRect);
     }
 
     /**
@@ -614,7 +604,7 @@ class NodeUI {
      * @returns {boolean} True if the edge intersects the selection.
      */
     isEdgeInSelection(edge, selectionRect) {
-        return this.selectionManager.isEdgeInSelection(edge, selectionRect);
+        return this.interactionHandler.isEdgeInSelection(edge, selectionRect);
     }
 
     /**
@@ -622,7 +612,7 @@ class NodeUI {
      * @param {string} nodeId The ID of the node to select.
      */
     selectNode(nodeId) {
-        this.selectionManager.selectNode(nodeId);
+        this.interactionHandler.selectNode(nodeId);
     }
 
     /**
@@ -630,14 +620,14 @@ class NodeUI {
      * @param {string} edgeId The ID of the edge to select.
      */
     selectEdge(edgeId) {
-        this.selectionManager.selectEdge(edgeId);
+        this.interactionHandler.selectEdge(edgeId);
     }
 
     /**
      * Clears the current selection.
      */
     clearSelection() {
-        this.selectionManager.clearSelection();
+        this.interactionHandler.clearSelection();
     }
 
     // --- Clipboard Logic ---
@@ -646,21 +636,21 @@ class NodeUI {
      * Copies the selected nodes and their connecting edges to the clipboard.
      */
     copySelection() {
-        this.selectionManager.copySelection();
+        this.interactionHandler.copySelection();
     }
 
     /**
      * Cuts the selected nodes by copying them and then deleting them.
      */
     cutSelection() {
-        this.selectionManager.cutSelection();
+        this.interactionHandler.cutSelection();
     }
 
     /**
      * Pastes nodes and edges from the clipboard onto the canvas at the mouse location.
      */
     paste() {
-        this.selectionManager.paste();
+        this.interactionHandler.paste();
     }
 
     /**
@@ -668,7 +658,7 @@ class NodeUI {
      * @param {string} edgeId The ID of the edge to deselect.
      */
     deselectEdge(edgeId) {
-        this.selectionManager.deselectEdge(edgeId);
+        this.interactionHandler.deselectEdge(edgeId);
     }
 
     // --- Edge Cutting Logic ---
@@ -1144,36 +1134,36 @@ class NodeUI {
     // --- Routing Cut Logic ---
 
     startRoutingCut(event) {
-        this.routingHandler.startRoutingCut(event);
+        this.edgeHandler.startRoutingCut(event);
     }
 
     updateRoutingCut(event) {
-        this.routingHandler.updateRoutingCut(event);
+        this.edgeHandler.updateRoutingCut(event);
     }
 
     endRoutingCut() {
-        this.routingHandler.endRoutingCut();
+        this.edgeHandler.endRoutingCut();
     }
 
     // Edge routing state management
     startEdgeRouting(edgeId, pointIndex) {
-        this.routingHandler.startEdgeRouting(edgeId, pointIndex);
+        this.edgeHandler.startEdgeRouting(edgeId, pointIndex);
     }
 
     updateEdgeRouting(event) {
-        this.routingHandler.updateEdgeRouting(event);
+        this.edgeHandler.updateEdgeRouting(event);
     }
 
     endEdgeRouting() {
-        this.routingHandler.endEdgeRouting();
+        this.edgeHandler.endEdgeRouting();
     }
 
     getRoutingCutState() {
-        return this.routingHandler.getRoutingCutState();
+        return this.edgeHandler.getRoutingCutState();
     }
 
     getRoutingState() {
-        return this.routingHandler.getRoutingState();
+        return this.edgeHandler.getRoutingState();
     }
 
     /**
@@ -1297,7 +1287,7 @@ class NodeUI {
 
         // Remove newly contained nodes from any previous parent
         containedNodeIds.forEach(nodeId => {
-            const oldParent = this.dragHandler.findParentGroup(nodeId);
+            const oldParent = this.interactionHandler.findParentGroup(nodeId);
             if (oldParent) {
                 oldParent.removeContainedNode(nodeId);
             }
@@ -1420,7 +1410,7 @@ class NodeUI {
     }
 
     /**
-     * Publishes the current state of NodeUI settings.
+     * Publishes the current state of Main settings.
      */
     publishSettings() {
         const settings = {
@@ -1683,10 +1673,10 @@ class NodeUI {
     }
 }
 
-// Initialize NodeUI once the DOM is ready
+// Initialize Main once the DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     const canvasContainer = document.getElementById('canvas-container');
-    const app = new NodeUI(canvasContainer);
+    const app = new Main(canvasContainer);
 
     // Load the initial graph from graph.json
     fetch('graph.json')
@@ -1705,3 +1695,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // If loading fails, it will still create the default settings node.
         });
 }); 
+
+// Attach to window for global access
+window.Main = Main; 

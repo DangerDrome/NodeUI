@@ -1,0 +1,79 @@
+/* 
+ * NodeUI Variables
+ * CSS custom properties and design tokens
+ */
+
+:root {
+    /* Base Font */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+    /* --- Palette --- */
+    /* Core UI Colors */
+    --color-bg-default: #1c1c1c;
+    --color-bg-panel: #242424;
+    --color-bg-hover: #2d2d2d;
+    --color-border-default: #3a3a3a;
+    --color-text-default: #e0e0e0;
+    --color-text-subtle: #9e9e9e;
+    --color-text-emphasis: #ffffff;
+    --color-accent: #3ecf8e;
+    --color-danger: #e5484d;
+
+    /* Canvas Background */
+    --color-bg-canvas: transparent;
+    --color-bg-canvas-red: rgba(229, 72, 77, 0.1);
+    --color-bg-canvas-green: rgba(62, 207, 142, 0.1);
+    --color-bg-canvas-blue: rgba(0, 144, 255, 0.1);
+    --color-bg-canvas-yellow: rgba(249, 199, 79, 0.1);
+    --color-bg-canvas-purple: rgba(157, 78, 221, 0.1);
+
+    /* Node Colors */
+    --color-node-default-bg: rgba(58, 58, 58, 0.5);
+    --color-node-default-border: rgba(90, 90, 90, 0.8);
+    --color-node-red-bg: rgba(229, 72, 77, 0.2);
+    --color-node-red-border: rgba(229, 72, 77, 0.8);
+    --color-node-green-bg: rgba(62, 207, 142, 0.2);
+    --color-node-green-border: rgba(62, 207, 142, 0.8);
+    --color-node-blue-bg: rgba(0, 144, 255, 0.2);
+    --color-node-blue-border: rgba(0, 144, 255, 0.8);
+    --color-node-yellow-bg: rgba(249, 199, 79, 0.2);
+    --color-node-yellow-border: rgba(249, 199, 79, 0.8);
+    --color-node-purple-bg: rgba(157, 78, 221, 0.2);
+    --color-node-purple-border: rgba(157, 78, 221, 0.8);
+
+    /* Edge Hover Colors (brighter versions of border colors) */
+    --color-node-default-border-hover: rgba(120, 120, 120, 1);
+    --color-node-red-border-hover: rgba(239, 82, 87, 1);
+    --color-node-green-border-hover: rgba(72, 217, 152, 1);
+    --color-node-blue-border-hover: rgba(40, 154, 255, 1);
+    --color-node-yellow-border-hover: rgba(255, 209, 89, 1);
+    --color-node-purple-border-hover: rgba(167, 88, 231, 1);
+
+    /* --- Sizing & Metrics --- */
+    /* Node Layout */
+    --panel-width: 200px;
+    --panel-height: 120px;
+    --header-height: 48px;
+    --edge-padding: 10px;
+
+    /* Radii & Shadows */
+    --radius-small: 4px;
+    --radius-medium: 8px;
+    --shadow-small: 0 4px 12px rgba(0, 0, 0, 0.2);
+    --shadow-large: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+    /* Font Sizes */
+    --font-size-small: 12px;
+    --font-size-medium: 14px;
+
+    /* --- Typography --- */
+    --h1-font-size: 4.1rem;
+    --h1-font-weight: 1000;
+    --h1-color: var(--color-text-subtle);
+
+    /* --- Theming & Modifiers --- */
+    /* Multipliers for handle sizing */
+    --handle-size-mult: 1;
+    --handle-zone-mult: 2;
+    --handle-offset-mult: 1.5;
+} 

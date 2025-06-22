@@ -3,7 +3,7 @@
  * wheel, and keyboard events.
  */
 
-class InteractionHandler {
+class Interactions {
     /**
      * @param {NodeUI} nodeUI - Reference to the main NodeUI instance.
      */
@@ -32,7 +32,7 @@ class InteractionHandler {
             this.nodeUI.startResize(nodeId, event, direction);
             return;
         }
-        if (this.nodeUI.routingHandler.getRoutingCutState().isRouting) {
+        if (this.nodeUI.edgeHandler.getRoutingCutState().isRouting) {
             this.nodeUI.startRoutingCut(event);
             return;
         }
@@ -77,7 +77,7 @@ class InteractionHandler {
             const node = this.nodeUI.nodes.get(nodeId);
 
             if (node.isPinned && !(node instanceof SettingsNode)) { // Allow settings node to be dragged even if pinned
-                this.nodeUI.dragHandler.startDrag(nodeId, event.clientX, event.clientY, true);
+                this.startDrag(nodeId, event.clientX, event.clientY, true);
                 return;
             }
 
@@ -89,7 +89,7 @@ class InteractionHandler {
                 this.nodeUI.clearSelection();
                 this.nodeUI.selectNode(nodeId);
             }
-            this.nodeUI.dragHandler.startDrag(nodeId, event.clientX, event.clientY);
+            this.startDrag(nodeId, event.clientX, event.clientY);
             return;
         } 
         
@@ -121,7 +121,7 @@ class InteractionHandler {
 
         if (event.target.classList.contains('edge-routing-handle')) {
             const { edgeId, pointIndex } = event.target.dataset;
-            this.nodeUI.routingHandler.startEdgeRouting(edgeId, pointIndex);
+            this.nodeUI.edgeHandler.startEdgeRouting(edgeId, pointIndex);
             return;
         }
     }
@@ -133,7 +133,7 @@ class InteractionHandler {
     onMouseMove(event) {
         this.nodeUI.lastMousePosition = { clientX: event.clientX, clientY: event.clientY };
 
-        if (this.nodeUI.routingHandler.getRoutingCutState().isRouting && this.nodeUI.routingHandler.getRoutingCutState().cutLine) {
+        if (this.nodeUI.edgeHandler.getRoutingCutState().isRouting && this.nodeUI.edgeHandler.getRoutingCutState().cutLine) {
             this.nodeUI.updateRoutingCut(event);
             return;
         }
@@ -220,7 +220,7 @@ class InteractionHandler {
                 const dx = event.clientX - this.nodeUI.draggingState.startX;
                 const dy = event.clientY - this.nodeUI.draggingState.startY;
 
-                const nodesToMove = this.nodeUI.dragHandler.getNodesToMove(primaryNode.id);
+                const nodesToMove = this.getNodesToMove(primaryNode.id);
                 nodesToMove.forEach(nodeId => {
                     const node = this.nodeUI.nodes.get(nodeId);
                     if (node) {
@@ -260,7 +260,7 @@ class InteractionHandler {
             const finalDeltaX = primaryNewX - primaryNode.originalX;
             const finalDeltaY = primaryNewY - primaryNode.originalY;
 
-            const nodesToMove = this.nodeUI.dragHandler.getNodesToMove(primaryNode.id);
+            const nodesToMove = this.getNodesToMove(primaryNode.id);
 
             // 5. Apply the consistent delta to all nodes in the group/selection
             nodesToMove.forEach(nodeId => {
@@ -285,7 +285,9 @@ class InteractionHandler {
             }
 
             // Check for shake in real-time
-            this.nodeUI.checkForShake(primaryNode);
+            if (this.nodeUI.checkForShake) {
+                this.nodeUI.checkForShake(primaryNode);
+            }
 
             // Clear previous droppable state
             if (this.nodeUI.draggingState.droppableEdge) {
@@ -296,7 +298,7 @@ class InteractionHandler {
             // Check for new droppable edge
             let foundDroppable = false;
             for (const edge of this.nodeUI.edges.values()) {
-                if (this.nodeUI.dragHandler.isPointOnEdge(primaryNode, edge)) {
+                if (this.isPointOnEdge(primaryNode, edge)) {
                     edge.element.classList.add('is-droppable');
                     this.nodeUI.draggingState.droppableEdge = edge.element;
                     foundDroppable = true;
@@ -320,7 +322,7 @@ class InteractionHandler {
             this.nodeUI.draggingState.startY = event.clientY;
 
             this.nodeUI.clearGuides();
-        } else if (this.nodeUI.edgeDrawingHandler.isDrawing()) {
+        } else if (this.nodeUI.edgeHandler.isDrawing()) {
             const mousePos = this.nodeUI.getMousePosition(event);
             this.nodeUI.updateDrawingEdge(mousePos.x, mousePos.y);
         }
@@ -338,11 +340,11 @@ class InteractionHandler {
             this.nodeUI.checkForSnapping(this.nodeUI.draggingState.targetNode, this.nodeUI.draggingState.targetNode.x, this.nodeUI.draggingState.targetNode.y);
         }
 
-        if (this.nodeUI.routingHandler.getRoutingState().isRouting) {
-            const edge = this.nodeUI.edges.get(this.nodeUI.routingHandler.getRoutingState().edgeId);
+        if (this.nodeUI.edgeHandler.getRoutingState().isRouting) {
+            const edge = this.nodeUI.edges.get(this.nodeUI.edgeHandler.getRoutingState().edgeId);
             if (edge) {
                 const point = this.nodeUI.getMousePosition(event);
-                edge.routingPoints[this.nodeUI.routingHandler.getRoutingState().pointIndex] = point;
+                edge.routingPoints[this.nodeUI.edgeHandler.getRoutingState().pointIndex] = point;
                 this.nodeUI.updateEdge(edge.id);
                 this.nodeUI.renderRoutingPoints(edge); // Re-render points to update their position
             }
@@ -358,13 +360,13 @@ class InteractionHandler {
         // Always clear the timer that may have been set on mousedown
         clearTimeout(this.nodeUI.selectionDebounceTimer);
 
-        if (this.nodeUI.routingHandler.getRoutingCutState().isRouting) {
+        if (this.nodeUI.edgeHandler.getRoutingCutState().isRouting) {
             this.nodeUI.endRoutingCut();
             return;
         }
 
         // The order of these checks is critical.
-        if (this.nodeUI.edgeDrawingHandler.isDrawing()) {
+        if (this.nodeUI.edgeHandler.isDrawing()) {
             if (event.target.classList.contains('node-handle-zone')) {
                 const { nodeId, handlePosition } = event.target.dataset;
                 this.nodeUI.endDrawingEdge(nodeId, handlePosition);
@@ -374,7 +376,7 @@ class InteractionHandler {
                     return;
                 }
 
-                const state = this.nodeUI.edgeDrawingHandler.getState();
+                const state = this.nodeUI.edgeHandler.getDrawingState();
                 const edgeStartInfo = {
                     startNodeId: state.startNodeId,
                     startHandleId: state.startHandlePosition
@@ -402,15 +404,15 @@ class InteractionHandler {
             return;
         }
         if (this.nodeUI.draggingState.isDragging) {
-            this.nodeUI.dragHandler.endDrag();
+            this.endDrag();
         }
         if (this.nodeUI.panZoom.isPanning) {
             this.nodeUI.panZoom.isPanning = false;
             this.nodeUI.container.classList.remove('is-panning');
         }
 
-        if (this.nodeUI.routingHandler.getRoutingState().isRouting) {
-            this.nodeUI.routingHandler.endEdgeRouting();
+        if (this.nodeUI.edgeHandler.getRoutingState().isRouting) {
+            this.nodeUI.edgeHandler.endEdgeRouting();
             return;
         }
 
@@ -459,7 +461,7 @@ class InteractionHandler {
         if (nodeElement) {
             event.preventDefault(); // Prevent scrolling
             const nodeId = nodeElement.id;
-            this.nodeUI.dragHandler.startDrag(nodeId, touch.clientX, touch.clientY);
+            this.startDrag(nodeId, touch.clientX, touch.clientY);
             return;
         } 
         
@@ -618,7 +620,7 @@ class InteractionHandler {
 
             this.nodeUI.draggingState.startX = touch.clientX;
             this.nodeUI.draggingState.startY = touch.clientY;
-        } else if (this.nodeUI.edgeDrawingHandler.isDrawing()) {
+        } else if (this.nodeUI.edgeHandler.isDrawing()) {
             event.preventDefault(); // Prevent scrolling
             const touch = event.touches[0];
             const mousePos = this.nodeUI.getMousePosition(touch);
@@ -690,7 +692,7 @@ class InteractionHandler {
         }
 
         // Same logic as onMouseUp: handle the most specific state first.
-        if (this.nodeUI.edgeDrawingHandler.isDrawing()) {
+        if (this.nodeUI.edgeHandler.isDrawing()) {
             const touch = event.changedTouches[0];
             const endElement = document.elementFromPoint(touch.clientX, touch.clientY);
             
@@ -698,7 +700,7 @@ class InteractionHandler {
                 const { nodeId, handlePosition } = endElement.dataset;
                 this.nodeUI.endDrawingEdge(nodeId, handlePosition);
             } else {
-                const state = this.nodeUI.edgeDrawingHandler.getState();
+                const state = this.nodeUI.edgeHandler.getDrawingState();
                 const edgeStartInfo = {
                     startNodeId: state.startNodeId,
                     startHandleId: state.startHandlePosition
@@ -716,7 +718,7 @@ class InteractionHandler {
             this.nodeUI.endResize();
         }
         if (this.nodeUI.draggingState.isDragging) {
-            this.nodeUI.dragHandler.endDrag();
+            this.endDrag();
         }
         if (this.nodeUI.panZoom.isPanning) {
             this.nodeUI.panZoom.isPanning = false;
@@ -726,8 +728,8 @@ class InteractionHandler {
             this.nodeUI.endSelection();
         }
 
-        if (this.nodeUI.routingHandler.getRoutingState().isRouting) {
-            this.nodeUI.routingHandler.endEdgeRouting();
+        if (this.nodeUI.edgeHandler.getRoutingState().isRouting) {
+            this.nodeUI.edgeHandler.endEdgeRouting();
             return;
         }
 
@@ -873,7 +875,7 @@ class InteractionHandler {
             this.nodeUI.container.classList.add('is-cutting');
         } else if (key === 'r' && !isModKey && !isEditingContent) {
             event.preventDefault();
-            this.nodeUI.routingHandler.getRoutingCutState().isRouting = true;
+            this.nodeUI.edgeHandler.getRoutingCutState().isRouting = true;
             this.nodeUI.container.classList.add('is-routing');
         }
     }
@@ -892,12 +894,538 @@ class InteractionHandler {
                 this.nodeUI.endCuttingLine(false);
             }
         } else if (key === 'r') {
-            this.nodeUI.routingHandler.getRoutingCutState().isRouting = false;
+            this.nodeUI.edgeHandler.getRoutingCutState().isRouting = false;
             this.nodeUI.container.classList.remove('is-routing');
             // If a routing cut line is still present (e.g., key released before mouseup), clean it up without cutting.
-            if (this.nodeUI.routingHandler.getRoutingCutState().cutLine) {
+            if (this.nodeUI.edgeHandler.getRoutingCutState().cutLine) {
                 this.nodeUI.endRoutingCut();
             }
         }
     }
-} 
+
+    // --- Selection Methods ---
+
+    /**
+     * Selects all nodes on the canvas.
+     */
+    selectAll() {
+        this.nodeUI.clearSelection();
+        this.nodeUI.nodes.forEach(node => this.selectNode(node.id));
+        events.publish('selection:changed', {
+            selectedNodeIds: Array.from(this.nodeUI.selectedNodes)
+        });
+    }
+
+    /**
+     * Adds a node to the current selection.
+     * @param {string} nodeId The ID of the node to select.
+     */
+    selectNode(nodeId) {
+        const node = this.nodeUI.nodes.get(nodeId);
+        if (node && node.element) {
+            this.nodeUI.selectedNodes.add(nodeId);
+            node.element.classList.add('is-selected');
+        }
+    }
+
+    /**
+     * Adds an edge to the current selection.
+     * @param {string} edgeId The ID of the edge to select.
+     */
+    selectEdge(edgeId) {
+        const edge = this.nodeUI.edges.get(edgeId);
+        if (edge && edge.element) {
+            this.nodeUI.selectedEdges.add(edgeId);
+            edge.element.classList.add('is-selected');
+        }
+    }
+
+    /**
+     * Clears the current selection.
+     */
+    clearSelection() {
+        this.nodeUI.selectedNodes.forEach(nodeId => {
+            const node = this.nodeUI.nodes.get(nodeId);
+            if (node && node.element) {
+                node.element.classList.remove('is-selected');
+            }
+        });
+        this.nodeUI.selectedNodes.clear();
+
+        this.nodeUI.selectedEdges.forEach(edgeId => {
+            const edge = this.nodeUI.edges.get(edgeId);
+            if (edge && edge.element) {
+                edge.element.classList.remove('is-selected');
+            }
+        });
+        this.nodeUI.selectedEdges.clear();
+        
+        events.publish('selection:changed', { selectedNodeIds: [], selectedEdgeIds: [] });
+    }
+
+    /**
+     * Removes an edge from the current selection.
+     * @param {string} edgeId The ID of the edge to deselect.
+     */
+    deselectEdge(edgeId) {
+        const edge = this.nodeUI.edges.get(edgeId);
+        if (edge && edge.element) {
+            this.nodeUI.selectedEdges.delete(edgeId);
+            edge.element.classList.remove('is-selected');
+        }
+    }
+
+    /**
+     * Finishes the selection process and identifies selected nodes.
+     */
+    endSelection() {
+        this.nodeUI.canvasRenderer.endSelection();
+    }
+
+    /**
+     * Checks if a node is within the selection rectangle.
+     * @param {BaseNode} node The node to check.
+     * @param {DOMRect} selectionRect The bounding rectangle of the selection box.
+     * @returns {boolean} True if the node is inside the selection.
+     */
+    isNodeInSelection(node, selectionRect) {
+        return this.nodeUI.canvasRenderer.isNodeInSelection(node, selectionRect);
+    }
+
+    /**
+     * Checks if an edge intersects with the selection rectangle.
+     * @param {BaseEdge} edge The edge to check.
+     * @param {object} selectionRect The selection rectangle in world space.
+     * @returns {boolean} True if the edge intersects the selection.
+     */
+    isEdgeInSelection(edge, selectionRect) {
+        return this.nodeUI.canvasRenderer.isEdgeInSelection(edge, selectionRect);
+    }
+
+    /**
+     * Copies the selected nodes and their connecting edges to the clipboard.
+     */
+    copySelection() {
+        this.nodeUI.clipboard.nodes = [];
+        this.nodeUI.clipboard.edges = [];
+
+        if (this.nodeUI.selectedNodes.size === 0) return;
+
+        this.nodeUI.selectedNodes.forEach(nodeId => {
+            const node = this.nodeUI.nodes.get(nodeId);
+            if (node) {
+                const nodeData = { 
+                    ...node,
+                    element: null, 
+                    handles: {},
+                    connections: new Map()
+                };
+                if (node.isPinned) {
+                    nodeData.x = (node.x - this.nodeUI.panZoom.offsetX) / this.nodeUI.panZoom.scale;
+                    nodeData.y = (node.y - this.nodeUI.panZoom.offsetY) / this.nodeUI.panZoom.scale;
+                }
+                if (node instanceof GroupNode) {
+                    nodeData.containedNodeIds = Array.from(node.containedNodeIds);
+                }
+                this.nodeUI.clipboard.nodes.push(nodeData);
+            }
+        });
+
+        this.nodeUI.edges.forEach(edge => {
+            if (this.nodeUI.selectedNodes.has(edge.startNodeId) || this.nodeUI.selectedNodes.has(edge.endNodeId)) {
+                this.nodeUI.clipboard.edges.push({ ...edge, element: null, groupElement: null, hitArea: null, labelElement: null });
+            }
+        });
+        
+        events.publish('log:info', `Copied ${this.nodeUI.clipboard.nodes.length} nodes and ${this.nodeUI.clipboard.edges.length} edges to internal clipboard.`);
+        events.publish('clipboard:changed', this.nodeUI.clipboard);
+    }
+
+    /**
+     * Cuts the selected nodes by copying them and then deleting them.
+     */
+    cutSelection() {
+        this.copySelection();
+        this.nodeUI.selectedNodes.forEach(nodeId => events.publish('node:delete', nodeId));
+        this.nodeUI.clipboard.edges.forEach(edge => events.publish('edge:delete', edge.id));
+        this.clearSelection();
+        events.publish('clipboard:changed', this.nodeUI.clipboard);
+    }
+
+    /**
+     * Pastes nodes and edges from the clipboard onto the canvas at the mouse location.
+     */
+    paste() {
+        if (this.nodeUI.clipboard.nodes.length === 0) return;
+        const pasteCount = this.nodeUI.clipboard.nodes.length;
+        events.publish('log:info', `Pasting ${pasteCount} nodes from internal clipboard.`);
+
+        const idMap = new Map();
+        const nodesToPin = [];
+        const pasteCenter = this.nodeUI.getMousePosition(this.nodeUI.lastMousePosition) || { x: 100, y: 100 };
+        let totalX = 0, totalY = 0;
+        this.nodeUI.clipboard.nodes.forEach(node => {
+            totalX += node.x + node.width / 2;
+            totalY += node.y + node.height / 2;
+        });
+        const groupCenterX = totalX / this.nodeUI.clipboard.nodes.length;
+        const groupCenterY = totalY / this.nodeUI.clipboard.nodes.length;
+
+        this.nodeUI.clipboard.nodes.forEach(nodeData => {
+            const oldId = nodeData.id;
+            const newId = crypto.randomUUID();
+            idMap.set(oldId, newId);
+            const offsetX = nodeData.x - groupCenterX;
+            const offsetY = nodeData.y - groupCenterY;
+            const newNodeData = {
+                id: newId,
+                x: pasteCenter.x + offsetX,
+                y: pasteCenter.y + offsetY,
+                width: nodeData.width,
+                height: nodeData.height,
+                title: nodeData.title,
+                content: nodeData.content,
+                type: nodeData.type,
+                color: nodeData.color,
+                isPinned: false,
+                containedNodeIds: nodeData.containedNodeIds
+            };
+            if (nodeData.type === 'GroupNode' && nodeData.containedNodeIds) {
+                newNodeData.containedNodeIds = nodeData.containedNodeIds.map(oldChildId => 
+                    idMap.get(oldChildId) || oldChildId
+                ).filter(id => id);
+            }
+            if (newNodeData.type === 'RoutingNode') {
+                this.nodeUI.nodeManager.addNode(new RoutingNode(newNodeData));
+            } else if (newNodeData.type === 'GroupNode') {
+                this.nodeUI.nodeManager.addNode(new GroupNode(newNodeData));
+            } else if (newNodeData.type === 'LogNode') {
+                this.nodeUI.nodeManager.addNode(new LogNode(newNodeData));
+            } else if (newNodeData.type === 'SettingsNode') {
+                this.nodeUI.nodeManager.addNode(new SettingsNode(newNodeData));
+            }
+            else {
+                this.nodeUI.nodeManager.addNode(new BaseNode(newNodeData));
+            }
+            if (nodeData.isPinned) {
+                nodesToPin.push(newId);
+            }
+        });
+        this.nodeUI.clipboard.edges.forEach(edgeData => {
+            const newStartNodeId = idMap.get(edgeData.startNodeId) || edgeData.startNodeId;
+            const newEndNodeId = idMap.get(edgeData.endNodeId) || edgeData.endNodeId;
+            if (idMap.has(edgeData.startNodeId) || idMap.has(edgeData.endNodeId)) {
+                events.publish('edge:create', {
+                    startNodeId: newStartNodeId,
+                    endNodeId: newEndNodeId,
+                    startHandleId: edgeData.startHandleId,
+                    endHandleId: edgeData.endHandleId
+                });
+            }
+        });
+        nodesToPin.forEach(nodeId => {
+            this.nodeUI.nodeManager.updateNode({ nodeId: nodeId, isPinned: true });
+        });
+        this.clearSelection();
+        idMap.forEach(newNodeId => this.selectNode(newNodeId));
+        events.publish('selection:changed', {
+            selectedNodeIds: Array.from(this.nodeUI.selectedNodes)
+        });
+        this.nodeUI.clipboard = { nodes: [], edges: [] };
+        events.publish('clipboard:changed', this.nodeUI.clipboard);
+        console.log(`Pasted ${pasteCount} nodes.`);
+    }
+
+    // --- Drag Methods ---
+
+    /**
+     * Initiates the dragging state for a node.
+     * @param {string} nodeId - The ID of the node to drag.
+     * @param {number} clientX - The clientX from the triggering event.
+     * @param {number} clientY - The clientY from the triggering event.
+     */
+    startDrag(nodeId, clientX, clientY, isPinned = false) {
+        const node = this.nodeUI.nodes.get(nodeId);
+        if (!node) return;
+
+        this.nodeUI.draggingState.isDragging = true;
+        this.nodeUI.draggingState.targetNode = node;
+        this.nodeUI.draggingState.isDraggingPinned = isPinned;
+        
+        // Store initial mouse position and node's original position
+        this.nodeUI.draggingState.startX = clientX;
+        this.nodeUI.draggingState.startY = clientY;
+        
+        const nodesToMove = this.getNodesToMove(nodeId);
+        
+        nodesToMove.forEach(nodeToMoveId => {
+            const nodeToMove = this.nodeUI.nodes.get(nodeToMoveId);
+            if (nodeToMove) {
+                nodeToMove.originalX = nodeToMove.x;
+                nodeToMove.originalY = nodeToMove.y;
+            }
+        });
+
+        this.nodeUI.draggingState.shakeHistory = [];
+        this.nodeUI.draggingState.lastShakeTime = Date.now();
+        
+        node.element.classList.add('is-dragging');
+    }
+
+    /**
+     * Ends the current dragging state and publishes the result.
+     */
+    endDrag() {
+        const { targetNode } = this.nodeUI.draggingState;
+        if (!targetNode) return;
+
+        this.updateGroupingForMovedNodes();
+
+        // Clear any final droppable state
+        if (this.nodeUI.draggingState.droppableEdge) {
+            this.nodeUI.draggingState.droppableEdge.classList.remove('is-droppable');
+            this.nodeUI.draggingState.droppableEdge = null;
+        }
+
+        const nodesMoved = this.getNodesToMove(targetNode.id);
+
+        // If any node is dropped on an edge, split the edge
+        // Skip edge splitting for GroupNodes to prevent breaking connections to contained nodes
+        if (!(targetNode instanceof GroupNode)) {
+            let edgeToSplit = null;
+            const nodesToCheckForSplitting = nodesMoved;
+            
+            for (const edge of this.nodeUI.edges.values()) {
+                // Don't split edges connected to any node that's being moved
+                if (nodesToCheckForSplitting.has(edge.startNodeId) || nodesToCheckForSplitting.has(edge.endNodeId)) {
+                    continue;
+                }
+                
+                if (this.isPointOnEdge(targetNode, edge)) {
+                    edgeToSplit = edge;
+                    break;
+                }
+            }
+            if (edgeToSplit) {
+                this.splitEdgeWithNode(edgeToSplit, targetNode, true);
+            }
+        }
+
+        targetNode.element.classList.remove('is-dragging');
+
+        // Always clear guides when drag ends, regardless of snap settings
+        this.nodeUI.clearGuides();
+
+        // Publish 'moved' for all affected nodes
+        nodesMoved.forEach(nodeId => {
+            const node = this.nodeUI.nodes.get(nodeId);
+            if (node) {
+                events.publish('node:moved', { nodeId: node.id, x: node.x, y: node.y });
+            }
+        });
+
+        // Reset dragging state
+        this.nodeUI.draggingState.isDragging = false;
+        this.nodeUI.draggingState.targetNode = null;
+        this.nodeUI.draggingState.shakeCooldown = false; // Reset cooldown
+        this.nodeUI.draggingState.isDraggingPinned = false;
+    }
+
+    /**
+     * Traverses the node hierarchy (groups and selection) to determine all nodes that should move together.
+     * @param {string} startNodeId The ID of the node initiating the drag.
+     * @returns {Set<string>} A set of node IDs that should be moved.
+     */
+    getNodesToMove(startNodeId) {
+        const nodesToMove = new Set();
+        const queue = [];
+
+        // If the start node is part of a selection, the entire selection moves.
+        // Otherwise, only the start node and its children move.
+        if (this.nodeUI.selectedNodes.has(startNodeId)) {
+            this.nodeUI.selectedNodes.forEach(id => queue.push(id));
+        } else {
+            queue.push(startNodeId);
+        }
+
+        while (queue.length > 0) {
+            const currentId = queue.shift();
+            if (nodesToMove.has(currentId)) {
+                continue;
+            }
+            nodesToMove.add(currentId);
+
+            const node = this.nodeUI.nodes.get(currentId);
+            if (node instanceof GroupNode) {
+                node.containedNodeIds.forEach(childId => {
+                    if (!nodesToMove.has(childId)) {
+                        queue.push(childId);
+                    }
+                });
+            }
+        }
+        return nodesToMove;
+    }
+
+    /**
+     * Checks for and applies grouping changes after a drag operation.
+     */
+    updateGroupingForMovedNodes() {
+        const movedNodes = this.getNodesToMove(this.nodeUI.draggingState.targetNode.id);
+        
+        movedNodes.forEach(nodeId => {
+            const node = this.nodeUI.nodes.get(nodeId);
+            if (!node) return;
+
+            const currentParent = this.findParentGroup(nodeId);
+            const newParent = this.findBestTargetGroup(node);
+
+            if (currentParent !== newParent) {
+                if (currentParent) {
+                    currentParent.removeContainedNode(nodeId);
+                    console.log(`Node ${node.title} removed from group ${currentParent.title}`);
+                }
+                if (newParent) {
+                    newParent.addContainedNode(nodeId);
+                    console.log(`Node ${node.title} added to group ${newParent.title}`);
+                }
+            }
+        });
+    }
+
+    /**
+     * Finds the group that a given node should be placed in based on its position.
+     * It prioritizes the smallest, topmost group.
+     * @param {BaseNode} node The node to find a parent for.
+     * @returns {GroupNode|null} The best target group or null if none.
+     */
+    findBestTargetGroup(node) {
+        let bestTarget = null;
+        let smallestArea = Infinity;
+
+        for (const potentialParent of this.nodeUI.nodes.values()) {
+            if (
+                potentialParent instanceof GroupNode &&
+                potentialParent.id !== node.id && // Cannot be its own parent
+                !this.isDescendant(potentialParent, node) // Prevent cycles
+            ) {
+                const nodeCenter = {
+                    x: node.x + node.width / 2,
+                    y: node.y + node.height / 2
+                };
+
+                // Check if the node's center is inside the potential parent
+                if (
+                    nodeCenter.x > potentialParent.x &&
+                    nodeCenter.x < potentialParent.x + potentialParent.width &&
+                    nodeCenter.y > potentialParent.y &&
+                    nodeCenter.y < potentialParent.y + potentialParent.height
+                ) {
+                    const area = potentialParent.width * potentialParent.height;
+                    // Prioritize smaller groups if they are on top
+                    if (!bestTarget || area < smallestArea || (area === smallestArea && parseInt(potentialParent.element.style.zIndex) > parseInt(bestTarget.element.style.zIndex))) {
+                        smallestArea = area;
+                        bestTarget = potentialParent;
+                    }
+                }
+            }
+        }
+        return bestTarget;
+    }
+
+    /**
+     * Finds the current parent group of a given node.
+     * @param {string} nodeId The ID of the node to check.
+     * @returns {GroupNode|null} The parent group or null.
+     */
+    findParentGroup(nodeId) {
+        for (const node of this.nodeUI.nodes.values()) {
+            if (node instanceof GroupNode && node.containedNodeIds.has(nodeId)) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks if a potential ancestor node is a descendant of a given node.
+     * @param {BaseNode} potentialAncestor The node to check if it is a descendant.
+     * @param {BaseNode} node The node to check against.
+     * @returns {boolean} True if a cycle would be created.
+     */
+    isDescendant(potentialAncestor, node) {
+        if (!(node instanceof GroupNode)) {
+            return false;
+        }
+
+        const queue = [...node.containedNodeIds];
+        while (queue.length > 0) {
+            const childId = queue.shift();
+            if (childId === potentialAncestor.id) {
+                return true;
+            }
+            const childNode = this.nodeUI.nodes.get(childId);
+            if (childNode instanceof GroupNode) {
+                childNode.containedNodeIds.forEach(id => queue.push(id));
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks if a point (from a node's center) is on an edge.
+     * @param {BaseNode} node The node (acting as the point).
+     * @param {BaseEdge} edge The edge to check against.
+     * @returns {boolean}
+     */
+    isPointOnEdge(node, edge) {
+        if (!edge.element) return false;
+        const point = { x: node.x + node.width / 2, y: node.y + node.height / 2 };
+        const path = edge.element;
+        const len = path.getTotalLength();
+        if (len === 0) return false;
+
+        for (let i = 0; i < len; i += 5) {
+            const p = path.getPointAtLength(i);
+            if (Math.hypot(p.x - point.x, p.y - point.y) < 10) { // 10px tolerance
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Splits an edge by inserting a node.
+     * @param {BaseEdge} edge The edge to split.
+     * @param {BaseNode} node The node to insert.
+     * @param {boolean} removeOriginalEdge Whether to remove the original edge
+     */
+    splitEdgeWithNode(edge, node, removeOriginalEdge = true) {
+        const originalStartNodeId = edge.startNodeId;
+        const originalEndNodeId = edge.endNodeId;
+        const originalStartHandleId = edge.startHandleId;
+        const originalEndHandleId = edge.endHandleId;
+
+        // Delete the original edge first to correctly update handle states
+        if (removeOriginalEdge) {
+            events.publish('edge:delete', edge.id);
+        }
+
+        // Create two new edges connecting to the new routing node
+        events.publish('edge:create', { 
+            startNodeId: originalStartNodeId, 
+            startHandleId: originalStartHandleId, 
+            endNodeId: node.id, 
+            endHandleId: 'left' 
+        });
+        events.publish('edge:create', { 
+            startNodeId: node.id, 
+            startHandleId: 'right', 
+            endNodeId: originalEndNodeId, 
+            endHandleId: originalEndHandleId 
+        });
+    }
+}
+
+// Attach to window for global access
+window.Interactions = Interactions; 
