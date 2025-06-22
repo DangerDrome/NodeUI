@@ -6,15 +6,21 @@
 ```mermaid
 flowchart TD
     NodeUI[NodeUI Core] --> Events[Event System]
-    NodeUI --> UI[UI Manager]
-    NodeUI --> DB[Database]
+    NodeUI --> CanvasRenderer[Canvas Renderer]
+    NodeUI --> FileHandler[File Handler]
+    NodeUI --> ContextMenuHandler[Context Menu Handler]
+    NodeUI --> NodeManager[Node Manager]
+    NodeUI --> SelectionManager[Selection Manager]
+    NodeUI --> InteractionHandler[Interaction Handler]
+    NodeUI --> DragHandler[Drag Handler]
     
-    UI --> ContextMenu[Context Menu]
-    UI --> Properties[Properties Panel]
-    
-    Events --> NodeEvents[Node Events]
-    Events --> EdgeEvents[Edge Events]
-    Events --> UIEvents[UI Events]
+    CanvasRenderer --> SVG[SVG Canvas]
+    FileHandler --> Storage[Local Storage]
+    ContextMenuHandler --> ContextMenu[Context Menu UI]
+    NodeManager --> Nodes[Node Types]
+    SelectionManager --> Selection[Selection State]
+    InteractionHandler --> Input[User Input]
+    DragHandler --> Drag[Drag Operations]
     
     subgraph nodes[Node Types]
         BaseNode[Base Node]
@@ -24,10 +30,23 @@ flowchart TD
         SettingsNode[Settings Node]
     end
     
-    NodeUI --> nodes
+    NodeManager --> nodes
 ```
 
 ## Design Patterns
+
+### Handler Pattern
+1. **Specialized Handler Classes**
+   - Each handler has a focused responsibility
+   - Clean separation of concerns
+   - Delegation pattern for method calls
+   - Maintains single responsibility principle
+
+2. **Handler Communication**
+   - Handlers communicate through NodeUI orchestration
+   - Event system for cross-handler communication
+   - Shared state managed by NodeUI core
+   - Clean interfaces between handlers
 
 ### Node System
 1. **Base Node Pattern**
@@ -64,6 +83,36 @@ flowchart TD
 
 ## Component Relationships
 
+### Handler Hierarchy
+```mermaid
+classDiagram
+    NodeUI --> CanvasRenderer
+    NodeUI --> FileHandler
+    NodeUI --> ContextMenuHandler
+    NodeUI --> NodeManager
+    NodeUI --> SelectionManager
+    NodeUI --> InteractionHandler
+    NodeUI --> DragHandler
+    
+    class NodeUI {
+        +init()
+        +bindEventListeners()
+        +subscribeToEvents()
+    }
+    
+    class CanvasRenderer {
+        +initCanvas()
+        +updateEdge()
+        +updateCanvasTransform()
+    }
+    
+    class FileHandler {
+        +saveGraph()
+        +loadGraph()
+        +takeScreenshot()
+    }
+```
+
 ### Node Hierarchy
 ```mermaid
 classDiagram
@@ -83,19 +132,22 @@ classDiagram
 ### Event Flow
 ```mermaid
 flowchart LR
-    UI[User Action] --> EventSystem[Event System]
-    EventSystem --> NodeHandler[Node Handler]
-    EventSystem --> UIHandler[UI Handler]
-    EventSystem --> DBHandler[Database Handler]
+    UI[User Action] --> InteractionHandler[Interaction Handler]
+    InteractionHandler --> NodeUI[NodeUI Core]
+    NodeUI --> EventSystem[Event System]
+    EventSystem --> NodeManager[Node Manager]
+    EventSystem --> CanvasRenderer[Canvas Renderer]
+    EventSystem --> SelectionManager[Selection Manager]
 ```
 
 ## Technical Decisions
 
 ### JavaScript Architecture
-1. **Module Pattern**
-   - Clear separation of concerns
-   - Encapsulated functionality
-   - Controlled public interfaces
+1. **Handler Pattern**
+   - Focused responsibility classes
+   - Clean separation of concerns
+   - Maintainable and testable code
+   - Extensible architecture
 
 2. **Event-Driven Architecture**
    - Loose coupling between components
@@ -103,15 +155,15 @@ flowchart LR
    - State synchronization
 
 ### State Management
-1. **Graph State**
-   - Node positions and connections
-   - Property values
-   - Selection state
+1. **Centralized State**
+   - NodeUI core manages shared state
+   - Handlers access state through NodeUI
+   - Clean state boundaries
 
-2. **UI State**
-   - Active tools
-   - Menu states
-   - Panel visibility
+2. **Handler State**
+   - Each handler manages its own internal state
+   - State isolation prevents conflicts
+   - Clear state ownership
 
 ### Data Persistence
 1. **Local Storage**
@@ -123,7 +175,7 @@ flowchart LR
 
 ### Code Organization
 1. **File Structure**
-   - Modular component files
+   - One handler per file
    - Clear dependency hierarchy
    - Logical grouping
 
@@ -141,4 +193,20 @@ flowchart LR
 2. **Memory Management**
    - Proper event cleanup
    - Resource disposal
-   - Reference management 
+   - Reference management
+
+### Handler Guidelines
+1. **Single Responsibility**
+   - Each handler has one clear purpose
+   - Avoid mixing concerns
+   - Keep handlers focused
+
+2. **Clean Interfaces**
+   - Clear public methods
+   - Minimal coupling
+   - Well-defined contracts
+
+3. **State Management**
+   - Handlers don't directly modify other handlers' state
+   - Use events for cross-handler communication
+   - Maintain clear state boundaries 

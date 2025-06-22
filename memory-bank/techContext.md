@@ -33,10 +33,17 @@ NodeUI/
   │   ├── styles/        # Stylesheets
   │   │   └── styles.css # Global styles
   │   ├── core/          # Core system modules
-  │   │   ├── nodeui.js     # Core application
-  │   │   ├── events.js     # Event system
-  │   │   ├── database.js   # Data persistence
-  │   │   └── contextmenu.js # Context menu system
+  │   │   ├── nodeui.js           # Core application orchestration
+  │   │   ├── canvasrenderer.js   # Canvas rendering and SVG operations
+  │   │   ├── filehandler.js      # File operations and persistence
+  │   │   ├── contextmenuhandler.js # Context menu management
+  │   │   ├── nodemanager.js      # Node and edge lifecycle management
+  │   │   ├── selectionmanager.js # Selection and clipboard operations
+  │   │   ├── interactionhandler.js # User input handling
+  │   │   ├── draghandler.js      # Drag operations and grouping
+  │   │   ├── events.js           # Event system
+  │   │   ├── database.js         # Data persistence
+  │   │   └── contextmenu.js      # Context menu UI
   │   └── nodes/           # Node implementations
   │       ├── basenode.js
   │       ├── groupnode.js
@@ -49,11 +56,16 @@ NodeUI/
 ### Module Dependencies
 ```mermaid
 flowchart TD
-    nodeui[nodeui.js] --> events[events.js]
+    nodeui[nodeui.js] --> canvasrenderer[canvasrenderer.js]
+    nodeui --> filehandler[filehandler.js]
+    nodeui --> contextmenuhandler[contextmenuhandler.js]
+    nodeui --> nodemanager[nodemanager.js]
+    nodeui --> selectionmanager[selectionmanager.js]
+    nodeui --> interactionhandler[interactionhandler.js]
+    nodeui --> draghandler[draghandler.js]
+    nodeui --> events[events.js]
     nodeui --> database[database.js]
     nodeui --> contextmenu[contextmenu.js]
-    
-
     
     subgraph nodes[nodes/]
         basenode[basenode.js]
@@ -63,7 +75,7 @@ flowchart TD
         settingsnode[settingsnode.js]
     end
     
-    nodeui --> nodes
+    nodemanager --> nodes
 ```
 
 ## Technical Constraints
@@ -125,7 +137,7 @@ flowchart TD
 ### Code Standards
 1. **JavaScript**
    - ES6+ features
-   - Module pattern
+   - Handler pattern for separation of concerns
    - Clear documentation
    - Consistent naming
 
@@ -134,6 +146,19 @@ flowchart TD
    - BEM methodology
    - Responsive design
    - Performance-focused
+
+### Architecture Guidelines
+1. **Handler Pattern**
+   - Each handler has a single responsibility
+   - Clean interfaces between handlers
+   - Delegation pattern for method calls
+   - Event-driven communication
+
+2. **State Management**
+   - Centralized state in NodeUI core
+   - Handler-specific state isolation
+   - Clear state boundaries
+   - Event-based state updates
 
 ### Testing Requirements
 1. **Browser Testing**
@@ -146,4 +171,5 @@ flowchart TD
    - Node operations
    - Edge management
    - State persistence
-   - Event handling 
+   - Event handling
+   - Handler interactions 
