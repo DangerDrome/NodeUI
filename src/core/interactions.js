@@ -76,6 +76,16 @@ class Interactions {
             const nodeId = nodeElement.id;
             const node = this.nodeUI.nodes.get(nodeId);
 
+            // Handle double-click to enter subgraphs
+            if (event.detail === 2 && node instanceof SubGraphNode) {
+                event.stopPropagation();
+                event.preventDefault();
+                const newStack = [...this.nodeUI.graphContext.graphStack, node.id];
+                const newPath = newStack.map(id => (id === 'main' ? 'main' : `sg_${id.substring(0, 8)}`)).join('/');
+                window.location.hash = newPath;
+                return;
+            }
+
             if (node.isPinned && !(node instanceof SettingsNode)) { // Allow settings node to be dragged even if pinned
                 this.startDrag(nodeId, event.clientX, event.clientY, true);
                 return;

@@ -142,6 +142,14 @@ class Main {
         this.bindEventListeners();
         this.subscribeToEvents();
         this.startPhysicsLoop(); // Start the physics simulation
+        
+        // Handle initial URL hash
+        if (!window.location.hash) {
+            window.location.hash = 'main';
+        } else {
+            this.handleHashChange();
+        }
+
         console.log('%c[Main]%c Service initialized.', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
     }
 
@@ -182,6 +190,9 @@ class Main {
                 this.canvasRenderer.updateWatermarkPosition(this.versionWatermark);
             }
         });
+
+        // Add history navigation handler
+        window.addEventListener('hashchange', this.handleHashChange.bind(this));
 
         events.subscribe('contextmenu:hidden', () => {
             if (this.edgeHandler.isDrawing()) {
@@ -233,9 +244,7 @@ class Main {
         events.subscribe('graph:load-content', (json) => this.fileHandler.loadGraph(json));
         events.subscribe('graph:screenshot', () => this.fileHandler.takeScreenshot());
 
-        // SubGraph navigation events
-        events.subscribe('subgraph:enter', (data) => this.enterSubGraph(data));
-        events.subscribe('subgraph:exit', (data) => this.exitSubGraph(data));
+        // SubGraph file operations (no longer for navigation)
         events.subscribe('subgraph:save', (data) => this.saveSubGraph(data));
         events.subscribe('subgraph:load', (data) => this.loadSubGraph(data));
     }
@@ -1645,6 +1654,21 @@ class Main {
     }
 
     /**
+     * Finds a node in the current context by a shortened version of its ID.
+     * @param {string} shortId - The first 8 characters of a node's UUID.
+     * @returns {BaseNode|null} The found node or null.
+     */
+    findNodeByShortId(shortId) {
+        if (shortId === 'main') return null; // 'main' isn't a node
+        for (const node of this.nodes.values()) {
+            if (node.id.startsWith(shortId)) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Serializes the current graph state, including type-specific properties.
      * @returns {object} The serialized graph state.
      */
@@ -1698,148 +1722,127 @@ class Main {
      * @param {string} nodeId The ID of the node to reparent.
      */
     reparentNode(nodeId) {
-        const node = this.nodes.get(nodeId);
-        if (!node || !node.element) return;
-
-        if (node.isPinned) {
-            // Pinning the node: Move from world container to pinned container
-            const rect = node.element.getBoundingClientRect();
-            const containerRect = this.container.getBoundingClientRect();
-
-            // Convert world coords and size to screen coords for pinning
-            node.x = rect.left - containerRect.left;
-            node.y = rect.top - containerRect.top;
-            node.width = rect.width;
-            node.height = rect.height;
-            
-            this.pinnedNodeContainer.appendChild(node.element);
-            node.element.style.left = `${node.x}px`;
-            node.element.style.top = `${node.y}px`;
-            node.element.style.width = `${node.width}px`;
-            node.element.style.height = `${node.height}px`;
-            this.pinnedNodes.add(nodeId);
-
-        } else {
-            // Unpinning the node: Move from pinned container to world container
-            // Convert screen coords and size back to world coords
-            const worldX = (node.x - this.panZoom.offsetX) / this.panZoom.scale;
-            const worldY = (node.y - this.panZoom.offsetY) / this.panZoom.scale;
-            const worldWidth = node.width / this.panZoom.scale;
-            const worldHeight = node.height / this.panZoom.scale;
-
-            node.x = worldX;
-            node.y = worldY;
-            node.width = worldWidth;
-            node.height = worldHeight;
-
-            const targetContainer = node instanceof GroupNode ? this.groupContainer : this.nodeContainer;
-            targetContainer.appendChild(node.element);
-            node.element.style.left = `${node.x}px`;
-            node.element.style.top = `${node.y}px`;
-            node.element.style.width = `${node.width}px`;
-            node.element.style.height = `${node.height}px`;
-            this.pinnedNodes.delete(nodeId);
-        }
-        this.updateConnectedEdges(nodeId);
+        this.nodeManager.reparentNode(nodeId);
     }
 
-    // --- SubGraph Navigation Methods ---
+    /**
+     * Central navigation handler.
+     * Reads the URL hash and synchronizes the graph state to match it.
+     */
+    async handleHashChange() {
+        const targetPath = window.location.hash.slice(1).split('/').filter(p => p);
+        if (targetPath.length === 0 || targetPath[0] !== 'main') {
+            // Invalid or empty hash, reset to the current valid state.
+            const currentPath = this.graphContext.graphStack.map(id => (id === 'main' ? 'main' : `sg_${id.substring(0, 8)}`));
+            window.location.hash = currentPath.join('/');
+            return;
+        }
+
+        const currentStack = this.graphContext.graphStack;
+        const currentPath = currentStack.map(id => (id === 'main' ? 'main' : `sg_${id.substring(0, 8)}`));
+
+        // Find divergence point
+        let firstDiffIndex = 0;
+        while (
+            firstDiffIndex < targetPath.length &&
+            firstDiffIndex < currentPath.length &&
+            targetPath[firstDiffIndex] === currentPath[firstDiffIndex]
+        ) {
+            firstDiffIndex++;
+        }
+
+        // Number of levels to exit
+        const exitsToMake = currentPath.length - firstDiffIndex;
+        for (let i = 0; i < exitsToMake; i++) {
+            this._exitSubgraph();
+        }
+
+        // Path segments to enter
+        const entersToMake = targetPath.slice(firstDiffIndex);
+        for (const pathSegment of entersToMake) {
+            if (pathSegment === 'main') continue;
+
+            if (!pathSegment.startsWith('sg_')) {
+                console.error(`Navigation error: Invalid path segment format: ${pathSegment}`);
+                const newCurrentPath = this.graphContext.graphStack.map(id => (id === 'main' ? 'main' : `sg_${id.substring(0, 8)}`));
+                window.location.hash = newCurrentPath.join('/');
+                break;
+            }
+
+            const shortId = pathSegment.substring(3);
+            const nodeToEnter = this.findNodeByShortId(shortId);
+            if (nodeToEnter && nodeToEnter instanceof SubGraphNode) {
+                this._enterSubgraph(nodeToEnter);
+        } else {
+                console.error(`Navigation error: Could not find SubGraphNode with short ID: ${shortId}`);
+                // Reset hash to last known good state and stop
+                const newCurrentPath = this.graphContext.graphStack.map(id => (id === 'main' ? 'main' : `sg_${id.substring(0, 8)}`));
+                window.location.hash = newCurrentPath.join('/');
+                break;
+            }
+        }
+        
+        // After all navigation is complete, ensure the UI is correct.
+        if (this.graphContext.currentGraphId === 'main') {
+            this.container.classList.remove('subgraph-editor-mode');
+            this.hideBreadcrumb();
+        } else {
+            this.container.classList.add('subgraph-editor-mode');
+            this.showBreadcrumb();
+        }
+    }
 
     /**
-     * Navigates into a SubGraph for editing.
-     * @param {object} data - SubGraph entry data.
-     * @param {string} data.subgraphId - The SubGraph ID.
-     * @param {string} data.subgraphPath - Path to the SubGraph JSON file.
-     * @param {object} data.internalGraph - The internal graph data.
-     * @param {string} data.parentNodeId - The parent SubGraph node ID.
+     * Internal logic to enter a subgraph.
+     * @param {SubGraphNode} nodeToEnter - The subgraph node instance to enter.
      */
-    enterSubGraph(data) {
-        const { subgraphId, subgraphPath, internalGraph, parentNodeId } = data;
-
-        // Save a deep copy of the current graph state
+    _enterSubgraph(nodeToEnter) {
+        // Save a deep copy of the current graph state for the breadcrumb
         const currentGraphState = JSON.parse(JSON.stringify(this.serializeCurrentGraph()));
 
         // Update graph context
-        this.graphContext.graphStack.push(subgraphId);
-        this.graphContext.currentGraphId = subgraphId;
         this.graphContext.breadcrumbData.push({
-            graphId: subgraphId,
-            title: this.nodes.get(parentNodeId)?.title || 'SubGraph',
-            parentNodeId: parentNodeId,
+            subgraphId: this.graphContext.currentGraphId,
+            title: nodeToEnter.title,
+            parentNodeId: nodeToEnter.id,
             graphState: currentGraphState
         });
-
-        // Clear current canvas
-        this.clearAll();
-
-        // Load internal graph data
-        if (internalGraph) {
-            this.loadInternalGraph(internalGraph);
-        } else {
-            // Load from file if no internal data provided
-            this.loadSubGraph({ path: subgraphPath });
-        }
-
-        // Update UI for SubGraph mode
-        this.container.classList.add('subgraph-editor-mode');
-        this.showBreadcrumb();
+        this.graphContext.graphStack.push(nodeToEnter.id);
+        this.graphContext.currentGraphId = nodeToEnter.id;
+        this.clearAll(true); // Clear canvas without resetting context stack
+        this.loadInternalGraph(nodeToEnter.internalGraph);
     }
-
+    
     /**
-     * Exits the current SubGraph and returns to the parent graph.
-     * @param {object} data - SubGraph exit data.
-     * @param {string} data.subgraphId - The SubGraph ID.
-     * @param {string} data.parentNodeId - The parent SubGraph node ID.
+     * Internal method to perform the logic of exiting the current subgraph.
      */
-    exitSubGraph(data) {
+    _exitSubgraph() {
         if (this.graphContext.graphStack.length <= 1) {
             console.warn("Attempted to exit base graph. Operation aborted.");
             return;
         }
-
-        const { subgraphId, parentNodeId } = data;
-
-        // Save current SubGraph state
-        const currentGraphState = this.serializeCurrentGraph();
-
-        // Pop from graph context stack
+    
+        // Serialize the graph we are leaving
+        const exitedGraphState = this.serializeCurrentGraph();
+    
+        // Get the context of the parent graph we are returning to
+        const parentGraphInfo = this.graphContext.breadcrumbData.pop();
         this.graphContext.graphStack.pop();
         this.graphContext.currentGraphId = this.graphContext.graphStack[this.graphContext.graphStack.length - 1];
-        const breadcrumbItem = this.graphContext.breadcrumbData.pop();
-
-        // Clear current canvas
+    
+        // Clear the canvas and load the parent graph state
         this.clearAll();
-
-        // Restore parent graph state
-        if (breadcrumbItem && breadcrumbItem.graphState) {
-            this.loadInternalGraph(breadcrumbItem.graphState);
+        if (parentGraphInfo && parentGraphInfo.graphState) {
+            this.loadInternalGraph(parentGraphInfo.graphState);
         }
-
-        // Update the parent SubGraph node with the new internal graph data
-        // We need to find the parent node in the restored graph
-        const parentNode = this.nodes.get(parentNodeId);
+    
+        // After restoring the parent graph, find the node we just exited
+        // and update its internal state with the serialized data.
+        const parentNode = this.nodes.get(parentGraphInfo.parentNodeId);
         if (parentNode && parentNode.updateInternalGraph) {
-            parentNode.updateInternalGraph(currentGraphState);
-            // Force re-render of the preview
-            if (parentNode.forceRenderPreview) {
-                parentNode.forceRenderPreview();
-            }
-            // Also update the preview
-            if (parentNode.updatePreview) {
-                parentNode.updatePreview();
-            }
-        }
-
-        // Update UI for the new context
-        if (this.graphContext.currentGraphId === 'main') {
-            // We are back at the root graph.
-            this.container.classList.remove('subgraph-editor-mode');
-            this.hideBreadcrumb();
-            this.graphContext.graphStack = ['main'];
-            this.graphContext.breadcrumbData = [];
-        } else {
-            // We are in a parent subgraph, so re-render the breadcrumbs for the new level.
-            this.showBreadcrumb();
+            parentNode.updateInternalGraph(exitedGraphState);
+            // Re-render the preview to reflect the changes.
+            setTimeout(() => parentNode.renderPreview(), 0);
         }
     }
 
@@ -1914,8 +1917,9 @@ class Main {
      * Shows the breadcrumb navigation.
      */
     showBreadcrumb() {
-        // Remove existing breadcrumb
-        this.hideBreadcrumb();
+        // Remove any existing breadcrumb container
+        const oldBreadcrumb = this.container.querySelector('.breadcrumb-container');
+        if (oldBreadcrumb) oldBreadcrumb.remove();
 
         const breadcrumbContainer = document.createElement('div');
         breadcrumbContainer.className = 'breadcrumb-container';
@@ -1923,73 +1927,58 @@ class Main {
         // Add a "Main" breadcrumb item
         const mainItem = document.createElement('a');
         mainItem.className = 'breadcrumb-item';
-        mainItem.href = '#';
+        mainItem.href = '#main';
         mainItem.innerHTML = `
             <span class="icon icon-network"></span>
             <span>Main</span>
         `;
         mainItem.addEventListener('click', (event) => {
             event.preventDefault();
-            this.navigateToBreadcrumb(-1); // Use -1 to signify the root
+            window.location.hash = 'main';
         });
         breadcrumbContainer.appendChild(mainItem);
 
-        // Add breadcrumb items for each subgraph
-        this.graphContext.breadcrumbData.forEach((item, index) => {
+        // Render breadcrumbs for the current graphStack (excluding 'main')
+        for (let i = 1; i < this.graphContext.graphStack.length; i++) {
+            const nodeId = this.graphContext.graphStack[i];
+            const node = this.nodes.get(nodeId);
+
             const separator = document.createElement('span');
             separator.className = 'breadcrumb-separator';
-            separator.textContent = '>';
+            separator.textContent = '/';
             breadcrumbContainer.appendChild(separator);
 
-            const breadcrumbItem = document.createElement('a');
-            breadcrumbItem.className = 'breadcrumb-item';
-            breadcrumbItem.href = '#';
-            breadcrumbItem.innerHTML = `
-                <span class="icon icon-squares-subtract"></span>
-                <span>${item.title}</span>
+            const link = document.createElement('a');
+            link.className = 'breadcrumb-item';
+            const pathStack = this.graphContext.graphStack.slice(0, i + 1);
+            const shortPath = pathStack.map(id => (id === 'main' ? 'main' : `sg_${id.substring(0, 8)}`));
+            link.href = `#${shortPath.join('/')}`;
+            link.innerHTML = `
+                <span class=\"icon icon-squares-subtract\"></span>
+                <span>${node ? node.title : 'SubGraph'}</span>
             `;
-            breadcrumbItem.addEventListener('click', (event) => {
+            link.addEventListener('click', (event) => {
                 event.preventDefault();
-                this.navigateToBreadcrumb(index);
+                window.location.hash = link.getAttribute('href');
             });
-            breadcrumbContainer.appendChild(breadcrumbItem);
-        });
+            breadcrumbContainer.appendChild(link);
+        }
 
-        document.body.appendChild(breadcrumbContainer);
-        this.breadcrumbElement = breadcrumbContainer;
+        this.container.prepend(breadcrumbContainer);
     }
 
     /**
-     * Hides the breadcrumb navigation.
+     * Hides and removes the breadcrumb container from the DOM.
      */
     hideBreadcrumb() {
-        if (this.breadcrumbElement) {
-            this.breadcrumbElement.remove();
-            this.breadcrumbElement = null;
+        const breadcrumbContainer = this.container.querySelector('.breadcrumb-container');
+        if (breadcrumbContainer) {
+            breadcrumbContainer.remove();
         }
     }
 
     /**
-     * Navigates to a specific breadcrumb level.
-     * @param {number} index - The breadcrumb index to navigate to. -1 for the root.
-     */
-    navigateToBreadcrumb(index) {
-        const currentLevel = this.graphContext.breadcrumbData.length - 1;
-        const levelsToExit = currentLevel - index;
-
-        for (let i = 0; i < levelsToExit; i++) {
-            const currentBreadcrumb = this.graphContext.breadcrumbData[this.graphContext.breadcrumbData.length - 1];
-            if (currentBreadcrumb) {
-                this.exitSubGraph({
-                    subgraphId: currentBreadcrumb.graphId,
-                    parentNodeId: currentBreadcrumb.parentNodeId
-                });
-            }
-        }
-    }
-
-    /**
-     * Saves a SubGraph to its JSON file.
+     * Saves a SubGraph's data. This might be used for explicit save actions in the future.
      * @param {object} data - Save data.
      * @param {string} data.path - The file path.
      * @param {object} data.data - The SubGraph data.
@@ -2033,4 +2022,4 @@ document.addEventListener('DOMContentLoaded', () => {
 }); 
 
 // Attach to window for global access
-window.Main = Main;
+window.Main = Main; 
