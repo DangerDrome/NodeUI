@@ -111,6 +111,12 @@ class Nodes {
             const oldPinnedState = node.isPinned;
             node.update(data);
 
+            // If the title changed, and the node is in the current navigation path,
+            // re-render the breadcrumbs to show the new title.
+            if (data.title !== undefined && this.nodeUI.graphContext.graphStack.includes(node.id)) {
+                this.nodeUI.showBreadcrumb();
+            }
+
             // Handle cascading pin for groups
             if (node instanceof GroupNode && data.isPinned !== undefined) {
                 const containedNodes = this.getAllContainedNodes(node);

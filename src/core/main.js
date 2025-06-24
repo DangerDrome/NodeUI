@@ -1914,17 +1914,17 @@ class Main {
     }
 
     /**
-     * Shows the breadcrumb navigation.
+     * Renders the breadcrumb navigation based on the current graph context stack.
      */
     showBreadcrumb() {
-        // Remove any existing breadcrumb container
+        // Remove any existing breadcrumb container to prevent duplicates
         const oldBreadcrumb = this.container.querySelector('.breadcrumb-container');
         if (oldBreadcrumb) oldBreadcrumb.remove();
 
         const breadcrumbContainer = document.createElement('div');
         breadcrumbContainer.className = 'breadcrumb-container';
 
-        // Add a "Main" breadcrumb item
+        // Add the static "Main" breadcrumb link
         const mainItem = document.createElement('a');
         mainItem.className = 'breadcrumb-item';
         mainItem.href = '#main';
@@ -1938,11 +1938,8 @@ class Main {
         });
         breadcrumbContainer.appendChild(mainItem);
 
-        // Render breadcrumbs for the current graphStack (excluding 'main')
-        for (let i = 1; i < this.graphContext.graphStack.length; i++) {
-            const nodeId = this.graphContext.graphStack[i];
-            const node = this.nodes.get(nodeId);
-
+        // Render breadcrumbs for each level in the hierarchy using breadcrumbData as the source of truth for titles
+        this.graphContext.breadcrumbData.forEach((item, index) => {
             const separator = document.createElement('span');
             separator.className = 'breadcrumb-separator';
             separator.textContent = '/';
@@ -1950,19 +1947,22 @@ class Main {
 
             const link = document.createElement('a');
             link.className = 'breadcrumb-item';
-            const pathStack = this.graphContext.graphStack.slice(0, i + 1);
+            
+            // Construct the URL path from the graphStack, which is parallel to breadcrumbData
+            const pathStack = this.graphContext.graphStack.slice(0, index + 2);
             const shortPath = pathStack.map(id => (id === 'main' ? 'main' : `sg_${id.substring(0, 8)}`));
             link.href = `#${shortPath.join('/')}`;
+
             link.innerHTML = `
-                <span class=\"icon icon-squares-subtract\"></span>
-                <span>${node ? node.title : 'SubGraph'}</span>
+                <span class="icon icon-squares-subtract"></span>
+                <span>${item.title}</span>
             `;
             link.addEventListener('click', (event) => {
                 event.preventDefault();
                 window.location.hash = link.getAttribute('href');
             });
             breadcrumbContainer.appendChild(link);
-        }
+        });
 
         this.container.prepend(breadcrumbContainer);
     }
