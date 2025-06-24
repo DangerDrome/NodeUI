@@ -31,56 +31,42 @@
    - CSS properly organized into separate files (styles.css, variables.css, icons.css, components.css)
 
 4. **SubGraph System**:
-   - **Core Node System**: Base node functionality with drag, resize, and connection capabilities
-   - **Multiple Node Types**: BaseNode, GroupNode, RoutingNode, LogNode, SettingsNode, and now SubGraphNode
-   - **Edge Management**: Edge creation, routing, and visual updates
-   - **Context Menu System**: Dynamic context menus for canvas and edges
-   - **File Operations**: Save/load graph data, drag & drop support
-   - **Interaction System**: Mouse and touch event handling
-   - **Canvas Rendering**: SVG-based canvas with pan/zoom functionality
-   - **Selection System**: Multi-select, copy/paste, and grouping
-   - **Physics Simulation**: Edge tension and node positioning
-   - **SubGraph System**: Self-contained graph nodes with navigation and preview
+   - **Stable Core**: The `SubGraphNode` is now a stable feature, allowing for the creation of nested, self-contained graphs.
+   - **Robust Navigation**: Full graph context navigation is implemented with a stable breadcrumb system that correctly handles multi-level traversal.
+   - **Reliable State Management**: State is correctly preserved when entering, exiting, and navigating between subgraphs, preventing data corruption.
+   - **High-Quality Previews**: Thumbnails are rendered as crisp, automatically-framed SVG images that reflect the subgraph's content and the node's color.
+   - **File Integration**: Subgraphs can be created from dropped JSON files, and their state is saved with the main graph.
 
 ## Current Status
-- **Project**: NodeUI - Stable and Complete
-- **Phase**: Maintenance
-- **Progress**: 100% - All core systems implemented and tested
-- **SubGraph Implementation**: 90% complete
+- **Project**: NodeUI
+- **Phase**: Maintenance & Refinement
+- **Progress**: 95% - Core systems are complete and stable. Current work is focused on refining advanced features like the SubGraph system.
+- **SubGraph Implementation**: 95% complete
   - ✅ Core SubGraph node class
-  - ✅ Graph context navigation
-  - ✅ Breadcrumb navigation
-  - ✅ Preview rendering
-  - ✅ Exposed attributes (basic)
+  - ✅ Robust graph context navigation
+  - ✅ Stable breadcrumb navigation
+  - ✅ High-quality SVG preview rendering
+  - ✅ State persistence during navigation
   - ✅ Context menu integration
-  - ✅ File management (basic)
-  - ⏳ Data flow between parent and subgraph
-  - ⏳ Advanced SubGraph features
+  - ✅ File management (drag-and-drop creation)
+  - ⏳ Functional data flow for exposed attributes
+  - ⏳ Advanced SubGraph library/template features
 
 ## What's Left to Build
 - **Advanced SubGraph Features**: 
-  - Proper exposed attribute data flow implementation
-  - SubGraph templates and library system
-  - Better file system integration for SubGraph storage
+  - Implement robust data flow for exposed attributes.
+  - Design and build a `SubGraph` template/library system for easy reuse.
 - **Enhanced UI Features**:
-  - Properties panel for node configuration
-  - Better visual feedback for SubGraph navigation
-  - SubGraph-specific context menu options
-- **Performance Optimizations**:
-  - Large graph rendering optimizations
-  - SubGraph preview caching
+  - Properties panel for advanced node configuration.
+  - `SubGraph`-specific context menu options (e.g., managing exposed attributes).
 - **Advanced Features**:
-  - Undo/redo system
-  - Node templates
-  - Plugin system
-  - Collaboration features
+  - Undo/redo system.
+  - Node templates.
+  - Plugin system.
 
 ## Known Issues
-- **None** - All functionality working correctly
-- SubGraph file loading uses file input dialog instead of direct file system access
-- Exposed attribute data flow is placeholder implementation
-- SubGraph preview rendering could be optimized for better performance
-- No validation for SubGraph data integrity
+- **Exposed Attribute Data Flow**: The mechanism for passing data in and out of subgraphs via exposed handles is not yet fully implemented.
+- **Manual SubGraph Saving**: `SubGraph` content is updated in memory, but saving a `SubGraph` as a separate, reusable `.json` file is still a manual user action.
 
 ## Testing Status
 - ✅ **Functional testing** - All features working
@@ -89,6 +75,7 @@
 - ✅ **Performance testing** - No performance degradation
 - ✅ **Browser compatibility** - Working across browsers
 - ✅ **Routing cut testing** - Working correctly
+- ✅ **SubGraph Navigation** - Core navigation and state management are tested and stable.
 
 ## Documentation Status
 - ✅ Project brief
@@ -112,8 +99,8 @@ The NodeUI application has been successfully refactored from a monolithic file i
 All functionality is preserved, code is more maintainable, and the architecture is ready for future development. 
 
 ## Recent Achievements
-- Successfully implemented SubGraph node type with Houdini HDA-like functionality
-- Added complete navigation system between graph contexts
-- Implemented preview rendering for SubGraph contents
-- Integrated SubGraph creation into the context menu system
-- Added proper CSS styling for all SubGraph components 
+- Successfully implemented and stabilized the `SubGraph` node type.
+- Fixed all known bugs related to nested navigation and state persistence.
+- Refactored `SubGraph` previews from canvas to SVG for improved quality and scaling.
+- Streamlined the breadcrumb navigation system for intuitive traversal of nested graphs.
+- Implemented robust, deep-copy-based state serialization to prevent context-related bugs. 

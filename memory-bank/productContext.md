@@ -9,6 +9,7 @@ NodeUI exists to provide a flexible, lightweight solution for creating and manag
 3. **State Management**: Handles complex state management for node graphs without external libraries
 4. **User Interaction**: Simplifies complex user interactions into intuitive operations
 5. **Data Persistence**: Manages saving and loading of graph states
+6. **Workflow Modularity**: Allows for the creation of reusable, nested, and shareable graph components.
 
 ## User Experience Goals
 
@@ -33,6 +34,11 @@ NodeUI exists to provide a flexible, lightweight solution for creating and manag
    - Group operations on nodes
    - Workspace navigation
 
+4. **SubGraph Management**
+   - Create self-contained subgraphs from nodes or files
+   - Navigate into and out of subgraphs seamlessly
+   - Understand subgraph contents via previews
+
 ### User Interface Principles
 1. **Clarity**: Clear visual hierarchy and node relationships
 2. **Responsiveness**: Immediate feedback for user actions
@@ -51,6 +57,12 @@ NodeUI exists to provide a flexible, lightweight solution for creating and manag
 - Flexible connection system
 - Edge routing and visualization
 - Connection validation
+
+### SubGraph System
+- Create self-contained, nested graphs
+- Share and reuse subgraphs via JSON files
+- Navigate graph hierarchy with breadcrumbs
+- Expose attributes for external connections
 
 ### User Interface
 - Context-sensitive menus

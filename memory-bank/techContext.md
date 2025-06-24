@@ -51,6 +51,7 @@ NodeUI/
   │       ├── lognode.js
   │       ├── routingnode.js
   │       └── settingsnode.js
+  │       └── subgraphnode.js
   └── graph.json         # Graph state storage
 ```
 
@@ -72,6 +73,7 @@ flowchart TD
         lognode[lognode.js]
         routingnode[routingnode.js]
         settingsnode[settingsnode.js]
+        subgraphnode[subgraphnode.js]
     end
     
     nodes --> nodes
@@ -171,4 +173,5 @@ flowchart TD
    - Edge management
    - State persistence
    - Event handling
-   - Handler interactions 
+   - Handler interactions
+   - SubGraph operations 

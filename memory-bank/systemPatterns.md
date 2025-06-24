@@ -26,6 +26,7 @@ flowchart TD
         LogNode[Log Node]
         RoutingNode[Routing Node]
         SettingsNode[Settings Node]
+        SubGraphNode[SubGraph Node]
     end
     
     NodeManager --> nodes
@@ -117,6 +118,7 @@ classDiagram
     BaseNode <|-- LogNode
     BaseNode <|-- RoutingNode
     BaseNode <|-- SettingsNode
+    BaseNode <|-- SubGraphNode
     
     class BaseNode {
         +properties
@@ -136,6 +138,10 @@ flowchart LR
     EventSystem --> CanvasRenderer[Canvas Renderer]
     EventSystem --> EdgeHandler[Edge Handler]
 ```
+
+## System Patterns
+- **Graph Context Stack**: A stack (`graphContext.graphStack`) is used to manage navigation between the main graph and nested subgraphs. Entering a subgraph pushes its context onto the stack, and exiting pops it. This ensures a clear hierarchy and enables breadcrumb navigation.
+- **State Serialization**: When navigating between contexts, the current graph state is serialized into a deep-copied JSON object. This prevents state corruption and ensures that changes within a subgraph are isolated until explicitly saved to the parent.
 
 ## Technical Decisions
 
@@ -226,7 +232,8 @@ src/
 │   ├── groupnode.js      # Group node implementation
 │   ├── lognode.js        # Log node implementation
 │   ├── routingnode.js    # Routing node implementation
-│   └── settingsnode.js   # Settings node implementation
+│   ├── settingsnode.js   # Settings node implementation
+│   └── subgraphnode.js   # SubGraph node implementation
 └── styles/
     ├── styles.css        # Global styles
     ├── variables.css     # CSS variables
