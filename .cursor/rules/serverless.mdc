@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Rule 1.0
+- use index.html
+- This is a serverless application, 
+- there is no python server, 
+- no npm server, 
+- this is a serverless application.
+- Never start a Server when running this app

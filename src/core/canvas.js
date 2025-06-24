@@ -3,6 +3,9 @@
  * visual updates, physics simulation, and canvas transformations.
  */
 
+// NodeUI Version
+const NODEUI_VERSION = '2.0.0';
+
 class Canvas {
     constructor(nodeUI) {
         this.nodeUI = nodeUI;
@@ -74,6 +77,63 @@ class Canvas {
         container.appendChild(this.nodeUI.groupContainer);
         container.appendChild(this.nodeUI.svg);
         container.appendChild(this.nodeUI.nodeContainer);
+
+        // Add version watermark
+        this.createVersionWatermark();
+    }
+
+    /**
+     * Creates a version watermark in the bottom-right corner of the canvas.
+     */
+    createVersionWatermark() {
+        const watermarkGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        watermarkGroup.classList.add('version-watermark');
+        watermarkGroup.setAttribute('pointer-events', 'none');
+
+        // Create background rectangle
+        const background = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        background.setAttribute('width', '80');
+        background.setAttribute('height', '24');
+        background.setAttribute('rx', '4');
+        background.setAttribute('fill', 'rgba(0, 0, 0, 0.1)');
+        background.setAttribute('stroke', 'rgba(255, 255, 255, 0.2)');
+        background.setAttribute('stroke-width', '1');
+
+        // Create text element
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', '40');
+        text.setAttribute('y', '16');
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
+        text.setAttribute('font-size', '11px');
+        text.setAttribute('font-weight', '500');
+        text.setAttribute('fill', 'rgba(255, 255, 255, 0.7)');
+        text.textContent = `NodeUI v${NODEUI_VERSION}`;
+
+        watermarkGroup.appendChild(background);
+        watermarkGroup.appendChild(text);
+        
+        // Position the watermark in the bottom-right corner
+        this.updateWatermarkPosition(watermarkGroup);
+        
+        this.nodeUI.svg.appendChild(watermarkGroup);
+        this.nodeUI.versionWatermark = watermarkGroup;
+    }
+
+    /**
+     * Updates the position of the version watermark to stay in the bottom-right corner.
+     * @param {SVGElement} watermarkGroup - The watermark group element.
+     */
+    updateWatermarkPosition(watermarkGroup) {
+        const container = this.nodeUI.container;
+        const rect = container.getBoundingClientRect();
+        const padding = 28;
+        
+        // Position in bottom-right corner
+        const x = rect.width - 90 - padding; // 90 = width + padding
+        const y = rect.height - 34 - padding; // 34 = height + padding
+        
+        watermarkGroup.setAttribute('transform', `translate(${x}, ${y})`);
     }
 
     /**
@@ -332,6 +392,11 @@ class Canvas {
             const gridX = this.nodeUI.panZoom.offsetX;
             const gridY = this.nodeUI.panZoom.offsetY;
             pattern.setAttribute('patternTransform', `translate(${gridX} ${gridY}) scale(${this.nodeUI.panZoom.scale})`);
+        }
+
+        // Update watermark position to stay in viewport
+        if (this.nodeUI.versionWatermark) {
+            this.updateWatermarkPosition(this.nodeUI.versionWatermark);
         }
 
         // Force-update edges connected to pinned nodes so they follow the pan/zoom

@@ -32,22 +32,21 @@ NodeUI/
   ├── src/                # Source code
   │   ├── styles/        # Stylesheets
   │   │   ├── styles.css # Global styles
+  │   │   ├── variables.css # CSS variables
   │   │   ├── icons.css # Icon styles
   │   │   ├── components.css # Component styles
   │   ├── core/          # Core system modules
-  │   │   ├── nodeui.js           # Core application orchestration
-  │   │   ├── canvasrenderer.js   # Canvas rendering and SVG operations
-  │   │   ├── filehandler.js      # File operations and persistence
-  │   │   ├── contextmenuhandler.js # Context menu management
-  │   │   ├── nodemanager.js      # Node and edge lifecycle management
-  │   │   ├── selectionmanager.js # Selection and clipboard operations
-  │   │   ├── interactionhandler.js # User input handling
-  │   │   ├── draghandler.js      # Drag operations and grouping
-  │   │   ├── events.js           # Event system
-  │   │   ├── database.js         # Data persistence
-  │   │   └── contextmenu.js      # Context menu UI
+  │   │   ├── main.js           # Core application orchestration
+  │   │   ├── canvas.js         # Canvas rendering and SVG operations
+  │   │   ├── file.js           # File operations and persistence
+  │   │   ├── contextMenu.js    # Context menu management
+  │   │   ├── nodes.js          # Node and edge lifecycle management
+  │   │   ├── interactions.js   # User input handling and interactions
+  │   │   ├── edges.js          # Edge drawing and routing
+  │   │   └── events.js         # Event system
   │   └── nodes/           # Node implementations
   │       ├── basenode.js
+  │       ├── baseedge.js
   │       ├── groupnode.js
   │       ├── lognode.js
   │       ├── routingnode.js
@@ -58,26 +57,24 @@ NodeUI/
 ### Module Dependencies
 ```mermaid
 flowchart TD
-    nodeui[nodeui.js] --> canvasrenderer[canvasrenderer.js]
-    nodeui --> filehandler[filehandler.js]
-    nodeui --> contextmenuhandler[contextmenuhandler.js]
-    nodeui --> nodemanager[nodemanager.js]
-    nodeui --> selectionmanager[selectionmanager.js]
-    nodeui --> interactionhandler[interactionhandler.js]
-    nodeui --> draghandler[draghandler.js]
-    nodeui --> events[events.js]
-    nodeui --> database[database.js]
-    nodeui --> contextmenu[contextmenu.js]
+    main[main.js] --> canvas[canvas.js]
+    main --> file[file.js]
+    main --> contextmenu[contextMenu.js]
+    main --> nodes[nodes.js]
+    main --> interactions[interactions.js]
+    main --> edges[edges.js]
+    main --> events[events.js]
     
     subgraph nodes[nodes/]
         basenode[basenode.js]
+        baseedge[baseedge.js]
         groupnode[groupnode.js]
         lognode[lognode.js]
         routingnode[routingnode.js]
         settingsnode[settingsnode.js]
     end
     
-    nodemanager --> nodes
+    nodes --> nodes
 ```
 
 ## Technical Constraints

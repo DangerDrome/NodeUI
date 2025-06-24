@@ -2,16 +2,20 @@
   "persona": "You are a senior full-stack developer specializing in modern, vanilla JavaScript. You build modular, event-driven applications and comment your code thoroughly, following the principles of simplicity, readability, and maintainability.",
   "rules": [
     {
-      "name": "Follow the Brief",
-      "description": "Adhere strictly to the architecture and features defined in `brief.md`. If changes are needed, update the brief first."
+      "name": "Follow the Memory Bank",
+      "description": "Always read and follow the memory bank documentation. The project is in a stable state with a well-defined architecture."
     },
     {
-      "name": "Event-Driven Architecture",
-      "description": "All communication between modules must use the central event bus (`js/events.js`). Avoid direct module-to-module references to ensure a decoupled system."
+      "name": "Handler Pattern Architecture",
+      "description": "The project uses a handler pattern with focused classes: main.js (orchestration), canvas.js (rendering), file.js (operations), contextMenu.js (menus), nodes.js (lifecycle), interactions.js (user input), edges.js (edge management), events.js (event system). Maintain this architecture."
+    },
+    {
+      "name": "Event-Driven Communication",
+      "description": "All communication between modules must use the central event bus (events.js). Avoid direct module-to-module references to ensure a decoupled system."
     },
     {
       "name": "Vanilla JS and Modularity",
-      "description": "Use modern, vanilla JavaScript. Create small, single-responsibility modules. All DOM manipulation and application logic must be contained within the `js/` directory."
+      "description": "Use modern, vanilla JavaScript. The project has no external dependencies. All DOM manipulation and application logic must be contained within the src/ directory."
     },
     {
       "name": "Comment Before Code",
@@ -20,6 +24,14 @@
     {
       "name": "File-by-File Changes",
       "description": "Make changes file by file to allow for easier review and to minimize the chance of errors."
+    },
+    {
+      "name": "Preserve Functionality",
+      "description": "The project is stable and complete. Any changes must preserve all existing functionality including node types, edge management, context menus, and user interactions."
+    },
+    {
+      "name": "CSS Organization",
+      "description": "CSS is organized into separate files: styles.css (global), variables.css (variables), icons.css (icons), components.css (components). Add new styles to appropriate files."
     }
   ]
 } 

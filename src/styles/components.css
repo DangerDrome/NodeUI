@@ -1393,4 +1393,279 @@ input:checked + .slider:before {
 
 #ui-settings-card .setting-row {
     grid-template-columns: 1fr auto;
+}
+
+/* Version Watermark */
+.version-watermark {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 1001;
+    pointer-events: none;
+    user-select: none;
+}
+
+.version-watermark text {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    fill: rgba(255, 255, 255, 0.3);
+    text-anchor: middle;
+}
+
+.version-watermark rect {
+    fill: none;
+    stroke-width: 0px;
+    rx: 4;
+}
+
+/* SubGraph Node Styles */
+.subgraph-node {
+    border: 2px solid var(--color-node-purple-border);
+    background: var(--color-node-purple-bg);
+}
+
+.subgraph-node .node-icon {
+    color: var(--color-node-purple-border);
+}
+
+.subgraph-preview-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    border-radius: var(--radius-medium);
+    overflow: hidden; /* This will hide the scrollbars */
+}
+
+.subgraph-preview-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background-color: transparent; /* Ensure no default bg */
+    transition: transform 0.2s ease-out;
+}
+
+.subgraph-preview-svg:hover {
+    transform: scale(1.05); /* Slight zoom on hover */
+}
+
+/* Exposed Attribute Handles */
+.exposed-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--color-node-purple-border);
+    border: 2px solid var(--color-background);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.exposed-handle.input-handle {
+    left: -6px;
+}
+
+.exposed-handle.output-handle {
+    right: -6px;
+}
+
+.exposed-handle:hover {
+    background: var(--color-accent);
+    transform: scale(1.2);
+}
+
+/* Breadcrumb Navigation */
+.breadcrumb-container {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.breadcrumb-item:hover {
+    color: var(--color-accent);
+}
+
+.breadcrumb-separator {
+    color: var(--color-text-muted);
+    margin: 0 4px;
+}
+
+.breadcrumb-current {
+    color: var(--color-accent);
+    font-weight: 500;
+}
+
+/* SubGraph Context Menu */
+.subgraph-context-menu {
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 4px 0;
+    min-width: 160px;
+    z-index: 1000;
+}
+
+.subgraph-context-menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text);
+    font-size: 14px;
+}
+
+.subgraph-context-menu-item:hover {
+    background: var(--color-hover);
+}
+
+.subgraph-context-menu-item .icon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+}
+
+/* SubGraph Editor Mode */
+.subgraph-editor-mode .canvas-container {
+    background: var(--color-node-purple-bg);
+    opacity: 0.95;
+}
+
+.subgraph-editor-mode .canvas-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(128, 90, 213, 0.1) 10px,
+        rgba(128, 90, 213, 0.1) 20px
+    );
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* --- Drag & Drop Overlay --- */
+.drop-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+}
+
+.drop-overlay-content {
+    background: var(--color-bg-panel);
+    border: 2px solid var(--color-border-default);
+    border-radius: var(--radius-medium);
+    padding: 32px;
+    text-align: center;
+    max-width: 400px;
+    box-shadow: var(--shadow-large);
+}
+
+.drop-overlay-title {
+    color: var(--color-text-emphasis);
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.drop-overlay-subtitle {
+    color: var(--color-text-subtle);
+    font-size: 14px;
+    margin-bottom: 24px;
+}
+
+.drop-overlay-options {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+.drop-overlay-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    border: 2px solid var(--color-border-default);
+    border-radius: var(--radius-medium);
+    background: var(--color-bg-default);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 120px;
+}
+
+.drop-overlay-option:hover {
+    border-color: var(--color-accent);
+    background: var(--color-bg-hover);
+    transform: translateY(-2px);
+}
+
+.drop-overlay-option:active {
+    transform: translateY(0);
+}
+
+.drop-overlay-option-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--color-accent);
+}
+
+.drop-overlay-option-text {
+    color: var(--color-text-default);
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.drop-overlay-cancel {
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-small);
+    color: var(--color-text-subtle);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.drop-overlay-cancel:hover {
+    border-color: var(--color-text-default);
+    color: var(--color-text-default);
 } 

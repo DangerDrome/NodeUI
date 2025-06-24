@@ -313,6 +313,10 @@ class ContextMenu {
                 type: 'GroupNode',
             },
             {
+                key: 'subgraph',
+                type: 'SubGraphNode',
+            },
+            {
                 key: 'routingNode',
                 type: 'RoutingNode',
             },
@@ -343,6 +347,8 @@ class ContextMenu {
                         newNode = new LogNode({ x: worldPos.x, y: worldPos.y });
                     } else if (action.type === 'SettingsNode') {
                         newNode = new SettingsNode({ x: worldPos.x, y: worldPos.y });
+                    } else if (action.type === 'SubGraphNode') {
+                        newNode = new SubGraphNode({ x: worldPos.x, y: worldPos.y });
                     }
                     else {
                         newNode = new BaseNode({ x: worldPos.x, y: worldPos.y, title: menuConfig.label, type: action.type });

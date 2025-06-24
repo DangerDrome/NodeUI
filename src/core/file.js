@@ -426,11 +426,9 @@ class File {
                 y: position.y + index * 20
             };
 
-            // Handle graph loading
+            // Handle graph loading with overlay for JSON files
             if (file.type === 'application/json' || file.name.endsWith('.json')) {
-                const reader = new FileReader();
-                reader.onload = (e) => events.publish('graph:load-content', e.target.result);
-                reader.readAsText(file);
+                this.showJsonDropOverlay(file, filePosition);
                 return;
             }
 
@@ -524,6 +522,130 @@ class File {
     }
 
     /**
+     * Shows the drag-and-drop overlay for JSON files with options to replace graph or create SubGraph.
+     * @param {File} file - The JSON file that was dropped.
+     * @param {object} position - The drop position {x, y}.
+     */
+    showJsonDropOverlay(file, position) {
+        // Create overlay element
+        const overlay = document.createElement('div');
+        overlay.className = 'drop-overlay';
+        overlay.innerHTML = `
+            <div class="drop-overlay-content">
+                <div class="drop-overlay-title">Import Graph File</div>
+                <div class="drop-overlay-subtitle">Choose how to import "${file.name}"</div>
+                <div class="drop-overlay-options">
+                    <div class="drop-overlay-option" data-action="replace">
+                        <div class="drop-overlay-option-icon">
+                            <i class="icon-refresh-cw"></i>
+                        </div>
+                        <div class="drop-overlay-option-text">Replace Current Graph</div>
+                    </div>
+                    <div class="drop-overlay-option" data-action="subgraph">
+                        <div class="drop-overlay-option-icon">
+                            <i class="icon-squares-subtract"></i>
+                        </div>
+                        <div class="drop-overlay-option-text">Create SubGraph Node</div>
+                    </div>
+                </div>
+                <button class="drop-overlay-cancel">Cancel</button>
+            </div>
+        `;
+
+        // Add event listeners
+        const replaceOption = overlay.querySelector('[data-action="replace"]');
+        const subgraphOption = overlay.querySelector('[data-action="subgraph"]');
+        const cancelButton = overlay.querySelector('.drop-overlay-cancel');
+
+        replaceOption.addEventListener('click', () => {
+            this.handleJsonFileReplace(file);
+            document.body.removeChild(overlay);
+        });
+
+        subgraphOption.addEventListener('click', () => {
+            this.handleJsonFileSubGraph(file, position);
+            document.body.removeChild(overlay);
+        });
+
+        cancelButton.addEventListener('click', () => {
+            document.body.removeChild(overlay);
+        });
+
+        // Close overlay when clicking outside
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                document.body.removeChild(overlay);
+            }
+        });
+
+        // Add to DOM
+        document.body.appendChild(overlay);
+    }
+
+    /**
+     * Handles replacing the current graph with the dropped JSON file.
+     * @param {File} file - The JSON file to load.
+     */
+    handleJsonFileReplace(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            events.publish('graph:load-content', e.target.result);
+        };
+        reader.readAsText(file);
+    }
+
+    /**
+     * Handles creating a SubGraph node from the dropped JSON file.
+     * @param {File} file - The JSON file to create SubGraph from.
+     * @param {object} position - The position to place the SubGraph node.
+     */
+    handleJsonFileSubGraph(file, position) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const graphData = JSON.parse(e.target.result);
+                const subgraphId = `subgraph_${Date.now()}`;
+                const subgraphPath = `subgraphs/${file.name.replace('.json', '')}_${subgraphId}.json`;
+                
+                // Create SubGraph node
+                events.publish('node:create', {
+                    x: position.x - 100, // Center the node
+                    y: position.y - 60,
+                    width: 200,
+                    height: 120,
+                    title: file.name.replace('.json', ''),
+                    content: '',
+                    type: 'SubGraphNode',
+                    color: 'default',
+                    subgraphId: subgraphId,
+                    subgraphPath: subgraphPath,
+                    internalGraph: graphData
+                });
+
+                // Save the SubGraph data
+                events.publish('subgraph:save', {
+                    path: subgraphPath,
+                    data: {
+                        id: subgraphId,
+                        title: file.name.replace('.json', ''),
+                        internalGraph: graphData,
+                        exposedAttributes: [],
+                        metadata: {
+                            created: new Date().toISOString(),
+                            lastModified: new Date().toISOString()
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Failed to parse JSON file:', error);
+                alert('Invalid JSON file format');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    /**
      * Handles pasting content from the clipboard, such as URLs.
      * @param {ClipboardEvent} event
      */
@@ -590,7 +712,140 @@ class File {
      * @returns {boolean}
      */
     isObject(item) {
-        return (item && typeof item === 'object' && !Array.isArray(item));
+        return item && typeof item === 'object' && !Array.isArray(item);
+    }
+
+    // --- SubGraph File Operations ---
+
+    /**
+     * Saves a SubGraph to its JSON file.
+     * @param {string} path - The file path for the SubGraph.
+     * @param {object} data - The SubGraph data to save.
+     */
+    saveSubGraph(path, data) {
+        try {
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = path.split('/').pop() || 'subgraph.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            console.log(`SubGraph saved to ${path}`);
+        } catch (error) {
+            console.error('Failed to save SubGraph:', error);
+        }
+    }
+
+    /**
+     * Loads a SubGraph from its JSON file.
+     * @param {string} path - The file path for the SubGraph.
+     * @param {function} callback - Callback function with loaded data.
+     */
+    loadSubGraph(path, callback) {
+        try {
+            // For now, we'll use a simple file input approach
+            // In a real implementation, you might want to use the File System Access API
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.style.display = 'none';
+            
+            input.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (callback) {
+                                callback(data);
+                            }
+                        } catch (error) {
+                            console.error('Failed to parse SubGraph file:', error);
+                            if (callback) {
+                                callback(null);
+                            }
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+                document.body.removeChild(input);
+            });
+            
+            document.body.appendChild(input);
+            input.click();
+        } catch (error) {
+            console.error('Failed to load SubGraph:', error);
+            if (callback) {
+                callback(null);
+            }
+        }
+    }
+
+    /**
+     * Creates a SubGraph file from the current selection.
+     * @param {string} subgraphId - The SubGraph ID.
+     * @param {string} title - The SubGraph title.
+     * @returns {object} The SubGraph data.
+     */
+    createSubGraphFromSelection(subgraphId, title) {
+        const selectedNodes = Array.from(this.nodeUI.selectedNodes);
+        const selectedEdges = Array.from(this.nodeUI.selectedEdges);
+        
+        // Get all edges that connect selected nodes
+        const internalEdges = [];
+        this.nodeUI.edges.forEach(edge => {
+            if (selectedNodes.includes(edge.startNodeId) && selectedNodes.includes(edge.endNodeId)) {
+                internalEdges.push({
+                    id: edge.id,
+                    startNodeId: edge.startNodeId,
+                    endNodeId: edge.endNodeId,
+                    startHandle: edge.startHandle,
+                    endHandle: edge.endHandle,
+                    label: edge.label
+                });
+            }
+        });
+
+        // Create node data for selected nodes
+        const nodes = selectedNodes.map(nodeId => {
+            const node = this.nodeUI.nodes.get(nodeId);
+            return {
+                id: node.id,
+                x: node.x,
+                y: node.y,
+                width: node.width,
+                height: node.height,
+                title: node.title,
+                content: node.content,
+                type: node.type,
+                color: node.color,
+                isPinned: node.isPinned
+            };
+        });
+
+        return {
+            id: subgraphId,
+            title: title,
+            internalGraph: {
+                nodes: nodes,
+                edges: internalEdges,
+                canvasState: {
+                    scale: 1,
+                    offsetX: 0,
+                    offsetY: 0
+                }
+            },
+            exposedAttributes: [],
+            metadata: {
+                created: new Date().toISOString(),
+                lastModified: new Date().toISOString()
+            }
+        };
     }
 }
 

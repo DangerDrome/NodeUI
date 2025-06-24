@@ -10,17 +10,15 @@ flowchart TD
     NodeUI --> FileHandler[File Handler]
     NodeUI --> ContextMenuHandler[Context Menu Handler]
     NodeUI --> NodeManager[Node Manager]
-    NodeUI --> SelectionManager[Selection Manager]
     NodeUI --> InteractionHandler[Interaction Handler]
-    NodeUI --> DragHandler[Drag Handler]
+    NodeUI --> EdgeHandler[Edge Handler]
     
     CanvasRenderer --> SVG[SVG Canvas]
     FileHandler --> Storage[Local Storage]
     ContextMenuHandler --> ContextMenu[Context Menu UI]
     NodeManager --> Nodes[Node Types]
-    SelectionManager --> Selection[Selection State]
     InteractionHandler --> Input[User Input]
-    DragHandler --> Drag[Drag Operations]
+    EdgeHandler --> Edges[Edge Management]
     
     subgraph nodes[Node Types]
         BaseNode[Base Node]
@@ -90,9 +88,8 @@ classDiagram
     NodeUI --> FileHandler
     NodeUI --> ContextMenuHandler
     NodeUI --> NodeManager
-    NodeUI --> SelectionManager
     NodeUI --> InteractionHandler
-    NodeUI --> DragHandler
+    NodeUI --> EdgeHandler
     
     class NodeUI {
         +init()
@@ -137,7 +134,7 @@ flowchart LR
     NodeUI --> EventSystem[Event System]
     EventSystem --> NodeManager[Node Manager]
     EventSystem --> CanvasRenderer[Canvas Renderer]
-    EventSystem --> SelectionManager[Selection Manager]
+    EventSystem --> EdgeHandler[Edge Handler]
 ```
 
 ## Technical Decisions
@@ -198,15 +195,41 @@ flowchart LR
 ### Handler Guidelines
 1. **Single Responsibility**
    - Each handler has one clear purpose
-   - Avoid mixing concerns
-   - Keep handlers focused
+   - Focused functionality
+   - Clean interfaces
 
-2. **Clean Interfaces**
-   - Clear public methods
-   - Minimal coupling
-   - Well-defined contracts
+2. **Event Communication**
+   - Use events for cross-handler communication
+   - Avoid direct handler-to-handler calls
+   - Maintain loose coupling
 
 3. **State Management**
-   - Handlers don't directly modify other handlers' state
-   - Use events for cross-handler communication
-   - Maintain clear state boundaries 
+   - Handlers manage their own internal state
+   - Shared state goes through NodeUI core
+   - Clear state boundaries
+
+## Current File Structure
+```
+src/
+├── core/
+│   ├── main.js           # NodeUI core orchestration
+│   ├── canvas.js         # Canvas rendering and SVG operations
+│   ├── file.js           # File operations and persistence
+│   ├── contextMenu.js    # Context menu management
+│   ├── nodes.js          # Node lifecycle management
+│   ├── interactions.js   # User input handling and interactions
+│   ├── edges.js          # Edge drawing and routing
+│   └── events.js         # Event system
+├── nodes/
+│   ├── basenode.js       # Base node class
+│   ├── baseedge.js       # Base edge class
+│   ├── groupnode.js      # Group node implementation
+│   ├── lognode.js        # Log node implementation
+│   ├── routingnode.js    # Routing node implementation
+│   └── settingsnode.js   # Settings node implementation
+└── styles/
+    ├── styles.css        # Global styles
+    ├── variables.css     # CSS variables
+    ├── icons.css         # Icon styles
+    └── components.css    # Component styles
+``` 

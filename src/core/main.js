@@ -17,6 +17,13 @@ class Main {
         this.selectedNodes = new Set();
         this.selectedEdges = new Set();
 
+        // Graph context management for SubGraph navigation
+        this.graphContext = {
+            currentGraphId: 'main',
+            graphStack: ['main'],
+            breadcrumbData: []
+        };
+
         this.draggingState = {
             isDragging: false,
             targetNode: null,
@@ -80,6 +87,7 @@ class Main {
                 note: { label: 'Note', iconClass: 'icon-file-text' },
                 routingNode: { label: 'Router', iconClass: 'icon-network' },
                 group: { label: 'Group', iconClass: 'icon-group' },
+                subgraph: { label: 'SubGraph', iconClass: 'icon-squares-subtract' },
                 log: { label: 'Log', iconClass: 'icon-terminal' },
                 settings: { label: 'Settings', iconClass: 'icon-settings' },
                 snapGrid: { label: `Grid Snap`, iconClass: 'icon-grid-2x2' },
@@ -168,6 +176,13 @@ class Main {
         // Add paste event listener for URLs
         document.removeEventListener('paste', this.fileHandler.onPaste.bind(this.fileHandler));
 
+        // Add resize event listener for watermark positioning
+        window.addEventListener('resize', () => {
+            if (this.canvasRenderer && this.versionWatermark) {
+                this.canvasRenderer.updateWatermarkPosition(this.versionWatermark);
+            }
+        });
+
         events.subscribe('contextmenu:hidden', () => {
             if (this.edgeHandler.isDrawing()) {
                 this.edgeHandler.cancelDrawingEdge();
@@ -188,6 +203,8 @@ class Main {
                 this.nodeManager.addNode(new LogNode(options));
             } else if (options.type === 'SettingsNode') {
                 this.nodeManager.addNode(new SettingsNode(options));
+            } else if (options.type === 'SubGraphNode') {
+                this.nodeManager.addNode(new SubGraphNode(options));
             }
             else {
                 this.nodeManager.addNode(new BaseNode(options));
@@ -215,6 +232,12 @@ class Main {
         events.subscribe('graph:save', () => this.fileHandler.saveGraph());
         events.subscribe('graph:load-content', (json) => this.fileHandler.loadGraph(json));
         events.subscribe('graph:screenshot', () => this.fileHandler.takeScreenshot());
+
+        // SubGraph navigation events
+        events.subscribe('subgraph:enter', (data) => this.enterSubGraph(data));
+        events.subscribe('subgraph:exit', (data) => this.exitSubGraph(data));
+        events.subscribe('subgraph:save', (data) => this.saveSubGraph(data));
+        events.subscribe('subgraph:load', (data) => this.loadSubGraph(data));
     }
 
     /**
@@ -1618,8 +1641,56 @@ class Main {
      * @param {ClipboardEvent} event
      */
     onPaste(event) {
-        // Moved to FileHandler
-        this.fileHandler.onPaste(event);
+        this.interactionHandler.onPaste(event);
+    }
+
+    /**
+     * Serializes the current graph state, including type-specific properties.
+     * @returns {object} The serialized graph state.
+     */
+    serializeCurrentGraph() {
+        return {
+            nodes: Array.from(this.nodes.values()).map(node => {
+                const nodeData = {
+                    id: node.id,
+                    x: node.x,
+                    y: node.y,
+                    width: node.width,
+                    height: node.height,
+                    title: node.title,
+                    content: node.content,
+                    type: node.type,
+                    color: node.color,
+                    isPinned: node.isPinned
+                };
+
+                // Add type-specific properties
+                if (node.type === 'SubGraphNode') {
+                    nodeData.internalGraph = node.internalGraph;
+                    nodeData.subgraphPath = node.subgraphPath;
+                    nodeData.subgraphId = node.subgraphId;
+                }
+                if (node.type === 'GroupNode') {
+                    nodeData.containedNodeIds = Array.from(node.containedNodeIds);
+                }
+
+                return nodeData;
+            }),
+            edges: Array.from(this.edges.values()).map(edge => ({
+                id: edge.id,
+                startNodeId: edge.startNodeId,
+                endNodeId: edge.endNodeId,
+                startHandleId: edge.startHandleId,
+                endHandleId: edge.endHandleId,
+                label: edge.label,
+                routingPoints: edge.routingPoints || []
+            })),
+            canvasState: {
+                scale: this.panZoom.scale,
+                offsetX: this.panZoom.offsetX,
+                offsetY: this.panZoom.offsetY
+            }
+        };
     }
 
     /**
@@ -1671,6 +1742,271 @@ class Main {
         }
         this.updateConnectedEdges(nodeId);
     }
+
+    // --- SubGraph Navigation Methods ---
+
+    /**
+     * Navigates into a SubGraph for editing.
+     * @param {object} data - SubGraph entry data.
+     * @param {string} data.subgraphId - The SubGraph ID.
+     * @param {string} data.subgraphPath - Path to the SubGraph JSON file.
+     * @param {object} data.internalGraph - The internal graph data.
+     * @param {string} data.parentNodeId - The parent SubGraph node ID.
+     */
+    enterSubGraph(data) {
+        const { subgraphId, subgraphPath, internalGraph, parentNodeId } = data;
+
+        // Save a deep copy of the current graph state
+        const currentGraphState = JSON.parse(JSON.stringify(this.serializeCurrentGraph()));
+
+        // Update graph context
+        this.graphContext.graphStack.push(subgraphId);
+        this.graphContext.currentGraphId = subgraphId;
+        this.graphContext.breadcrumbData.push({
+            graphId: subgraphId,
+            title: this.nodes.get(parentNodeId)?.title || 'SubGraph',
+            parentNodeId: parentNodeId,
+            graphState: currentGraphState
+        });
+
+        // Clear current canvas
+        this.clearAll();
+
+        // Load internal graph data
+        if (internalGraph) {
+            this.loadInternalGraph(internalGraph);
+        } else {
+            // Load from file if no internal data provided
+            this.loadSubGraph({ path: subgraphPath });
+        }
+
+        // Update UI for SubGraph mode
+        this.container.classList.add('subgraph-editor-mode');
+        this.showBreadcrumb();
+    }
+
+    /**
+     * Exits the current SubGraph and returns to the parent graph.
+     * @param {object} data - SubGraph exit data.
+     * @param {string} data.subgraphId - The SubGraph ID.
+     * @param {string} data.parentNodeId - The parent SubGraph node ID.
+     */
+    exitSubGraph(data) {
+        if (this.graphContext.graphStack.length <= 1) {
+            console.warn("Attempted to exit base graph. Operation aborted.");
+            return;
+        }
+
+        const { subgraphId, parentNodeId } = data;
+
+        // Save current SubGraph state
+        const currentGraphState = this.serializeCurrentGraph();
+
+        // Pop from graph context stack
+        this.graphContext.graphStack.pop();
+        this.graphContext.currentGraphId = this.graphContext.graphStack[this.graphContext.graphStack.length - 1];
+        const breadcrumbItem = this.graphContext.breadcrumbData.pop();
+
+        // Clear current canvas
+        this.clearAll();
+
+        // Restore parent graph state
+        if (breadcrumbItem && breadcrumbItem.graphState) {
+            this.loadInternalGraph(breadcrumbItem.graphState);
+        }
+
+        // Update the parent SubGraph node with the new internal graph data
+        // We need to find the parent node in the restored graph
+        const parentNode = this.nodes.get(parentNodeId);
+        if (parentNode && parentNode.updateInternalGraph) {
+            parentNode.updateInternalGraph(currentGraphState);
+            // Force re-render of the preview
+            if (parentNode.forceRenderPreview) {
+                parentNode.forceRenderPreview();
+            }
+            // Also update the preview
+            if (parentNode.updatePreview) {
+                parentNode.updatePreview();
+            }
+        }
+
+        // Update UI for the new context
+        if (this.graphContext.currentGraphId === 'main') {
+            // We are back at the root graph.
+            this.container.classList.remove('subgraph-editor-mode');
+            this.hideBreadcrumb();
+            this.graphContext.graphStack = ['main'];
+            this.graphContext.breadcrumbData = [];
+        } else {
+            // We are in a parent subgraph, so re-render the breadcrumbs for the new level.
+            this.showBreadcrumb();
+        }
+    }
+
+    /**
+     * Loads graph data into the current canvas.
+     * @param {object} graphData - The graph data to load.
+     */
+    loadInternalGraph(graphData) {
+        // Load nodes first
+        if (graphData.nodes) {
+            graphData.nodes.forEach(nodeData => {
+                const node = this.createNodeFromData(nodeData);
+                if (node) {
+                    this.nodeManager.addNode(node);
+                }
+            });
+        }
+
+        // Load edges after nodes are created and rendered
+        if (graphData.edges) {
+            graphData.edges.forEach(edgeData => {
+                const edge = new BaseEdge({
+                    id: edgeData.id,
+                    startNodeId: edgeData.startNodeId,
+                    endNodeId: edgeData.endNodeId,
+                    startHandleId: edgeData.startHandleId,
+                    endHandleId: edgeData.endHandleId,
+                    label: edgeData.label || '',
+                    routingPoints: edgeData.routingPoints || []
+                });
+                this.nodeManager.addEdge(edge);
+            });
+
+            // Update all edges to ensure proper rendering
+            this.edges.forEach(edge => {
+                this.updateEdge(edge.id);
+            });
+        }
+
+        // Restore canvas state
+        if (graphData.canvasState) {
+            this.panZoom.scale = graphData.canvasState.scale || 1;
+            this.panZoom.offsetX = graphData.canvasState.offsetX || 0;
+            this.panZoom.offsetY = graphData.canvasState.offsetY || 0;
+            this.canvasRenderer.updateCanvasTransform();
+        }
+    }
+
+    /**
+     * Creates a node instance from node data.
+     * @param {object} nodeData - The node data.
+     * @returns {BaseNode} The created node instance.
+     */
+    createNodeFromData(nodeData) {
+        switch (nodeData.type) {
+            case 'GroupNode':
+                return new GroupNode(nodeData);
+            case 'RoutingNode':
+                return new RoutingNode(nodeData);
+            case 'LogNode':
+                return new LogNode(nodeData);
+            case 'SettingsNode':
+                return new SettingsNode(nodeData);
+            case 'SubGraphNode':
+                return new SubGraphNode(nodeData);
+            default:
+                return new BaseNode(nodeData);
+        }
+    }
+
+    /**
+     * Shows the breadcrumb navigation.
+     */
+    showBreadcrumb() {
+        // Remove existing breadcrumb
+        this.hideBreadcrumb();
+
+        const breadcrumbContainer = document.createElement('div');
+        breadcrumbContainer.className = 'breadcrumb-container';
+
+        // Add a "Main" breadcrumb item
+        const mainItem = document.createElement('a');
+        mainItem.className = 'breadcrumb-item';
+        mainItem.href = '#';
+        mainItem.innerHTML = `
+            <span class="icon icon-network"></span>
+            <span>Main</span>
+        `;
+        mainItem.addEventListener('click', (event) => {
+            event.preventDefault();
+            this.navigateToBreadcrumb(-1); // Use -1 to signify the root
+        });
+        breadcrumbContainer.appendChild(mainItem);
+
+        // Add breadcrumb items for each subgraph
+        this.graphContext.breadcrumbData.forEach((item, index) => {
+            const separator = document.createElement('span');
+            separator.className = 'breadcrumb-separator';
+            separator.textContent = '>';
+            breadcrumbContainer.appendChild(separator);
+
+            const breadcrumbItem = document.createElement('a');
+            breadcrumbItem.className = 'breadcrumb-item';
+            breadcrumbItem.href = '#';
+            breadcrumbItem.innerHTML = `
+                <span class="icon icon-squares-subtract"></span>
+                <span>${item.title}</span>
+            `;
+            breadcrumbItem.addEventListener('click', (event) => {
+                event.preventDefault();
+                this.navigateToBreadcrumb(index);
+            });
+            breadcrumbContainer.appendChild(breadcrumbItem);
+        });
+
+        document.body.appendChild(breadcrumbContainer);
+        this.breadcrumbElement = breadcrumbContainer;
+    }
+
+    /**
+     * Hides the breadcrumb navigation.
+     */
+    hideBreadcrumb() {
+        if (this.breadcrumbElement) {
+            this.breadcrumbElement.remove();
+            this.breadcrumbElement = null;
+        }
+    }
+
+    /**
+     * Navigates to a specific breadcrumb level.
+     * @param {number} index - The breadcrumb index to navigate to. -1 for the root.
+     */
+    navigateToBreadcrumb(index) {
+        const currentLevel = this.graphContext.breadcrumbData.length - 1;
+        const levelsToExit = currentLevel - index;
+
+        for (let i = 0; i < levelsToExit; i++) {
+            const currentBreadcrumb = this.graphContext.breadcrumbData[this.graphContext.breadcrumbData.length - 1];
+            if (currentBreadcrumb) {
+                this.exitSubGraph({
+                    subgraphId: currentBreadcrumb.graphId,
+                    parentNodeId: currentBreadcrumb.parentNodeId
+                });
+            }
+        }
+    }
+
+    /**
+     * Saves a SubGraph to its JSON file.
+     * @param {object} data - Save data.
+     * @param {string} data.path - The file path.
+     * @param {object} data.data - The SubGraph data.
+     */
+    saveSubGraph(data) {
+        this.fileHandler.saveSubGraph(data.path, data.data);
+    }
+
+    /**
+     * Loads a SubGraph from its JSON file.
+     * @param {object} data - Load data.
+     * @param {string} data.path - The file path.
+     * @param {function} data.callback - Callback function with loaded data.
+     */
+    loadSubGraph(data) {
+        this.fileHandler.loadSubGraph(data.path, data.callback);
+    }
 }
 
 // Initialize Main once the DOM is ready
@@ -1697,4 +2033,4 @@ document.addEventListener('DOMContentLoaded', () => {
 }); 
 
 // Attach to window for global access
-window.Main = Main; 
+window.Main = Main;
