@@ -793,100 +793,60 @@ class Interactions {
      * @param {KeyboardEvent} event 
      */
     async onKeyDown(event) {
-        // Use event.metaKey for Command key on macOS
+        const isEditingContent = event.target.closest('[contenteditable="true"]');
+        if (isEditingContent && event.key !== 'Escape') {
+            return; // Don't process keyboard shortcuts while editing
+        }
+        
         const isModKey = event.ctrlKey || event.metaKey;
-        const target = event.target;
-        const isEditingContent = target.isContentEditable || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
-        const key = event.key.toLowerCase();
 
-        if (isModKey && key === 'a' && !isEditingContent) {
-            event.preventDefault();
-            this.nodeUI.selectAll();
-        } else if (isModKey && key === 'c' && !isEditingContent) {
-            event.preventDefault();
-            this.nodeUI.copySelection();
-        } else if (isModKey && key === 'x' && !isEditingContent) {
-            event.preventDefault();
-            this.nodeUI.cutSelection();
-        } else if (isModKey && key === 'v' && !isEditingContent) {
-            event.preventDefault();
-            
-            // Priority 1: If the internal clipboard has nodes, paste them.
-            if (this.nodeUI.clipboard.nodes.length > 0) {
-                this.nodeUI.paste();
-                return;
+        if (isModKey) {
+            switch (event.key.toLowerCase()) {
+                case 's':
+                    event.preventDefault();
+                    this.nodeUI.fileHandler.saveGraph();
+                    break;
+                case 'c':
+                    this.copySelection();
+                    break;
+                case 'x':
+                    this.cutSelection();
+                    break;
+                case 'v':
+                    this.paste();
+                    break;
+                case 'a':
+                    event.preventDefault();
+                    this.selectAll();
+                    break;
+                case 'z':
+                    // TODO: Implement undo/redo functionality
+                    break;
             }
+        }
 
-            // Priority 2: If internal clipboard is empty, try to paste from the system clipboard.
-            try {
-                const clipboardText = await navigator.clipboard.readText();
-                if (!clipboardText) return; // Nothing to paste
-
-                const videoUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+|(\.mp4|\.webm|\.ogg)$/i;
-    
-                // Determine position for new node
-                const position = this.nodeUI.getMousePosition(this.nodeUI.lastMousePosition);
-                let nodeData;
-
-                if (videoUrlRegex.test(clipboardText)) {
-                    // It's a video link
-                    events.publish('log:info', `Pasting video from system clipboard.`);
-                    nodeData = {
-                        width: 350,
-                        height: 300,
-                        title: 'Pasted Video',
-                        content: `![video](${clipboardText})`
-                    };
-                } else {
-                    // It's regular text
-                    events.publish('log:info', `Pasting text from system clipboard.`);
-                    nodeData = {
-                        width: 250,
-                        height: 150,
-                        title: 'Pasted Text',
-                        content: clipboardText
-                    };
+        switch (event.key) {
+            case 'Escape':
+                if (this.nodeUI.edgeHandler.isDrawing()) {
+                    this.nodeUI.endDrawingEdge();
                 }
-
-                // Create the new node
-                events.publish('node:create', {
-                    x: position.x - nodeData.width / 2,
-                    y: position.y - nodeData.height / 2,
-                    width: nodeData.width,
-                    height: nodeData.height,
-                    title: nodeData.title,
-                    content: nodeData.content,
-                    type: 'BaseNode',
-                    color: 'default'
-                });
-
-            } catch (err) {
-                // This can happen if clipboard is empty or doesn't contain text.
-                console.warn('Could not read from system clipboard or content was not text.', err);
-            }
-        } else if (key === 'g' && !isModKey && !isEditingContent) {
-            event.preventDefault();
-            this.nodeUI.nodeManager.groupSelection();
-        } else if (key === 'f' && !isModKey && !isEditingContent) {
-            event.preventDefault();
-            this.nodeUI.frameSelection();
-        } else if (key === 'n' && !isModKey && !isEditingContent) {
-            event.preventDefault();
-            this.nodeUI.nodeManager.createNodeAtMousePosition();
-        } else if (key === 'm' && !isModKey && !isEditingContent) {
-            event.preventDefault();
-            this.nodeUI.nodeManager.createRoutingNodeAtMousePosition();
-        } else if ((key === 'delete' || key === 'backspace') && !isEditingContent) {
-            event.preventDefault();
-            this.nodeUI.deleteSelection();
-        } else if ((key === 'c' || key === 'y') && !isModKey && !isEditingContent) {
-            event.preventDefault();
-            this.nodeUI.edgeCutState.isCutting = true;
-            this.nodeUI.container.classList.add('is-cutting');
-        } else if (key === 'r' && !isModKey && !isEditingContent) {
-            event.preventDefault();
-            this.nodeUI.edgeHandler.getRoutingCutState().isRouting = true;
-            this.nodeUI.container.classList.add('is-routing');
+                break;
+            case 'Delete':
+            case 'Backspace':
+                this.nodeUI.nodeManager.deleteSelection();
+                break;
+            case 'c':
+                if (!isModKey && !isEditingContent) {
+                    this.nodeUI.edgeCutState.isCutting = true;
+                    this.nodeUI.container.classList.add('is-cutting');
+                }
+                break;
+            case 'r':
+                if (!isModKey && !isEditingContent) {
+                    this.nodeUI.edgeHandler.getRoutingCutState().isRouting = true;
+                    this.nodeUI.container.classList.add('is-routing');
+                }
+                break;
         }
     }
 
