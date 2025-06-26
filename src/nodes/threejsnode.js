@@ -449,7 +449,7 @@ class ThreeJSNode extends BaseNode {
             }
         });
 
-        window.addEventListener('mouseup', () => {
+         window.addEventListener('mouseup', () => {
             this.isInteracting = false;
             if (!this.tumblingEnabled && !this.isPlaying) {
                 this.stopAnimation();
@@ -496,7 +496,7 @@ class ThreeJSNode extends BaseNode {
                 }
             } else {
                 // When damping is disabled, we need to render on every frame during interaction
-                needsUpdate = true;
+            needsUpdate = true;
             }
         }
 
