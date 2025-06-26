@@ -25,6 +25,14 @@
     <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     
     <script type="module">
@@ -118,5 +126,6 @@
 <script src="src/nodes/lognode.js"></script>
 <script src="src/nodes/settingsnode.js"></script>
 <script src="src/nodes/subgraphnode.js"></script>
+<script src="src/nodes/threejsnode.js"></script>
 </body>
 </html> 

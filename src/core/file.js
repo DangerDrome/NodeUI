@@ -3,6 +3,30 @@
  * screenshots, and data persistence for the graph application.
  */
 
+const DEFAULT_CONTEXT_MENU_SETTINGS = {
+    canvas: {
+        changeBackground: { label: "Background", iconClass: "icon-paint-roller" },
+        cut: { label: "Cut", iconClass: "icon-scissors" },
+        copy: { label: "Copy", iconClass: "icon-copy" },
+        paste: { label: "Paste", iconClass: "icon-clipboard" },
+        delete: { label: "Delete", iconClass: "icon-trash-2" },
+        note: { label: "Note", iconClass: "icon-file-text" },
+        routingNode: { label: "Router", iconClass: "icon-network" },
+        group: { label: "Group", iconClass: "icon-group" },
+        log: { label: "Log", iconClass: "icon-terminal" },
+        settings: { label: "Settings", iconClass: "icon-settings" },
+        subgraph: { label: "Subgraph", iconClass: "icon-box" },
+        threejs: { label: "3D Viewport", iconClass: "icon-cube" },
+        snapGrid: { label: "Grid Snap", iconClass: "icon-grid-2x2" },
+        snapObject: { label: "Obj Snap", iconClass: "icon-layout-panel-left" }
+    },
+    edge: {
+        edit: { label: "Edit Label", iconClass: "icon-edit" },
+        addRoutingNode: { label: "Add Routing Node", iconClass: "icon-network" },
+        delete: { label: "Delete", iconClass: "icon-trash-2" }
+    }
+};
+
 /**
  * AssetDatabase class for managing IndexedDB storage of file assets.
  */
@@ -192,7 +216,13 @@ class File {
                 this.nodeUI.projectName = data.metadata.projectName || 'Untitled Graph';
                 this.nodeUI.thumbnailUrl = data.metadata.thumbnailUrl || '';
                 if(data.metadata.contextMenuSettings) {
-                    this.nodeUI.contextMenuSettings = this.deepMerge(this.nodeUI.contextMenuSettings, data.metadata.contextMenuSettings);
+                    // Start with a fresh copy of the defaults, then merge the loaded settings on top.
+                    this.nodeUI.contextMenuSettings = this.deepMerge(
+                        JSON.parse(JSON.stringify(DEFAULT_CONTEXT_MENU_SETTINGS)), 
+                        data.metadata.contextMenuSettings
+                    );
+                } else {
+                    this.nodeUI.contextMenuSettings = JSON.parse(JSON.stringify(DEFAULT_CONTEXT_MENU_SETTINGS));
                 }
                 this.nodeUI.publishSettings();
             }

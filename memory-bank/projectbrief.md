@@ -7,7 +7,7 @@ NodeUI is a web-based node graph interface implementation that allows users to c
 
 ### Functionality
 1. Interactive node graph visualization
-2. Multiple node types support (Base, Group, Log, Routing, Settings)
+2. Multiple node types support (Base, Group, Log, Routing, Settings, SubGraph, ThreeJS)
 3. Edge connection management between nodes
 4. Context menu system for node operations
 5. Properties panel for node configuration
@@ -18,7 +18,7 @@ NodeUI is a web-based node graph interface implementation that allows users to c
 ### Technical Requirements
 1. Pure vanilla JavaScript implementation
 2. Modern HTML5 and CSS3
-3. No external dependencies
+3. Minimal external dependencies, managed via import maps (e.g., three.js)
 4. Browser-based operation
 5. Responsive and performant UI
 
@@ -37,7 +37,7 @@ NodeUI is a web-based node graph interface implementation that allows users to c
 5. Clear visual feedback for user actions
 
 ## Constraints
-1. Vanilla JavaScript only - no frameworks
+1. Vanilla JavaScript only - no frameworks (build tools are not required)
 2. Browser-based implementation
 3. Modern web standards compliance
 4. Clean, maintainable code structure 

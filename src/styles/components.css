@@ -1668,4 +1668,126 @@ input:checked + .slider:before {
 .drop-overlay-cancel:hover {
     border-color: var(--color-text-default);
     color: var(--color-text-default);
+}
+
+.threejs-node .node-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.threejs-canvas-container {
+    flex-grow: 1;
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    /* Optimize for GPU acceleration and reduce flickering */
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+.threejs-canvas-container:active {
+    cursor: grabbing;
+}
+
+.threejs-canvas-container canvas {
+    /* Optimize canvas rendering */
+    display: block;
+    image-rendering: optimizeSpeed;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: optimize-contrast;
+    -ms-interpolation-mode: nearest-neighbor;
+    /* Prevent layout thrashing */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.threejs-timeline-container {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    background-color: rgba(0,0,0,0.2);
+    border-top: 1px solid var(--color-border);
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.timeline-controls .timeline-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.timeline-controls .timeline-btn:hover {
+    background-color: var(--color-bg-light);
+    color: var(--color-text-primary);
+}
+
+.timeline-slider {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.timeline-slider .slider {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 5px;
+    background: var(--color-bg-dark);
+    border-radius: 5px;
+    outline: none;
+}
+
+.timeline-slider .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--color-accent);
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.timeline-slider .slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: var(--color-accent);
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.time-marker {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+}
+
+.timeline-current-frame input {
+    width: 50px;
+    background-color: var(--color-bg-dark);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    border-radius: 4px;
+    text-align: center;
+    font-size: 11px;
+    padding: 2px;
+}
+
+.routing-cut-line {
+    stroke: var(--color-danger);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 5, 5;
 } 

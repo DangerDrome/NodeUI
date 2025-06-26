@@ -321,6 +321,10 @@ class ContextMenu {
                 type: 'RoutingNode',
             },
             {
+                key: 'threejs',
+                type: 'ThreeJSNode',
+            },
+            {
                 key: 'settings',
                 type: 'SettingsNode',
             },
@@ -349,6 +353,8 @@ class ContextMenu {
                         newNode = new SettingsNode({ x: worldPos.x, y: worldPos.y });
                     } else if (action.type === 'SubGraphNode') {
                         newNode = new SubGraphNode({ x: worldPos.x, y: worldPos.y });
+                    } else if (action.type === 'ThreeJSNode') {
+                        newNode = new ThreeJSNode({ x: worldPos.x, y: worldPos.y });
                     }
                     else {
                         newNode = new BaseNode({ x: worldPos.x, y: worldPos.y, title: menuConfig.label, type: action.type });
@@ -398,11 +404,16 @@ class ContextMenu {
 
             // Snap settings
             items.push({ isSeparator: true });
-            items.push({
-                label: this.nodeUI.contextMenuSettings.canvas.changeBackground.label,
-                iconClass: this.nodeUI.contextMenuSettings.canvas.changeBackground.iconClass,
-                submenu: backgroundSubmenu
-            });
+
+            const changeBackgroundMenu = this.nodeUI.contextMenuSettings.canvas.changeBackground;
+            if (changeBackgroundMenu) {
+                items.push({
+                    label: changeBackgroundMenu.label,
+                    iconClass: changeBackgroundMenu.iconClass,
+                    submenu: backgroundSubmenu
+                });
+            }
+
             const snapGridLabel = `${this.nodeUI.contextMenuSettings.canvas.snapGrid.label}: ${this.nodeUI.snapToGrid ? 'On' : 'Off'}`;
             const snapObjectLabel = `${this.nodeUI.contextMenuSettings.canvas.snapObject.label}: ${this.nodeUI.snapToObjects ? 'On' : 'Off'}`;
             

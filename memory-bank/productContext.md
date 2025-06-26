@@ -10,6 +10,7 @@ NodeUI exists to provide a flexible, lightweight solution for creating and manag
 4. **User Interaction**: Simplifies complex user interactions into intuitive operations
 5. **Data Persistence**: Manages saving and loading of graph states
 6. **Workflow Modularity**: Allows for the creation of reusable, nested, and shareable graph components.
+7. **3D Visualization**: Provides an integrated 3D viewport for displaying and interacting with 3D scenes and timelines.
 
 ## User Experience Goals
 
@@ -57,6 +58,11 @@ NodeUI exists to provide a flexible, lightweight solution for creating and manag
 - Flexible connection system
 - Edge routing and visualization
 - Connection validation
+
+### 3D Viewport System
+- Integrated `three.js` viewport node
+- Interactive camera controls (orbit, pan, zoom)
+- Timeline controls for animation playback
 
 ### SubGraph System
 - Create self-contained, nested graphs

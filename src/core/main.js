@@ -78,26 +78,37 @@ class Main {
         this.projectName = 'Untitled Graph';
         this.thumbnailUrl = '';
 
+        // Define default settings that can be overridden by loaded files
+        this.settings = {
+            edgeGravity: 20,
+            snapToGrid: 20,
+            snapToObjects: true
+        };
+
         this.contextMenuSettings = {
             canvas: {
-                cut: { label: 'Cut', iconClass: 'icon-scissors' },
-                copy: { label: 'Copy', iconClass: 'icon-copy' },
-                paste: { label: 'Paste', iconClass: 'icon-clipboard' },
-                delete: { label: 'Delete', iconClass: 'icon-trash-2' },
-                note: { label: 'Note', iconClass: 'icon-file-text' },
-                routingNode: { label: 'Router', iconClass: 'icon-network' },
-                group: { label: 'Group', iconClass: 'icon-group' },
-                subgraph: { label: 'SubGraph', iconClass: 'icon-squares-subtract' },
-                log: { label: 'Log', iconClass: 'icon-terminal' },
-                settings: { label: 'Settings', iconClass: 'icon-settings' },
-                snapGrid: { label: `Grid Snap`, iconClass: 'icon-grid-2x2' },
-                snapObject: { label: `Obj Snap`, iconClass: 'icon-layout-panel-left' },
-                changeBackground: { label: 'Background', iconClass: 'icon-paint-bucket' }
+                changeBackground: {
+                    label: "Background",
+                    iconClass: "icon-paint-roller"
+                },
+                cut: { label: "Cut", iconClass: "icon-scissors" },
+                copy: { label: "Copy", iconClass: "icon-copy" },
+                paste: { label: "Paste", iconClass: "icon-clipboard" },
+                delete: { label: "Delete", iconClass: "icon-trash-2" },
+                note: { label: "Note", iconClass: "icon-file-text" },
+                routingNode: { label: "Router", iconClass: "icon-network" },
+                group: { label: "Group", iconClass: "icon-group" },
+                log: { label: "Log", iconClass: "icon-terminal" },
+                settings: { label: "Settings", iconClass: "icon-settings" },
+                subgraph: { label: "Subgraph", iconClass: "icon-box" },
+                threejs: { label: "3D Viewport", iconClass: "icon-cube" },
+                snapGrid: { label: "Grid Snap", iconClass: "icon-grid-2x2" },
+                snapObject: { label: "Obj Snap", iconClass: "icon-layout-panel-left" }
             },
             edge: {
-                addRoutingNode: { label: 'Add Routing Node', iconClass: 'icon-network' },
-                delete: { label: 'Delete', iconClass: 'icon-trash-2' },
-                edit: { label: 'Edit Label', iconClass: 'icon-edit' }
+                edit: { label: "Edit Label", iconClass: "icon-edit" },
+                addRoutingNode: { label: "Add Routing Node", iconClass: "icon-network" },
+                delete: { label: "Delete", iconClass: "icon-trash-2" }
             }
         };
 
@@ -216,8 +227,9 @@ class Main {
                 this.nodeManager.addNode(new SettingsNode(options));
             } else if (options.type === 'SubGraphNode') {
                 this.nodeManager.addNode(new SubGraphNode(options));
-            }
-            else {
+            } else if (options.type === 'ThreeJSNode') {
+                this.nodeManager.addNode(new ThreeJSNode(options));
+            } else {
                 this.nodeManager.addNode(new BaseNode(options));
             }
         });
@@ -1908,6 +1920,8 @@ class Main {
                 return new SettingsNode(nodeData);
             case 'SubGraphNode':
                 return new SubGraphNode(nodeData);
+            case 'ThreeJSNode':
+                return new ThreeJSNode(nodeData);
             default:
                 return new BaseNode(nodeData);
         }

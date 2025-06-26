@@ -27,6 +27,7 @@ flowchart TD
         RoutingNode[Routing Node]
         SettingsNode[Settings Node]
         SubGraphNode[SubGraph Node]
+        ThreeJSNode[ThreeJSNode]
     end
     
     NodeManager --> nodes
@@ -119,6 +120,7 @@ classDiagram
     BaseNode <|-- RoutingNode
     BaseNode <|-- SettingsNode
     BaseNode <|-- SubGraphNode
+    BaseNode <|-- ThreeJSNode
     
     class BaseNode {
         +properties
@@ -142,6 +144,9 @@ flowchart LR
 ## System Patterns
 - **Graph Context Stack**: A stack (`graphContext.graphStack`) is used to manage navigation between the main graph and nested subgraphs. Entering a subgraph pushes its context onto the stack, and exiting pops it. This ensures a clear hierarchy and enables breadcrumb navigation.
 - **State Serialization**: When navigating between contexts, the current graph state is serialized into a deep-copied JSON object. This prevents state corruption and ensures that changes within a subgraph are isolated until explicitly saved to the parent.
+- **Conditional Animation Loops**: Animation loops are only active when needed (during user interaction or timeline playback) to conserve resources and prevent unnecessary rendering.
+- **Render State Optimization**: Intelligent tracking of render state prevents unnecessary WebGL render calls when the 3D scene is static, significantly improving performance.
+- **GPU Acceleration Patterns**: CSS optimizations and WebGL configurations are used to leverage hardware acceleration for smooth 3D rendering performance.
 
 ## Technical Decisions
 
@@ -233,7 +238,8 @@ src/
 │   ├── lognode.js        # Log node implementation
 │   ├── routingnode.js    # Routing node implementation
 │   ├── settingsnode.js   # Settings node implementation
-│   └── subgraphnode.js   # SubGraph node implementation
+│   ├── subgraphnode.js   # SubGraph node implementation
+│   └── threejsnode.js    # 3D Viewport node implementation
 └── styles/
     ├── styles.css        # Global styles
     ├── variables.css     # CSS variables

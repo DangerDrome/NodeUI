@@ -40,6 +40,10 @@
           "label": "Settings",
           "iconClass": "icon-settings"
         },
+        "threejs": {
+          "label": "3D Viewport",
+          "iconClass": "icon-cube"
+        },
         "snapGrid": {
           "label": "Grid Snap",
           "iconClass": "icon-grid-2x2"
