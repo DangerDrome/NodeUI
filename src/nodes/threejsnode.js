@@ -31,6 +31,8 @@ class ThreeJSNode extends BaseNode {
         this.resizeObserver = null;
         this.needsRender = true; // Track if render is needed
         this.isAnimating = false; // Track if animation loop is active
+        this.tumblingEnabled = false;
+        this.wheelTimeout = null;
 
         // Timeline state
         this.isPlaying = false;
@@ -199,6 +201,9 @@ class ThreeJSNode extends BaseNode {
             // Dynamically import three.js modules
             const THREE = await import('three');
             const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+            const { Line2 } = await import('three/addons/lines/Line2.js');
+            const { LineGeometry } = await import('three/addons/lines/LineGeometry.js');
+            const { LineMaterial } = await import('three/addons/lines/LineMaterial.js');
 
             const width = container.clientWidth;
             const height = container.clientHeight;
@@ -229,12 +234,17 @@ class ThreeJSNode extends BaseNode {
 
             // Controls
             this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-            this.controls.enableDamping = true;
-            this.controls.dampingFactor = 0.05;
+            this.controls.enableDamping = false;
+            this.controls.dampingFactor = 0.01;
             this.controls.screenSpacePanning = false;
             this.controls.minDistance = 1;
             this.controls.maxDistance = 500;
             this.controls.enabled = false; // Disabled by default
+            this.controls.mouseButtons = {
+                LEFT: THREE.MOUSE.ROTATE,
+                MIDDLE: THREE.MOUSE.PAN,
+                RIGHT: THREE.MOUSE.DOLLY
+            };
 
             // Lighting
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -245,10 +255,20 @@ class ThreeJSNode extends BaseNode {
 
             // Helpers
             this.gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x888888);
+            this.gridHelper.position.y = -0.01; // Offset to prevent z-fighting
+            this.gridHelper.material.blending = THREE.AdditiveBlending;
             this.scene.add(this.gridHelper);
 
-            this.axesHelper = new THREE.AxesHelper(5);
-            this.scene.add(this.axesHelper);
+            // Add a larger, lower density grid
+            this.largeGridHelper = new THREE.GridHelper(50, 10, 0x222222, 0x444444);
+            this.largeGridHelper.position.y = -0.02; // Offset further to prevent z-fighting
+            this.largeGridHelper.material.blending = THREE.AdditiveBlending;
+            this.scene.add(this.largeGridHelper);
+
+            this.createAxisHelpers(THREE);
+
+            // Add infinite lines along Z and X axes
+            this.createInfiniteLines(THREE, { Line2, LineGeometry, LineMaterial });
 
             // Start animation loop
             this.animate();
@@ -267,36 +287,174 @@ class ThreeJSNode extends BaseNode {
     }
 
     /**
+     * Creates and adds axis helpers with arrows and labels to the scene.
+     * @param {object} THREE - The THREE.js library instance.
+     */
+    createAxisHelpers(THREE) {
+        const axisLength = 2.5;
+
+        const axes = [
+            { dir: new THREE.Vector3(1, 0, 0), color: 0xff0000, label: 'X' },
+            { dir: new THREE.Vector3(0, 1, 0), color: 0x00ff00, label: 'Y' },
+            { dir: new THREE.Vector3(0, 0, 1), color: 0x0000ff, label: 'Z' }
+        ];
+
+        axes.forEach(({ dir, color, label }) => {
+            const headLength = axisLength * 0.1;
+            const headWidth = headLength * 0.5;
+            
+            const arrow = new THREE.ArrowHelper(dir, new THREE.Vector3(0,0,0), axisLength, color, headLength, headWidth);
+            arrow.line.material.linewidth = 4;
+            this.scene.add(arrow);
+
+            const textSprite = this.makeTextSprite(THREE, label, { color });
+            textSprite.position.copy(dir).multiplyScalar(axisLength + 0.3);
+            this.scene.add(textSprite);
+        });
+    }
+
+    /**
+     * Creates a text sprite.
+     * @param {object} THREE - The THREE.js library instance.
+     * @param {string} message - The text message.
+     * @param {object} parameters - The styling parameters.
+     * @returns {THREE.Sprite} The created sprite.
+     */
+    makeTextSprite(THREE, message, parameters = {}) {
+        const fontface = parameters.fontface || 'Arial';
+        const fontsize = parameters.fontsize || 32;
+        const color = new THREE.Color(parameters.color !== undefined ? parameters.color : 0xffffff);
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        
+        const font = `Bold ${fontsize}px ${fontface}`;
+        context.font = font;
+        const metrics = context.measureText(message);
+        const textWidth = Math.ceil(metrics.width);
+        canvas.width = textWidth;
+        canvas.height = fontsize;
+        
+        context.font = font;
+        context.fillStyle = color.getStyle();
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(message, textWidth / 2, fontsize / 2);
+
+        const texture = new THREE.CanvasTexture(canvas);
+
+        const spriteMaterial = new THREE.SpriteMaterial({ 
+            map: texture,
+            transparent: true 
+        });
+        const sprite = new THREE.Sprite(spriteMaterial);
+
+        const spriteWidth = textWidth * 0.01;
+        const spriteHeight = fontsize * 0.01;
+        sprite.scale.set(spriteWidth, spriteHeight, 1);
+
+        return sprite;
+    }
+
+    /**
+     * Creates infinite lines along the Z and X axes.
+     * @param {object} THREE - The THREE.js library instance.
+     * @param {object} lineModules - The line modules for creating thick lines.
+     */
+    createInfiniteLines(THREE, { Line2, LineGeometry, LineMaterial }) {
+        const lineLength = 1000; // Very long lines to appear infinite
+        
+        const lineMaterial = new LineMaterial({
+            color: 0x888888,
+            linewidth: 2, // in pixels
+            transparent: true,
+            opacity: 0.3,
+            dashed: false,
+            blending: THREE.AdditiveBlending,
+            // resolution must be set for the line to render correctly
+            resolution: new THREE.Vector2(this.renderer.domElement.width, this.renderer.domElement.height) 
+        });
+
+        // Z-axis line
+        const zGeometry = new LineGeometry();
+        zGeometry.setPositions([-lineLength, 0, 0, lineLength, 0, 0]);
+        const zLine = new Line2(zGeometry, lineMaterial);
+        zLine.rotation.y = Math.PI / 2; // Rotate to align with Z-axis
+        zLine.computeLineDistances();
+        zLine.scale.set(1, 1, 1);
+        this.scene.add(zLine);
+
+        // X-axis line
+        const xGeometry = new LineGeometry();
+        xGeometry.setPositions([-lineLength, 0, 0, lineLength, 0, 0]);
+        const xLine = new Line2(xGeometry, lineMaterial);
+        xLine.computeLineDistances();
+        xLine.scale.set(1, 1, 1);
+        this.scene.add(xLine);
+    }
+
+    /**
      * Adds listeners to handle interaction with the 3D canvas.
      * @param {HTMLElement} container The canvas container.
      */
     addInteractionListeners(container) {
-        // Enable controls on click
-        container.addEventListener('mousedown', () => {
-            this.isInteracting = true;
+        // Toggle tumbling controls on double-click
+        container.addEventListener('dblclick', () => {
+            this.tumblingEnabled = !this.tumblingEnabled;
+            
             if (this.controls) {
-                this.controls.enabled = true;
+                this.controls.enabled = this.tumblingEnabled;
             }
+
+            if (this.tumblingEnabled) {
+                this.startAnimation();
+            } else {
+                // Stop animation only if timeline is not playing
+                if (!this.isPlaying) {
+                    this.stopAnimation();
+                }
+            }
+        });
+
+        // Stop wheel events from propagating, and manage animation loop for smooth zooming.
+        container.addEventListener('wheel', (e) => {
+            e.stopPropagation();
+            this.startAnimation(); // Ensure the animation loop is running for zoom changes.
+
+            // Clear the previous timeout to reset the timer.
+            clearTimeout(this.wheelTimeout);
+
+            // Set a new timeout to stop the animation after scrolling has paused.
+            this.wheelTimeout = setTimeout(() => {
+                // Only stop if no other interaction (dragging, tumbling, playing) is active.
+                if (!this.isInteracting && !this.tumblingEnabled && !this.isPlaying) {
+                    this.stopAnimation();
+                }
+            }, 150); // A 150ms delay is a good balance.
+        });
+
+        // The original listeners are kept for timeline interaction state
+        container.addEventListener('mousedown', (e) => {
+            if (this.tumblingEnabled) {
+                e.stopPropagation();
+            }
+            this.isInteracting = true;
             this.startAnimation();
         });
 
-        // Disable controls when the mouse leaves the canvas area
         container.addEventListener('mouseleave', () => {
             this.isInteracting = false;
-            if (this.controls) {
-                this.controls.enabled = false;
+            if (!this.tumblingEnabled && !this.isPlaying) {
+                this.stopAnimation();
             }
-            this.stopAnimation();
         });
 
-         // Also disable on global mouse up if not over the canvas
-         window.addEventListener('mouseup', () => {
+        window.addEventListener('mouseup', () => {
             this.isInteracting = false;
-            if (this.controls) {
-                this.controls.enabled = false;
+            if (!this.tumblingEnabled && !this.isPlaying) {
+                this.stopAnimation();
             }
-            this.stopAnimation();
-        }, true); // Use capture to get event first
+        }, true);
     }
 
     /**
@@ -330,10 +488,16 @@ class ThreeJSNode extends BaseNode {
         
         let needsUpdate = false;
         
-        // Only update controls if they're enabled and we're interacting
-        if (this.controls && this.controls.enabled && this.isInteracting) {
-            this.controls.update();
-            needsUpdate = true;
+        // Update controls and check if they transformed the camera
+        if (this.controls && this.controls.enabled) {
+            if (this.controls.enableDamping) {
+                if (this.controls.update()) {
+                    needsUpdate = true;
+                }
+            } else {
+                // When damping is disabled, we need to render on every frame during interaction
+                needsUpdate = true;
+            }
         }
 
         // Only render if something changed or we need an initial render
