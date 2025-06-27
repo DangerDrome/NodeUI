@@ -84,6 +84,11 @@ class ThreeJSNode extends BaseNode {
         const canvasContainer = document.createElement('div');
         canvasContainer.className = 'threejs-canvas-container';
         
+        const statusIndicator = document.createElement('div');
+        statusIndicator.className = 'threejs-status-indicator';
+        statusIndicator.innerHTML = 'NOT ACTIVE<br><span class="status-subtitle">(double click to activate)</span>';
+        canvasContainer.appendChild(statusIndicator);
+        
         const timelineContainer = document.createElement('div');
         timelineContainer.className = 'threejs-timeline-container';
         timelineContainer.innerHTML = `
@@ -402,6 +407,12 @@ class ThreeJSNode extends BaseNode {
         container.addEventListener('dblclick', () => {
             this.tumblingEnabled = !this.tumblingEnabled;
             
+            const statusIndicator = this.element.querySelector('.threejs-status-indicator');
+            if (statusIndicator) {
+                statusIndicator.innerHTML = this.tumblingEnabled ? 'ACTIVE<br><span class="status-subtitle">(double click to deactivate)</span>' : 'NOT ACTIVE<br><span class="status-subtitle">(double click to activate)</span>';
+                statusIndicator.classList.toggle('active', this.tumblingEnabled);
+            }
+
             if (this.controls) {
                 this.controls.enabled = this.tumblingEnabled;
             }
