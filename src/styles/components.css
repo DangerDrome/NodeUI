@@ -1674,6 +1674,7 @@ input:checked + .slider:before {
     display: flex;
     flex-direction: column;
     height: 100%;
+    background-color: #2b2b2b; /* A slightly lighter dark color for the timeline bg */
 }
 
 .threejs-canvas-container {
@@ -1681,7 +1682,6 @@ input:checked + .slider:before {
     position: relative;
     overflow: hidden;
     cursor: grab;
-    /* Optimize for GPU acceleration and reduce flickering */
     transform: translateZ(0);
     will-change: transform;
     backface-visibility: hidden;
@@ -1692,14 +1692,12 @@ input:checked + .slider:before {
 }
 
 .threejs-canvas-container canvas {
-    /* Optimize canvas rendering */
     display: block;
     image-rendering: optimizeSpeed;
     image-rendering: -moz-crisp-edges;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: optimize-contrast;
     -ms-interpolation-mode: nearest-neighbor;
-    /* Prevent layout thrashing */
     position: absolute;
     top: 0;
     left: 0;
@@ -1707,14 +1705,365 @@ input:checked + .slider:before {
     height: 100%;
 }
 
-.threejs-timeline-container {
+/* --- New Timeline Editor Styles --- */
+.timeline-editor-container {
+    display: flex;
+    height: 63px; /* Default minimized height */
+    flex-shrink: 0;
+    background-color: #212121;
+    border-top: 1px solid var(--color-border-default);
+    position: relative; /* For the horizontal resize handle */
+}
+
+.timeline-resize-handle {
+    background: transparent;
+    transition: background-color 0.2s ease;
+    z-index: 15; /* Above other elements */
+}
+
+.timeline-resize-handle.vertical {
+    width: 5px;
+    cursor: ew-resize;
+    flex-shrink: 0;
+}
+
+.timeline-resize-handle.vertical:hover {
+    background-color: var(--color-accent);
+}
+
+.timeline-resize-handle.horizontal {
+    position: absolute;
+    top: -2px;
+    left: 0;
+    right: 0;
+    height: 5px;
+    cursor: ns-resize;
+}
+
+.timeline-resize-handle.horizontal:hover {
+    background-color: var(--color-accent);
+}
+
+.scene-outline-panel {
+    width: 200px;
+    border-right: 1px solid var(--color-border-default);
+    padding: 4px;
+    font-size: var(--font-size-small);
+    color: var(--color-text-subtle);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.scene-outline-header {
+    padding: 4px;
+    font-weight: bold;
+    color: var(--color-text-default);
+    flex-shrink: 0;
+}
+
+.scene-outline-list {
+    margin-top: 8px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.scene-item {
     display: flex;
     align-items: center;
+    gap: 4px;
     padding: 4px 8px;
-    background-color: rgba(0,0,0,0.2);
-    border-top: 1px solid var(--color-border);
-    gap: 8px;
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    white-space: nowrap;
+    margin-left: calc(var(--level, 0) * 16px);
+}
+
+.scene-item:hover {
+    background-color: var(--color-bg-hover);
+}
+
+.scene-item-toggle {
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+}
+
+/* Basic triangle for the toggle */
+.scene-item-toggle::before {
+    content: '';
+    display: block;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 4px 0 4px 6px;
+    border-color: transparent transparent transparent currentColor;
+    transition: transform 0.2s ease;
+}
+
+.scene-item-toggle.expanded::before {
+    transform: rotate(90deg);
+}
+
+.scene-item-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.scene-item-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.timeline-main-panel {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* Prevents flexbox from overflowing */
+}
+
+.timeline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px;
+    border-bottom: 1px solid var(--color-border-default);
+    background-color: #2b2b2b;
+    gap: 16px;
+    flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+.timeline-center-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-grow: 1;
+}
+
+.timeline-header-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.timeline-controls {
+    display: flex;
+    gap: 4px; /* Tighter gap for control buttons */
+}
+
+.frame-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.frame-input-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.frame-input-group label {
+    font-size: var(--font-size-small);
+    color: var(--color-text-subtle);
+}
+
+.frame-input {
+    width: 50px;
+    background: var(--color-bg-panel);
+    border: 1px solid var(--color-border-default);
+    color: var(--color-text-default);
+    text-align: center;
+    border-radius: var(--radius-small);
+    font-size: var(--font-size-small);
+    padding: 2px;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.fps-select {
+    width: 60px;
+    text-align-last: center;
+}
+
+.timeline-body {
+    flex-grow: 1;
+    position: relative;
+}
+
+.timeline-ruler {
+    height: 30px;
+    border-bottom: 1px solid var(--color-border-default);
+    position: relative;
+    color: var(--color-text-subtle);
+    font-size: 10px;
+}
+
+.ruler-tick {
+    position: absolute;
+    bottom: 0;
+    width: 1px;
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.ruler-tick.major {
+    height: 10px; /* Most prominent */
+}
+
+.ruler-tick.minor {
+    height: 6px;  /* Medium */
+}
+
+.ruler-tick.frame {
+    height: 3px;  /* Most subtle */
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.ruler-tick-label {
+    position: absolute;
+    transform: translateX(-50%);
+    user-select: none;
+    bottom: 12px;
+}
+
+.timeline-keyframe-grid {
+    position: absolute;
+    top: 30px; /* Below ruler */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #262626; /* A slightly darker grid background */
+}
+
+.timeline-range-overlay {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    pointer-events: auto;
+    z-index: 1; /* Below playhead but above grid background */
+    cursor: move;
+}
+
+.timeline-range-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background-color: transparent;
+    cursor: ew-resize;
+    transition: background-color 0.2s ease;
+    z-index: 2;
+}
+
+.timeline-range-handle[data-handle-type="start"] {
+    left: 0;
+}
+
+.timeline-range-handle[data-handle-type="end"] {
+    right: 0;
+}
+
+.timeline-range-handle:hover {
+    background-color: var(--color-accent);
+}
+
+.timeline-range-handle .range-handle-indicator {
+    position: absolute;
+    top: -12px; /* Positions it vertically in the middle of the ruler */
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid rgba(255, 255, 255, 0.95); /* Default subtle color */
+    transition: border-color 0.2s ease;
+}
+
+.timeline-range-handle[data-handle-type="start"] .range-handle-indicator {
+    left: -5px;
+}
+
+.timeline-range-handle[data-handle-type="end"] .range-handle-indicator {
+    left: 0;
+}
+
+.timeline-range-handle:hover .range-handle-indicator {
+    border-top-color: var(--color-accent);
+}
+
+.timeline-grid-background,
+.timeline-grid-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+.timeline-grid-band {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.1);
+}
+
+.timeline-grid-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+}
+
+.timeline-grid-line.major {
+    background-color: rgba(0,0,0,0.2);
+}
+
+.timeline-grid-line.minor {
+    background-color: rgba(0,0,0,0.05);
+}
+
+.playhead {
+    position: absolute;
+    top: -30px; /* Start from top of ruler */
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.playhead-line {
+    width: 1px;
+    flex-grow: 1;
+    background-color: var(--color-accent);
+}
+
+.playhead-head {
+    background-color: var(--color-accent);
+    color: #212121; /* Dark text for readability */
+    padding: 2px 6px;
+    border-radius: var(--radius-small);
+    font-size: 10px;
+    font-weight: bold;
+    cursor: ew-resize;
+    pointer-events: auto;
+    position: relative;
+    top: 3px;
+    margin-bottom: -6px;
 }
 
 .timeline-controls .timeline-btn {
@@ -1732,56 +2081,6 @@ input:checked + .slider:before {
 .timeline-controls .timeline-btn:hover {
     background-color: var(--color-bg-light);
     color: var(--color-text-primary);
-}
-
-.timeline-slider {
-    flex-grow: 1;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.timeline-slider .slider {
-    width: 100%;
-    -webkit-appearance: none;
-    appearance: none;
-    height: 5px;
-    background: var(--color-bg-dark);
-    border-radius: 5px;
-    outline: none;
-}
-
-.timeline-slider .slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 12px;
-    height: 12px;
-    background: var(--color-accent);
-    cursor: pointer;
-    border-radius: 50%;
-}
-
-.timeline-slider .slider::-moz-range-thumb {
-    width: 12px;
-    height: 12px;
-    background: var(--color-accent);
-    cursor: pointer;
-    border-radius: 50%;
-}
-
-.time-marker {
-    font-size: 10px;
-    color: var(--color-text-secondary);
-}
-
-.timeline-current-frame input {
-    width: 50px;
-    background: var(--color-bg-panel);
-    border: 1px solid var(--color-border-default);
-    color: var(--color-text-default);
-    text-align: center;
-    border-radius: var(--radius-small);
-    font-size: var(--font-size-small);
 }
 
 .threejs-status-indicator {

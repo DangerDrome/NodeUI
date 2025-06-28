@@ -10,8 +10,8 @@ class ThreeJSNode extends BaseNode {
     constructor(options = {}) {
         // Set defaults specific to a Three.js node
         const defaults = {
-            width: 500,
-            height: 400,
+            width: 800,
+            height: 600,
             title: '3D Viewport',
             type: 'ThreeJSNode',
             color: 'default' // Using default to match group nodes
@@ -36,9 +36,36 @@ class ThreeJSNode extends BaseNode {
 
         // Timeline state
         this.isPlaying = false;
+        this.playDirection = 1; // 1 for forward, -1 for backward
         this.startTime = 1000;
         this.endTime = 1100; // Default to a 100-frame range
         this.currentTime = this.startTime;
+        this.timelineMinimizedHeight = 30; // Corresponds to CSS height for header
+        this.timelinePadding = 25;
+        this.fps = 24;
+        this.frameDuration = 1000 / 24;
+        this.timelineAnimationId = null;
+        this.lastFrameTime = 0;
+
+        // Resizing state for timeline panels
+        this.timelineResizingState = {
+            isResizing: false,
+            target: null, // 'layersPanel' or 'timelineEditor'
+            startX: 0,
+            startY: 0,
+            startWidth: 0,
+            startHeight: 0
+        };
+
+        // Range interaction state
+        this.rangeInteractionState = {
+            isActive: false,
+            interactionType: null, // 'move', 'resize-start', 'resize-end'
+            initialStartTime: 0,
+            initialEndTime: 0,
+            initialMouseX: 0,
+            pixelsPerFrame: 0
+        };
     }
 
     /**
@@ -77,42 +104,352 @@ class ThreeJSNode extends BaseNode {
      * @param {HTMLElement} contentArea - The element to render content into.
      */
     renderContent(contentArea) {
-        contentArea.innerHTML = ''; // Clear base content
+        contentArea.innerHTML = '';
         contentArea.style.padding = '0';
         contentArea.style.overflow = 'hidden';
+        contentArea.style.display = 'flex';
+        contentArea.style.flexDirection = 'column';
 
+        // --- 1. Canvas Container (3D Viewport) ---
         const canvasContainer = document.createElement('div');
         canvasContainer.className = 'threejs-canvas-container';
         
         const statusIndicator = document.createElement('div');
         statusIndicator.className = 'threejs-status-indicator';
         statusIndicator.innerHTML = 'NOT ACTIVE<br><span class="status-subtitle">(double click to activate)</span>';
+        statusIndicator.classList.toggle('active', this.tumblingEnabled);
         canvasContainer.appendChild(statusIndicator);
-        
-        const timelineContainer = document.createElement('div');
-        timelineContainer.className = 'threejs-timeline-container';
-        timelineContainer.innerHTML = `
-            <div class="timeline-controls">
-                <button class="timeline-btn" data-action="play"><span class="icon-play"></span></button>
-            </div>
-            <div class="timeline-slider">
-                <div class="time-marker start">${this.startTime}</div>
-                <input type="range" min="${this.startTime}" max="${this.endTime}" value="${this.currentTime}" class="slider">
-                <div class="time-marker end">${this.endTime}</div>
-            </div>
-            <div class="timeline-current-frame">
-                <input type="number" value="${this.currentTime}">
+
+        // --- 2. Timeline Editor Container ---
+        const timelineEditorContainer = document.createElement('div');
+        timelineEditorContainer.className = 'timeline-editor-container';
+
+        // 2.0 Horizontal Resize Handle
+        const horizontalResizeHandle = document.createElement('div');
+        horizontalResizeHandle.className = 'timeline-resize-handle horizontal';
+        timelineEditorContainer.appendChild(horizontalResizeHandle);
+
+        // 2a. Scene Outline Panel (Left)
+        const sceneOutlinePanel = document.createElement('div');
+        sceneOutlinePanel.className = 'scene-outline-panel';
+        sceneOutlinePanel.innerHTML = `
+            <div class="scene-outline-header">Scene</div>
+            <div class="scene-outline-list">
+                <div class="scene-item" data-level="0">
+                    <span class="scene-item-toggle"></span>
+                    <span class="scene-item-icon icon-globe"></span>
+                    <span class="scene-item-label">World</span>
+                </div>
             </div>
         `;
+        timelineEditorContainer.appendChild(sceneOutlinePanel);
 
+        // 2ab. Vertical Resize Handle
+        const verticalResizeHandle = document.createElement('div');
+        verticalResizeHandle.className = 'timeline-resize-handle vertical';
+        timelineEditorContainer.appendChild(verticalResizeHandle);
+
+        // 2b. Main Panel (Right)
+        const mainPanel = document.createElement('div');
+        mainPanel.className = 'timeline-main-panel';
+
+        // Header
+        const timelineHeader = document.createElement('div');
+        timelineHeader.className = 'timeline-header';
+        
+        const startFrameGroup = document.createElement('div');
+        startFrameGroup.className = 'frame-input-group';
+        startFrameGroup.innerHTML = `
+            <label for="start-frame-${this.id}">Start</label>
+            <input type="number" id="start-frame-${this.id}" class="frame-input" data-range="start" value="${this.startTime}">
+        `;
+
+        const centerControls = document.createElement('div');
+        centerControls.className = 'timeline-center-controls';
+
+        const timelineControls = document.createElement('div');
+        timelineControls.className = 'timeline-controls';
+        timelineControls.innerHTML = `
+            <button class="timeline-btn" data-action="skip-to-start" title="Skip to Start"><span class="icon-skip-back"></span></button>
+            <button class="timeline-btn" data-action="play-backward" title="Play Backward"><span class="icon-rewind"></span></button>
+            <button class="timeline-btn" data-action="play-forward" title="Play/Pause"><span class="icon-play"></span></button>
+            <button class="timeline-btn" data-action="skip-to-end" title="Skip to End"><span class="icon-skip-forward"></span></button>
+        `;
+        
+        const fpsGroup = document.createElement('div');
+        fpsGroup.className = 'frame-input-group';
+        fpsGroup.innerHTML = `
+            <label for="fps-select-${this.id}">FPS</label>
+            <select id="fps-select-${this.id}" class="frame-input fps-select">
+                <option value="24">24</option>
+                <option value="25">25</option>
+                <option value="30">30</option>
+                <option value="60">60</option>
+                <option value="120">120</option>
+            </select>
+        `;
+        fpsGroup.querySelector('select').value = this.fps;
+        
+        centerControls.appendChild(timelineControls);
+        centerControls.appendChild(fpsGroup);
+
+        const endFrameGroup = document.createElement('div');
+        endFrameGroup.className = 'frame-input-group';
+        endFrameGroup.innerHTML = `
+            <label for="end-frame-${this.id}">End</label>
+            <input type="number" id="end-frame-${this.id}" class="frame-input" data-range="end" value="${this.endTime}">
+        `;
+        
+        timelineHeader.appendChild(startFrameGroup);
+        timelineHeader.appendChild(centerControls);
+        timelineHeader.appendChild(endFrameGroup);
+        mainPanel.appendChild(timelineHeader);
+
+        // Body
+        const timelineBody = document.createElement('div');
+        timelineBody.className = 'timeline-body';
+        
+        const timelineRuler = document.createElement('div');
+        timelineRuler.className = 'timeline-ruler'; // Will be populated by a new renderTimelineGrid method
+        
+        const keyframeGrid = document.createElement('div');
+        keyframeGrid.className = 'timeline-keyframe-grid';
+        
+        const rangeOverlay = document.createElement('div');
+        rangeOverlay.className = 'timeline-range-overlay';
+        rangeOverlay.innerHTML = `
+            <div class="timeline-range-handle" data-handle-type="start">
+                <div class="range-handle-indicator"></div>
+            </div>
+            <div class="timeline-range-handle" data-handle-type="end">
+                <div class="range-handle-indicator"></div>
+            </div>
+        `;
+        keyframeGrid.appendChild(rangeOverlay);
+        
+        const playhead = document.createElement('div');
+        playhead.className = 'playhead';
+        playhead.style.left = '50%'; // Placeholder
+        playhead.innerHTML = `
+            <div class="playhead-head">${this.currentTime}</div>
+            <div class="playhead-line"></div>
+        `;
+        
+        keyframeGrid.appendChild(playhead);
+        timelineBody.appendChild(timelineRuler);
+        timelineBody.appendChild(keyframeGrid);
+        mainPanel.appendChild(timelineBody);
+        
+        timelineEditorContainer.appendChild(mainPanel);
+
+        // --- Final Assembly ---
         contentArea.appendChild(canvasContainer);
-        contentArea.appendChild(timelineContainer);
+        contentArea.appendChild(timelineEditorContainer);
+
+        // Render ruler and grid, and the new overlay
+        this.renderTimelineGrid();
+        this.updateTimelineRangeOverlay();
 
         // Add timeline event listeners
-        this.addTimelineListeners(timelineContainer);
+        this.addTimelineListeners(timelineEditorContainer);
+        this.addRangeInteractionListeners(rangeOverlay);
+        this.initResizeListeners(timelineEditorContainer, sceneOutlinePanel, verticalResizeHandle, horizontalResizeHandle);
 
-        // Initialize the three.js scene
+        // Initialize the three.js scene in the canvas container
         this.initScene(canvasContainer);
+    }
+
+    /**
+     * Renders the grid lines, background bands, and frame numbers for the timeline.
+     */
+    renderTimelineGrid() {
+        const ruler = this.element.querySelector('.timeline-ruler');
+        const grid = this.element.querySelector('.timeline-keyframe-grid');
+        if (!ruler || !grid) return;
+
+        // Ensure containers for lines and background exist, in the correct order (bg first)
+        let gridBg = grid.querySelector('.timeline-grid-background');
+        if (!gridBg) {
+            gridBg = document.createElement('div');
+            gridBg.className = 'timeline-grid-background';
+            grid.prepend(gridBg);
+        }
+
+        let gridLines = grid.querySelector('.timeline-grid-lines');
+        if (!gridLines) {
+            gridLines = document.createElement('div');
+            gridLines.className = 'timeline-grid-lines';
+            grid.prepend(gridLines);
+        }
+
+        // Clear previous contents
+        ruler.innerHTML = '';
+        gridLines.innerHTML = '';
+        gridBg.innerHTML = '';
+
+        const displayStartTime = this.startTime - this.timelinePadding;
+        const displayEndTime = this.endTime + this.timelinePadding;
+        const displayRange = displayEndTime - displayStartTime;
+        if (displayRange <= 0) return;
+
+        let majorTickSpacing = 10;
+        if (displayRange > 200) majorTickSpacing = 25;
+        if (displayRange > 500) majorTickSpacing = 50;
+
+        const minorTickSpacing = 5;
+
+        for (let i = displayStartTime; i <= displayEndTime; i++) {
+            const position = ((i - displayStartTime) / displayRange) * 100;
+
+            // --- 1. Ruler Ticks and Labels ---
+            const rulerTick = document.createElement('div');
+            rulerTick.className = 'ruler-tick';
+            rulerTick.style.left = `${position}%`;
+
+            if (i % majorTickSpacing === 0) {
+                rulerTick.classList.add('major');
+                const tickLabel = document.createElement('div');
+                tickLabel.className = 'ruler-tick-label';
+                tickLabel.textContent = i;
+                tickLabel.style.left = `${position}%`;
+                ruler.appendChild(tickLabel);
+            } else if (i % minorTickSpacing === 0) {
+                rulerTick.classList.add('minor');
+            } else {
+                rulerTick.classList.add('frame');
+            }
+            ruler.appendChild(rulerTick);
+
+            // --- 2. Vertical Grid Lines ---
+            if (i % majorTickSpacing === 0) {
+                const line = document.createElement('div');
+                line.className = 'timeline-grid-line major';
+                line.style.left = `${position}%`;
+                gridLines.appendChild(line);
+            } else if (i % minorTickSpacing === 0) {
+                const line = document.createElement('div');
+                line.className = 'timeline-grid-line minor';
+                line.style.left = `${position}%`;
+                gridLines.appendChild(line);
+            }
+        }
+
+        // --- 3. Background Bands ---
+        // Align bands with major ticks, creating an alternating pattern
+        for (let i = displayStartTime - (displayStartTime % (majorTickSpacing * 2)); i < displayEndTime; i += (majorTickSpacing * 2)) {
+            const bandStartFrame = Math.max(i, displayStartTime);
+            const bandEndFrame = Math.min(i + majorTickSpacing, displayEndTime);
+
+            if (bandStartFrame >= bandEndFrame) continue;
+
+            const bandStartPos = ((bandStartFrame - displayStartTime) / displayRange) * 100;
+            const bandEndPos = ((bandEndFrame - displayStartTime) / displayRange) * 100;
+
+            const band = document.createElement('div');
+            band.className = 'timeline-grid-band';
+            band.style.left = `${bandStartPos}%`;
+            band.style.width = `${bandEndPos - bandStartPos}%`;
+            gridBg.appendChild(band);
+        }
+    }
+
+    /**
+     * Updates the visual overlay for the active timeline range.
+     */
+    updateTimelineRangeOverlay() {
+        const overlay = this.element.querySelector('.timeline-range-overlay');
+        if (!overlay) return;
+
+        const displayStartTime = this.startTime - this.timelinePadding;
+        const displayEndTime = this.endTime + this.timelinePadding;
+        const displayRange = displayEndTime - displayStartTime;
+
+        if (displayRange <= 0) {
+            overlay.style.display = 'none';
+            return;
+        }
+
+        overlay.style.display = 'block';
+
+        const left = ((this.startTime - displayStartTime) / displayRange) * 100;
+        const width = ((this.endTime - this.startTime) / displayRange) * 100;
+
+        overlay.style.left = `${left}%`;
+        overlay.style.width = `calc(${width}% + 1px)`;
+    }
+
+    /**
+     * Adds event listeners for interacting with the timeline range overlay.
+     * @param {HTMLElement} rangeOverlay The overlay element.
+     */
+    addRangeInteractionListeners(rangeOverlay) {
+        rangeOverlay.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            this.rangeInteractionState.isActive = true;
+            this.rangeInteractionState.initialMouseX = e.clientX;
+            this.rangeInteractionState.initialStartTime = this.startTime;
+            this.rangeInteractionState.initialEndTime = this.endTime;
+
+            const grid = this.element.querySelector('.timeline-keyframe-grid');
+            const gridWidth = grid.offsetWidth;
+            const displayRange = (this.endTime + this.timelinePadding) - (this.startTime - this.timelinePadding);
+            this.rangeInteractionState.pixelsPerFrame = gridWidth / displayRange;
+
+            const handle = e.target.closest('.timeline-range-handle');
+            if (handle) {
+                this.rangeInteractionState.interactionType = handle.dataset.handleType === 'start' ? 'resize-start' : 'resize-end';
+            } else {
+                this.rangeInteractionState.interactionType = 'move';
+            }
+
+            const onMouseMove = (moveEvent) => {
+                if (!this.rangeInteractionState.isActive) return;
+
+                const dx = moveEvent.clientX - this.rangeInteractionState.initialMouseX;
+                const dFrames = Math.round(dx / this.rangeInteractionState.pixelsPerFrame);
+                
+                let newStartTime = this.rangeInteractionState.initialStartTime;
+                let newEndTime = this.rangeInteractionState.initialEndTime;
+
+                if (this.rangeInteractionState.interactionType === 'move') {
+                    newStartTime += dFrames;
+                    newEndTime += dFrames;
+                } else if (this.rangeInteractionState.interactionType === 'resize-start') {
+                    newStartTime += dFrames;
+                    if (newStartTime >= newEndTime) {
+                        newStartTime = newEndTime - 1;
+                    }
+                } else if (this.rangeInteractionState.interactionType === 'resize-end') {
+                    newEndTime += dFrames;
+                    if (newEndTime <= newStartTime) {
+                        newEndTime = newStartTime + 1;
+                    }
+                }
+
+                this.startTime = newStartTime;
+                this.endTime = newEndTime;
+                
+                // Update input fields
+                this.element.querySelector(`[data-range="start"]`).value = this.startTime;
+                this.element.querySelector(`[data-range="end"]`).value = this.endTime;
+
+                // Redraw UI
+                this.renderTimelineGrid();
+                this.updateTimelineRangeOverlay();
+                this.updatePlayheadPosition();
+            };
+
+            const onMouseUp = () => {
+                this.rangeInteractionState.isActive = false;
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+            };
+
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+        });
     }
 
     /**
@@ -120,81 +457,256 @@ class ThreeJSNode extends BaseNode {
      * @param {HTMLElement} timelineContainer 
      */
     addTimelineListeners(timelineContainer) {
-        const playBtn = timelineContainer.querySelector('[data-action="play"]');
-        const slider = timelineContainer.querySelector('.slider');
-        const frameInput = timelineContainer.querySelector('.timeline-current-frame input');
+        // Prevent node dragging when interacting with timeline
+        timelineContainer.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+        });
 
-        playBtn.addEventListener('click', () => {
-            this.isPlaying = !this.isPlaying;
-            playBtn.innerHTML = this.isPlaying ? '<span class="icon-pause"></span>' : '<span class="icon-play"></span>';
-            if (this.isPlaying) {
-                this.startAnimation();
-                this.runTimeline();
+        const playForwardBtn = timelineContainer.querySelector('[data-action="play-forward"]');
+        const playBackwardBtn = timelineContainer.querySelector('[data-action="play-backward"]');
+        const skipToStartBtn = timelineContainer.querySelector('[data-action="skip-to-start"]');
+        const skipToEndBtn = timelineContainer.querySelector('[data-action="skip-to-end"]');
+
+        const updatePlayIcons = () => {
+            const playForwardIcon = playForwardBtn.querySelector('span');
+            const playBackwardIcon = playBackwardBtn.querySelector('span');
+
+            if (this.isPlaying && this.playDirection === 1) {
+                playForwardIcon.className = 'icon-pause';
+                playBackwardIcon.className = 'icon-rewind';
+            } else if (this.isPlaying && this.playDirection === -1) {
+                playForwardIcon.className = 'icon-play';
+                playBackwardIcon.className = 'icon-pause';
+            } else { // Paused
+                playForwardIcon.className = 'icon-play';
+                playBackwardIcon.className = 'icon-rewind';
+            }
+        };
+
+        playForwardBtn.addEventListener('click', () => {
+            if (this.isPlaying && this.playDirection === 1) {
+                this.stopTimeline();
             } else {
-                // Keep animation running for smooth interaction
-                if (!this.isInteracting) {
-                    this.stopAnimation();
-                }
+                this.playDirection = 1;
+                this.startTimeline();
             }
+            updatePlayIcons();
         });
 
-        slider.addEventListener('input', (e) => {
-            this.currentTime = parseInt(e.target.value, 10);
-            frameInput.value = this.currentTime;
-            this.needsRender = true;
-            
-            // Ensure animation is running to render the change
-            if (!this.isAnimating) {
-                this.startAnimation();
-                // Stop after one frame if not playing or interacting
-                if (!this.isPlaying && !this.isInteracting) {
-                    setTimeout(() => this.stopAnimation(), 16);
-                }
+        playBackwardBtn.addEventListener('click', () => {
+            if (this.isPlaying && this.playDirection === -1) {
+                this.stopTimeline();
+            } else {
+                this.playDirection = -1;
+                this.startTimeline();
             }
+            updatePlayIcons();
+        });
+        
+        skipToStartBtn.addEventListener('click', () => {
+            this.currentTime = this.startTime;
+            this.updatePlayheadPosition();
+        });
+        
+        skipToEndBtn.addEventListener('click', () => {
+            this.currentTime = this.endTime;
+            this.updatePlayheadPosition();
         });
 
-        frameInput.addEventListener('change', (e) => {
-            let value = parseInt(e.target.value, 10);
-            if (isNaN(value)) value = this.startTime;
-            this.currentTime = Math.max(this.startTime, Math.min(this.endTime, value));
-            e.target.value = this.currentTime;
-            slider.value = this.currentTime;
-            this.needsRender = true;
-            
-            // Ensure animation is running to render the change
-            if (!this.isAnimating) {
-                this.startAnimation();
-                // Stop after one frame if not playing or interacting
-                if (!this.isPlaying && !this.isInteracting) {
-                    setTimeout(() => this.stopAnimation(), 16);
+        // Listeners for start/end frame inputs
+        const frameInputs = timelineContainer.querySelectorAll('.frame-input');
+        frameInputs.forEach(input => {
+            input.addEventListener('change', (e) => {
+                const rangeType = e.target.dataset.range;
+                let value = parseInt(e.target.value, 10);
+
+                if (rangeType === 'start') {
+                    this.startTime = value;
+                } else if (rangeType === 'end') {
+                    this.endTime = value;
                 }
-            }
+                
+                // Re-render ruler and update other parts of UI if necessary
+                this.renderTimelineGrid();
+                this.updateTimelineRangeOverlay();
+                // We might need to update the playhead position if the range changes
+                this.updatePlayheadPosition();
+            });
+        });
+
+        const fpsSelect = timelineContainer.querySelector('.fps-select');
+        fpsSelect.addEventListener('change', (e) => {
+            this.fps = parseInt(e.target.value, 10);
+            this.frameDuration = 1000 / this.fps;
+        });
+
+        // Listener for playhead dragging
+        const playheadHead = timelineContainer.querySelector('.playhead-head');
+        playheadHead.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            
+            const timelineBody = timelineContainer.querySelector('.timeline-body');
+            const timelineRect = timelineBody.getBoundingClientRect();
+
+            const onMouseMove = (moveEvent) => {
+                const newX = moveEvent.clientX - timelineRect.left;
+                const percentage = Math.max(0, Math.min(1, newX / timelineRect.width));
+                
+                const displayStartTime = this.startTime - this.timelinePadding;
+                const displayEndTime = this.endTime + this.timelinePadding;
+                const displayRange = displayEndTime - displayStartTime;
+
+                let newTime = Math.round(displayStartTime + (percentage * displayRange));
+                
+                // Clamp to the actual start/end time, not the padded range
+                this.currentTime = Math.max(this.startTime, Math.min(this.endTime, newTime));
+                
+                this.updatePlayheadPosition();
+
+                // If playing, we need to make sure the 3D view updates
+                if (this.isPlaying) {
+                    this.needsRender = true;
+                }
+            };
+
+            const onMouseUp = () => {
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+            };
+
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
         });
     }
 
     /**
-     * Runs the timeline animation.
+     * Initializes listeners for resizing the timeline panels.
+     * @param {HTMLElement} timelineEditor - The main timeline container.
+     * @param {HTMLElement} layersPanel - The layers panel.
+     * @param {HTMLElement} verticalHandle - The handle to resize the layers panel width.
+     * @param {HTMLElement} horizontalHandle - The handle to resize the timeline editor height.
      */
-    runTimeline() {
+    initResizeListeners(timelineEditor, layersPanel, verticalHandle, horizontalHandle) {
+        const onMouseDown = (event, target) => {
+            event.preventDefault();
+            this.timelineResizingState.isResizing = true;
+            this.timelineResizingState.target = target;
+            this.timelineResizingState.startX = event.clientX;
+            this.timelineResizingState.startY = event.clientY;
+
+            if (target === 'layersPanel') {
+                this.timelineResizingState.startWidth = layersPanel.offsetWidth;
+            } else if (target === 'timelineEditor') {
+                this.timelineResizingState.startHeight = timelineEditor.offsetHeight;
+            }
+
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+        };
+
+        const onMouseMove = (event) => {
+            if (!this.timelineResizingState.isResizing) return;
+
+            const { target, startX, startY, startWidth, startHeight } = this.timelineResizingState;
+
+            if (target === 'layersPanel') {
+                const dx = event.clientX - startX;
+                const newWidth = Math.max(150, startWidth + dx); // Min width 150px
+                layersPanel.style.width = `${newWidth}px`;
+            } else if (target === 'timelineEditor') {
+                const dy = event.clientY - startY;
+                // We are resizing from the top, so we subtract dy
+                const newHeight = Math.max(this.timelineMinimizedHeight, startHeight - dy); // Min height
+                timelineEditor.style.height = `${newHeight}px`;
+                this.onResize(); // We need to trigger a resize for the 3D canvas
+            }
+        };
+
+        const onMouseUp = () => {
+            this.timelineResizingState.isResizing = false;
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+        };
+
+        verticalHandle.addEventListener('mousedown', (e) => onMouseDown(e, 'layersPanel'));
+        horizontalHandle.addEventListener('mousedown', (e) => onMouseDown(e, 'timelineEditor'));
+    }
+
+    /**
+     * Starts the timeline playback loop.
+     */
+    startTimeline() {
+        if (this.isPlaying) return;
+        this.isPlaying = true;
+        this.timelineAnimationId = requestAnimationFrame((t) => this.timelineLoop(t));
+    }
+
+    /**
+     * Stops the timeline playback loop.
+     */
+    stopTimeline() {
+        this.isPlaying = false;
+        if (this.timelineAnimationId) {
+            cancelAnimationFrame(this.timelineAnimationId);
+            this.timelineAnimationId = null;
+        }
+        this.lastFrameTime = 0; // Reset for next playback
+    }
+
+    /**
+     * The main timeline animation loop, driven by requestAnimationFrame.
+     * @param {DOMHighResTimeStamp} timestamp 
+     */
+    timelineLoop(timestamp) {
         if (!this.isPlaying) return;
 
-        this.currentTime++;
-        if (this.currentTime > this.endTime) {
-            this.currentTime = this.startTime;
+        // Schedule the next frame
+        this.timelineAnimationId = requestAnimationFrame((t) => this.timelineLoop(t));
+
+        if (!this.lastFrameTime) {
+            this.lastFrameTime = timestamp;
         }
 
-        const slider = this.element.querySelector('.slider');
-        const frameInput = this.element.querySelector('.timeline-current-frame input');
-        slider.value = this.currentTime;
-        frameInput.value = this.currentTime;
-        
-        // Mark that we need to render
-        this.needsRender = true;
-        
-        // Loop using requestAnimationFrame for better performance
-        if (this.isPlaying) {
-            requestAnimationFrame(() => this.runTimeline());
+        const elapsed = timestamp - this.lastFrameTime;
+
+        if (elapsed >= this.frameDuration) {
+            this.lastFrameTime = timestamp - (elapsed % this.frameDuration);
+            this.advanceFrame();
         }
+    }
+    
+    /**
+     * Advances the timeline by one frame based on play direction.
+     */
+    advanceFrame() {
+        this.currentTime += this.playDirection;
+
+        if (this.playDirection === 1 && this.currentTime > this.endTime) {
+            this.currentTime = this.startTime;
+        } else if (this.playDirection === -1 && this.currentTime < this.startTime) {
+            this.currentTime = this.endTime;
+        }
+
+        this.updatePlayheadPosition();
+        this.needsRender = true; // Mark for 3D viewport update
+    }
+
+    /**
+     * Updates the visual position and displayed frame number of the playhead.
+     */
+    updatePlayheadPosition() {
+        const playhead = this.element.querySelector('.playhead');
+        const playheadHead = this.element.querySelector('.playhead-head');
+        if (!playhead || !playheadHead) return;
+
+        const displayStartTime = this.startTime - this.timelinePadding;
+        const displayEndTime = this.endTime + this.timelinePadding;
+        const displayRange = displayEndTime - displayStartTime;
+        
+        const position = displayRange > 0 ? ((this.currentTime - displayStartTime) / displayRange) * 100 : 0;
+        
+        playhead.style.left = `${position}%`;
+        playheadHead.textContent = this.currentTime;
     }
 
     /**
