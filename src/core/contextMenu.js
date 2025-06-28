@@ -248,25 +248,28 @@ class ContextMenu {
         event.preventDefault();
         
         const target = event.target;
-        const nodeElement = target.closest('.node');
-        const edgeHitArea = target.closest('.edge-hit-area');
         
-        if (edgeHitArea) {
-            const edgeId = edgeHitArea.parentElement.querySelector('.edge').id;
-            const edge = this.nodeUI.edges.get(edgeId);
+        const threeJsNodeElement = target.closest('.threejs-node');
+        if (threeJsNodeElement) {
+            const threeJsNodeId = threeJsNodeElement.id;
+            const threeJsNode = this.nodeUI.nodes.get(threeJsNodeId);
 
-            // If right-clicking on an edge that isn't part of a multi-selection,
-            // clear the current selection and select just this edge.
-            if (edge && !this.nodeUI.selectedEdges.has(edge.id)) {
-                this.nodeUI.clearSelection();
-                this.nodeUI.selectEdge(edge.id);
-                events.publish('selection:changed', {
-                    selectedNodeIds: Array.from(this.nodeUI.selectedNodes),
-                    selectedEdgeIds: Array.from(this.nodeUI.selectedEdges)
-                });
+            if (threeJsNode) {
+                if (target.closest('.threejs-canvas-container')) {
+                    this.showViewportContextMenu(event.clientX, event.clientY, threeJsNode);
+                } else if (target.closest('.timeline-editor-container')) {
+                    this.showTimelineContextMenu(event.clientX, event.clientY, threeJsNode, event.target);
+                } else {
+                    // It's in the node but not in a specific region, maybe show a generic node menu?
+                    // For now, do nothing or fall back to canvas menu.
+                    this.showCanvasContextMenu(event.clientX, event.clientY);
+                }
+                return; // Stop further processing
             }
-            this.showEdgeContextMenu(event.clientX, event.clientY, edgeId);
-        } else if (nodeElement) {
+        }
+
+        const nodeElement = target.closest('.node');
+        if (nodeElement) {
             const node = this.nodeUI.nodes.get(nodeElement.id);
 
             // If right-clicking on a node that isn't part of a multi-selection,
@@ -287,6 +290,26 @@ class ContextMenu {
                 // For other nodes, show the default canvas menu.
                 this.showCanvasContextMenu(event.clientX, event.clientY);
             }
+            return;
+        }
+
+        const edgeHitArea = target.closest('.edge-hit-area');
+        
+        if (edgeHitArea) {
+            const edgeId = edgeHitArea.parentElement.querySelector('.edge').id;
+            const edge = this.nodeUI.edges.get(edgeId);
+
+            // If right-clicking on an edge that isn't part of a multi-selection,
+            // clear the current selection and select just this edge.
+            if (edge && !this.nodeUI.selectedEdges.has(edge.id)) {
+                this.nodeUI.clearSelection();
+                this.nodeUI.selectEdge(edge.id);
+                events.publish('selection:changed', {
+                    selectedNodeIds: Array.from(this.nodeUI.selectedNodes),
+                    selectedEdgeIds: Array.from(this.nodeUI.selectedEdges)
+                });
+            }
+            this.showEdgeContextMenu(event.clientX, event.clientY, edgeId);
         } else {
             this.showCanvasContextMenu(event.clientX, event.clientY);
         }
@@ -627,6 +650,81 @@ class ContextMenu {
             // More vertical than horizontal
             return dy > 0 ? 'top' : 'bottom';
         }
+    }
+
+    /**
+     * Shows the context menu for the 3D viewport.
+     * @param {number} x The screen x-coordinate.
+     * @param {number} y The screen y-coordinate.
+     * @param {ThreeJSNode} node The ThreeJSNode instance.
+     */
+    showViewportContextMenu(x, y, node) {
+        const items = [
+            {
+                label: 'Frame All',
+                iconClass: 'icon-zoom-in', // Placeholder icon
+                action: () => console.log('Action: Frame All for node', node.id)
+            },
+            { isSeparator: true },
+            {
+                label: 'Add',
+                iconClass: 'icon-plus',
+                disabled: true, // Placeholder for now
+                submenu: [
+                    { label: 'Cube', action: () => console.log('Action: Add Cube') },
+                    { label: 'Light', action: () => console.log('Action: Add Light') },
+                    { label: 'Camera', action: () => console.log('Action: Add Camera') }
+                ]
+            }
+        ];
+        this.show(x, y, items);
+    }
+
+    /**
+     * Shows the context menu for the timeline editor.
+     * @param {number} x The screen x-coordinate.
+     * @param {number} y The screen y-coordinate.
+     * @param {ThreeJSNode} node The ThreeJSNode instance.
+     * @param {HTMLElement} target The specific element that was clicked.
+     */
+    showTimelineContextMenu(x, y, node, target) {
+        const clickedOnKeyframe = target.closest('.timeline-keyframe');
+        const isKeyframeSelected = node.selectedKeyframes.size > 0;
+        
+        // A simple "clipboard" for now. This should be moved to a proper service later.
+        if (!window.timelineClipboard) {
+            window.timelineClipboard = null;
+        }
+
+        const items = [
+            {
+                label: 'Insert Keyframe',
+                iconClass: 'icon-diamond-plus',
+                action: () => events.publish('threejs:insert-keyframe', { nodeId: node.id })
+            },
+            {
+                label: `Delete Selected Keyframe${isKeyframeSelected ? 's' : ''}`,
+                iconClass: 'icon-trash-2',
+                disabled: !isKeyframeSelected,
+                action: () => events.publish('threejs:delete-selected-keys', { nodeId: node.id })
+            },
+            {
+                label: 'Copy Selected Keyframes',
+                iconClass: 'icon-copy',
+                disabled: !isKeyframeSelected,
+                action: () => {
+                    console.log('Action: Copy Keyframes for node', node.id);
+                    // Actual copy logic would go here
+                }
+            },
+            {
+                label: 'Paste Keyframes',
+                iconClass: 'icon-clipboard',
+                disabled: !window.timelineClipboard,
+                action: () => console.log('Action: Paste Keyframes for node', node.id)
+            }
+        ];
+        this.show(x, y, items);
     }
 }
 

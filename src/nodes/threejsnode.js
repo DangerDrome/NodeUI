@@ -66,6 +66,49 @@ class ThreeJSNode extends BaseNode {
             initialMouseX: 0,
             pixelsPerFrame: 0
         };
+
+        this.marqueeSelectionState = {
+            isActive: false,
+            selectionBox: null,
+            startX: 0,
+            startY: 0
+        };
+
+        this.keyframeDragState = {
+            isActive: false,
+            initialMouseX: 0,
+            pixelsPerFrame: 0,
+            draggedKeys: []
+        };
+
+        // Scene and animation data model
+        this.sceneObjects = {
+            'world': { id: 'world', name: 'World', type: 'Scene', parentId: null, children: ['camera-1', 'cube-1'] },
+            'camera-1': { id: 'camera-1', name: 'Camera', type: 'Camera', parentId: 'world', children: [], actions: [{start: 1, end: 25}], 
+                animations: {
+                    'position.x': [],
+                    'position.y': [],
+                    'position.z': [],
+                    'rotation.x': [],
+                    'rotation.y': [],
+                    'rotation.z': []
+                } 
+            },
+            'cube-1': { id: 'cube-1', name: 'Cube', type: 'Mesh', parentId: 'world', children: [], actions: [{start: 1, end: 25}],
+                animations: {
+                    'position.x': [
+                        { id: 'k_px_1', frame: 1010, value: 0 },
+                        { id: 'k_px_2', frame: 1040, value: 5 },
+                    ],
+                    'rotation.y': [
+                        { id: 'k_ry_1', frame: 1015, value: 0 },
+                        { id: 'k_ry_2', frame: 1035, value: Math.PI },
+                    ]
+                }
+            },
+        };
+        this.selectedObjectId = null;
+        this.selectedKeyframes = new Set();
     }
 
     /**
@@ -134,13 +177,7 @@ class ThreeJSNode extends BaseNode {
         sceneOutlinePanel.className = 'scene-outline-panel';
         sceneOutlinePanel.innerHTML = `
             <div class="scene-outline-header">Scene</div>
-            <div class="scene-outline-list">
-                <div class="scene-item" data-level="0">
-                    <span class="scene-item-toggle"></span>
-                    <span class="scene-item-icon icon-globe"></span>
-                    <span class="scene-item-label">World</span>
-                </div>
-            </div>
+            <div class="scene-outline-list"></div>
         `;
         timelineEditorContainer.appendChild(sceneOutlinePanel);
 
@@ -246,17 +283,395 @@ class ThreeJSNode extends BaseNode {
         contentArea.appendChild(canvasContainer);
         contentArea.appendChild(timelineEditorContainer);
 
-        // Render ruler and grid, and the new overlay
+        // Render dynamic content
+        this.renderSceneOutliner();
+        this.renderTimelineActions();
         this.renderTimelineGrid();
         this.updateTimelineRangeOverlay();
 
         // Add timeline event listeners
         this.addTimelineListeners(timelineEditorContainer);
-        this.addRangeInteractionListeners(rangeOverlay);
+        this.addRangeInteractionListeners(timelineEditorContainer.querySelector('.timeline-keyframe-grid'));
         this.initResizeListeners(timelineEditorContainer, sceneOutlinePanel, verticalResizeHandle, horizontalResizeHandle);
+        this.addNodeSpecificEventListeners();
 
         // Initialize the three.js scene in the canvas container
         this.initScene(canvasContainer);
+    }
+
+    /**
+     * Adds event listeners specific to this node type, like keyframe deletion.
+     */
+    addNodeSpecificEventListeners() {
+        // Using a unique event name with the node's ID to avoid crosstalk
+        const deleteEventName = `threejs:delete-selected-keys:${this.id}`;
+
+        const handler = (data) => {
+            // Check if the event is for this specific node.
+            if (data.nodeId !== this.id) return;
+            
+            this.deleteSelectedKeyframes();
+        };
+
+        // Subscribe to the delete event. We need to store the handler to unsubscribe later.
+        this.deleteKeyframeHandler = handler;
+        events.subscribe('threejs:delete-selected-keys', this.deleteKeyframeHandler);
+
+        // Subscribe to the insert event
+        const insertHandler = (data) => {
+            if (data.nodeId === this.id) {
+                this.insertKeyframe();
+            }
+        };
+        this.insertKeyframeHandler = insertHandler;
+        events.subscribe('threejs:insert-keyframe', this.insertKeyframeHandler);
+
+        // Also listen for keyboard events for deletion
+        const onKeyDown = (e) => {
+            // Only act if the mouse is over this node's element
+            if (this.element.matches(':hover') && (e.key === 'Delete' || e.key === 'Backspace')) {
+                if (this.selectedKeyframes.size > 0) {
+                    e.preventDefault();
+                    this.deleteSelectedKeyframes();
+                }
+            }
+        };
+
+        // We need to add and remove this listener from the document
+        this.keyDownHandler = onKeyDown;
+        document.addEventListener('keydown', this.keyDownHandler);
+    }
+
+    /**
+     * Inserts a keyframe for the selected object at the current time.
+     */
+    insertKeyframe() {
+        const objectId = this.selectedObjectId;
+        if (!objectId) {
+            console.warn("No object selected to insert keyframe for.");
+            return;
+        }
+
+        const object = this.sceneObjects[objectId];
+        if (!object || !object.animations) {
+            console.warn("Selected object does not have animatable properties.");
+            return;
+        }
+
+        const frame = this.currentTime;
+
+        for (const propName in object.animations) {
+            const anims = object.animations[propName];
+
+            // Check if a key already exists at this frame
+            if (anims.some(k => k.frame === frame)) {
+                continue; // Skip if key already exists
+            }
+
+            // Find surrounding keys
+            let prevKey = null;
+            let nextKey = null;
+            for (const key of anims) {
+                if (key.frame < frame) {
+                    prevKey = key;
+                }
+                if (key.frame > frame && !nextKey) {
+                    nextKey = key;
+                }
+            }
+            
+            let newValue = 0;
+            if (prevKey && nextKey) {
+                // Interpolate value
+                const t = (frame - prevKey.frame) / (nextKey.frame - prevKey.frame);
+                newValue = prevKey.value + (nextKey.value - prevKey.value) * t;
+            } else if (prevKey) {
+                // Extrapolate from previous
+                newValue = prevKey.value;
+            } else if (nextKey) {
+                // Extrapolate from next
+                newValue = nextKey.value;
+            }
+
+            const newKey = {
+                id: `k_${propName.replace('.', '_')}_${crypto.randomUUID().substring(0, 4)}`,
+                frame: frame,
+                value: newValue
+            };
+
+            anims.push(newKey);
+            anims.sort((a, b) => a.frame - b.frame);
+        }
+
+        this.renderTimelineActions();
+        console.log(`Inserted keyframes for ${object.name} at frame ${frame}.`);
+    }
+
+    /**
+     * Deletes all currently selected keyframes from the data model.
+     */
+    deleteSelectedKeyframes() {
+        if (this.selectedKeyframes.size === 0) return;
+
+        this.selectedKeyframes.forEach(keyframeId => {
+            const [objId, propName, keyId] = keyframeId.split('__');
+            const object = this.sceneObjects[objId];
+
+            if (object && object.animations && object.animations[propName]) {
+                const anims = object.animations[propName];
+                const index = anims.findIndex(k => k.id === keyId);
+                if (index !== -1) {
+                    anims.splice(index, 1);
+                }
+            }
+        });
+
+        this.selectedKeyframes.clear();
+        this.renderTimelineActions(); // Re-render to show the changes
+        console.log(`Deleted ${this.selectedKeyframes.size} keyframes.`);
+    }
+
+    /**
+     * Renders the scene outliner panel with its hierarchy.
+     */
+    renderSceneOutliner() {
+        const outlinerList = this.element.querySelector('.scene-outline-list');
+        if (!outlinerList) return;
+        outlinerList.innerHTML = ''; // Clear existing content
+        
+        const renderItem = (objectId, level) => {
+            const object = this.sceneObjects[objectId];
+            if (!object) return;
+
+            const item = document.createElement('div');
+            item.className = 'scene-item';
+            item.dataset.id = objectId;
+            item.style.setProperty('--level', level);
+            if (objectId === this.selectedObjectId) {
+                item.classList.add('selected');
+            }
+
+            const iconClass = object.type === 'Scene' ? 'icon-globe' : (object.type === 'Camera' ? 'icon-camera' : 'icon-box');
+
+            item.innerHTML = `
+                <span class="scene-item-toggle"></span>
+                <span class="scene-item-icon ${iconClass}"></span>
+                <span class="scene-item-label">${object.name}</span>
+            `;
+            
+            item.addEventListener('click', () => {
+                this.selectedObjectId = objectId;
+                this.renderSceneOutliner(); // Re-render to show selection
+                this.renderTimelineActions(); // Re-render to show selection
+            });
+
+            outlinerList.appendChild(item);
+
+            if (object.children) {
+                object.children.forEach(childId => renderItem(childId, level + 1));
+            }
+        };
+
+        renderItem('world', 0);
+    }
+
+    /**
+     * Renders the action rows in the timeline grid.
+     */
+    renderTimelineActions() {
+        const grid = this.element.querySelector('.timeline-keyframe-grid');
+        if (!grid) return;
+        
+        // Remove old action rows but keep other elements like the overlay
+        grid.querySelectorAll('.timeline-action-row').forEach(row => row.remove());
+
+        const displayStartTime = this.startTime - this.timelinePadding;
+        const displayRange = (this.endTime + this.timelinePadding) - displayStartTime;
+
+        let rowIndex = 0;
+        const renderActionRowsForObject = (objectId) => {
+            const object = this.sceneObjects[objectId];
+            if (!object) return;
+            
+            const row = document.createElement('div');
+            row.className = 'timeline-action-row';
+            row.style.top = `${rowIndex * 25}px`; // 25px height per row
+            if (objectId === this.selectedObjectId) {
+                row.classList.add('selected');
+            }
+            grid.prepend(row); // Prepend to be behind other elements
+
+            this.renderKeyframesForRow(row, object, displayStartTime, displayRange);
+
+            if (object.actions) {
+                object.actions.forEach(action => {
+                    const actionClip = document.createElement('div');
+                    actionClip.className = 'timeline-action-clip';
+                    
+                    const left = ((action.start - displayStartTime) / displayRange) * 100;
+                    const width = ((action.end - action.start) / displayRange) * 100;
+                    
+                    actionClip.style.left = `${left}%`;
+                    actionClip.style.width = `${width}%`;
+                    actionClip.textContent = object.name;
+
+                    row.appendChild(actionClip);
+                });
+            }
+            
+            rowIndex++;
+            
+            if (object.children) {
+                object.children.forEach(childId => renderActionRowsForObject(childId));
+            }
+        };
+        
+        renderActionRowsForObject('world');
+    }
+
+    /**
+     * Renders keyframes for a specific action row.
+     * @param {HTMLElement} rowElement The DOM element for the action row.
+     * @param {object} object The scene object data.
+     * @param {number} displayStartTime The starting frame of the visible timeline.
+     * @param {number} displayRange The total number of frames in the visible timeline.
+     */
+    renderKeyframesForRow(rowElement, object, displayStartTime, displayRange) {
+        if (!object.animations || displayRange <= 0) return;
+
+        for (const prop in object.animations) {
+            const keyframes = object.animations[prop];
+            keyframes.forEach(key => {
+                const keyframeId = `${object.id}__${prop}__${key.id}`;
+                const position = ((key.frame - displayStartTime) / displayRange) * 100;
+
+                // Don't render if outside the padded view
+                if (position < 0 || position > 100) return;
+
+                const keyframeEl = document.createElement('div');
+                keyframeEl.className = 'timeline-keyframe';
+                keyframeEl.style.left = `${position}%`;
+                keyframeEl.dataset.id = keyframeId;
+                
+                if (this.selectedKeyframes.has(keyframeId)) {
+                    keyframeEl.classList.add('selected');
+                }
+                
+                keyframeEl.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent row selection
+                    
+                    if (e.shiftKey) {
+                        if (this.selectedKeyframes.has(keyframeId)) {
+                            this.selectedKeyframes.delete(keyframeId);
+                        } else {
+                            this.selectedKeyframes.add(keyframeId);
+                        }
+                    } else {
+                        this.selectedKeyframes.clear();
+                        this.selectedKeyframes.add(keyframeId);
+                    }
+                    this.renderTimelineActions(); // Re-render to update selection visuals
+                });
+
+                keyframeEl.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    
+                    if (!this.selectedKeyframes.has(keyframeId)) {
+                        this.selectedKeyframes.clear();
+                        this.selectedKeyframes.add(keyframeId);
+                        this.renderTimelineActions();
+                    }
+
+                    this.keyframeDragState.isActive = true;
+                    this.keyframeDragState.initialMouseX = e.clientX;
+                    
+                    const grid = this.element.querySelector('.timeline-keyframe-grid');
+                    const gridWidth = grid.offsetWidth;
+                    const displayRange = (this.endTime + this.timelinePadding) - (this.startTime - this.timelinePadding);
+                    this.keyframeDragState.pixelsPerFrame = gridWidth / displayRange;
+                    
+                    this.keyframeDragState.draggedKeys = [];
+                    this.selectedKeyframes.forEach(id => {
+                        const [objId, propName, keyId] = id.split('__');
+                        const obj = this.sceneObjects[objId];
+                        if(obj && obj.animations[propName]) {
+                            const keyframe = obj.animations[propName].find(k => k.id === keyId);
+                            if(keyframe) {
+                                this.keyframeDragState.draggedKeys.push({
+                                    keyframe,
+                                    initialFrame: keyframe.frame
+                                });
+                            }
+                        }
+                    });
+
+                    const onMouseMove = (moveEvent) => {
+                        if (!this.keyframeDragState.isActive) return;
+                        
+                        const scale = this.getCanvasScale();
+                        const dx = (moveEvent.clientX - this.keyframeDragState.initialMouseX) / scale;
+                        const dFrames = Math.round(dx / this.keyframeDragState.pixelsPerFrame);
+                        
+                        this.keyframeDragState.draggedKeys.forEach(item => {
+                            item.keyframe.frame = item.initialFrame + dFrames;
+                        });
+                        
+                        this.renderTimelineActions();
+                    };
+
+                    const onMouseUp = () => {
+                        this.keyframeDragState.isActive = false;
+                        
+                        // Sort keyframes after dragging
+                        this.keyframeDragState.draggedKeys.forEach(item => {
+                             const [objId, propName] = item.keyframe.id.split('__'); // A bit of a hack to find the right property array
+                             const animProp = this.sceneObjects[item.keyframe.id.split('__')[0]].animations[item.keyframe.id.split('__')[1]];
+                             if (animProp) {
+                                animProp.sort((a,b) => a.frame - b.frame);
+                             }
+                        });
+
+
+                        window.removeEventListener('mousemove', onMouseMove);
+                        window.removeEventListener('mouseup', onMouseUp);
+                    };
+
+                    window.addEventListener('mousemove', onMouseMove);
+                    window.addEventListener('mouseup', onMouseUp);
+                });
+
+                rowElement.appendChild(keyframeEl);
+            });
+        }
+    }
+
+    /**
+     * Gets the current zoom/scale factor of the main canvas.
+     * This is needed to correct mouse coordinates during interactions
+     * when the canvas is zoomed in or out.
+     * @returns {number} The current canvas scale.
+     */
+    getCanvasScale() {
+        // The node's element is within a transformed container.
+        // We can get the scale from its parent's computed transform.
+        const nodeContainer = this.element.parentElement;
+        if (nodeContainer) {
+            const transform = window.getComputedStyle(nodeContainer).transform;
+            if (transform && transform !== 'none') {
+                // The transform is a matrix(scaleX, skewY, skewX, scaleY, translateX, translateY)
+                // We use DOMMatrix for a robust parsing solution.
+                try {
+                    const matrix = new DOMMatrix(transform);
+                    return matrix.a; // 'a' is scaleX (m11)
+                } catch (e) {
+                    // Fallback for older browsers or unexpected formats
+                    console.error("Could not parse transform matrix:", e);
+                    const values = transform.split('(')[1].split(')')[0].split(',');
+                    return parseFloat(values[0]);
+                }
+            }
+        }
+        return 1; // Default to 1 if not found
     }
 
     /**
@@ -380,68 +795,170 @@ class ThreeJSNode extends BaseNode {
 
     /**
      * Adds event listeners for interacting with the timeline range overlay.
-     * @param {HTMLElement} rangeOverlay The overlay element.
+     * @param {HTMLElement} gridElement The keyframe grid element.
      */
-    addRangeInteractionListeners(rangeOverlay) {
-        rangeOverlay.addEventListener('mousedown', (e) => {
+    addRangeInteractionListeners(gridElement) {
+        gridElement.addEventListener('mousedown', (e) => {
+            // Clicks on keyframes are handled by their own listeners.
+            if (e.target.closest('.timeline-keyframe')) {
+                return;
+            }
+
+            // We need to know if this mousedown turns into a drag or just a click.
+            let didDrag = false;
+            const onMouseMoveForDragCheck = (moveEvent) => {
+                // If the mouse moves more than a couple of pixels, consider it a drag.
+                if (Math.abs(e.clientX - moveEvent.clientX) > 2 || Math.abs(e.clientY - moveEvent.clientY) > 2) {
+                    didDrag = true;
+                }
+                // This listener is only to set the flag, so we remove it after the first move.
+                window.removeEventListener('mousemove', onMouseMoveForDragCheck);
+            };
+            window.addEventListener('mousemove', onMouseMoveForDragCheck);
+
+            // --- Standard Interaction Logic ---
             e.preventDefault();
-            e.stopPropagation();
-
-            this.rangeInteractionState.isActive = true;
-            this.rangeInteractionState.initialMouseX = e.clientX;
-            this.rangeInteractionState.initialStartTime = this.startTime;
-            this.rangeInteractionState.initialEndTime = this.endTime;
-
-            const grid = this.element.querySelector('.timeline-keyframe-grid');
-            const gridWidth = grid.offsetWidth;
-            const displayRange = (this.endTime + this.timelinePadding) - (this.startTime - this.timelinePadding);
-            this.rangeInteractionState.pixelsPerFrame = gridWidth / displayRange;
 
             const handle = e.target.closest('.timeline-range-handle');
+
             if (handle) {
+                // --- Handle resizing ---
+                this.rangeInteractionState.isActive = true;
                 this.rangeInteractionState.interactionType = handle.dataset.handleType === 'start' ? 'resize-start' : 'resize-end';
-            } else {
+            } else if (e.altKey) {
+                // --- Handle moving the whole range ---
+                this.rangeInteractionState.isActive = true;
                 this.rangeInteractionState.interactionType = 'move';
+            } else {
+                // --- Handle marquee selection ---
+                this.marqueeSelectionState.isActive = true;
+                
+                const grid = this.element.querySelector('.timeline-keyframe-grid');
+                this.marqueeSelectionState.selectionBox = document.createElement('div');
+                this.marqueeSelectionState.selectionBox.className = 'timeline-selection-box';
+                grid.appendChild(this.marqueeSelectionState.selectionBox);
+
+                const rect = grid.getBoundingClientRect();
+                const scale = this.getCanvasScale();
+                this.marqueeSelectionState.startX = (e.clientX - rect.left) / scale;
+                this.marqueeSelectionState.startY = (e.clientY - rect.top) / scale;
+                
+                this.marqueeSelectionState.selectionBox.style.left = `${this.marqueeSelectionState.startX}px`;
+                this.marqueeSelectionState.selectionBox.style.top = `${this.marqueeSelectionState.startY}px`;
+                this.marqueeSelectionState.selectionBox.style.width = '0px';
+                this.marqueeSelectionState.selectionBox.style.height = '0px';
+            }
+
+            // Common setup for range interaction (move/resize)
+            if (this.rangeInteractionState.isActive) {
+                this.rangeInteractionState.initialMouseX = e.clientX;
+                this.rangeInteractionState.initialStartTime = this.startTime;
+                this.rangeInteractionState.initialEndTime = this.endTime;
+
+                const grid = this.element.querySelector('.timeline-keyframe-grid');
+                const gridWidth = grid.offsetWidth;
+                const displayRange = (this.endTime + this.timelinePadding) - (this.startTime - this.timelinePadding);
+                this.rangeInteractionState.pixelsPerFrame = gridWidth / displayRange;
             }
 
             const onMouseMove = (moveEvent) => {
-                if (!this.rangeInteractionState.isActive) return;
+                const scale = this.getCanvasScale();
 
-                const dx = moveEvent.clientX - this.rangeInteractionState.initialMouseX;
-                const dFrames = Math.round(dx / this.rangeInteractionState.pixelsPerFrame);
-                
-                let newStartTime = this.rangeInteractionState.initialStartTime;
-                let newEndTime = this.rangeInteractionState.initialEndTime;
+                if (this.rangeInteractionState.isActive) {
+                    const dx = (moveEvent.clientX - this.rangeInteractionState.initialMouseX) / scale;
+                    const dFrames = Math.round(dx / this.rangeInteractionState.pixelsPerFrame);
+                    
+                    let newStartTime = this.rangeInteractionState.initialStartTime;
+                    let newEndTime = this.rangeInteractionState.initialEndTime;
 
-                if (this.rangeInteractionState.interactionType === 'move') {
-                    newStartTime += dFrames;
-                    newEndTime += dFrames;
-                } else if (this.rangeInteractionState.interactionType === 'resize-start') {
-                    newStartTime += dFrames;
-                    if (newStartTime >= newEndTime) {
-                        newStartTime = newEndTime - 1;
+                    if (this.rangeInteractionState.interactionType === 'move') {
+                        newStartTime += dFrames;
+                        newEndTime += dFrames;
+                    } else if (this.rangeInteractionState.interactionType === 'resize-start') {
+                        newStartTime += dFrames;
+                        if (newStartTime >= newEndTime) {
+                            newStartTime = newEndTime - 1;
+                        }
+                    } else if (this.rangeInteractionState.interactionType === 'resize-end') {
+                        newEndTime += dFrames;
+                        if (newEndTime <= newStartTime) {
+                            newEndTime = newStartTime + 1;
+                        }
                     }
-                } else if (this.rangeInteractionState.interactionType === 'resize-end') {
-                    newEndTime += dFrames;
-                    if (newEndTime <= newStartTime) {
-                        newEndTime = newStartTime + 1;
+
+                    this.startTime = newStartTime;
+                    this.endTime = newEndTime;
+                    
+                    // Update input fields
+                    this.element.querySelector(`[data-range="start"]`).value = this.startTime;
+                    this.element.querySelector(`[data-range="end"]`).value = this.endTime;
+
+                    // Redraw UI
+                    this.renderTimelineGrid();
+                    this.renderTimelineActions();
+                    this.updateTimelineRangeOverlay();
+                    this.updatePlayheadPosition();
+                } else if (this.marqueeSelectionState.isActive) {
+                    const grid = this.element.querySelector('.timeline-keyframe-grid');
+                    const rect = grid.getBoundingClientRect();
+                    const currentX = (moveEvent.clientX - rect.left) / scale;
+                    const currentY = (moveEvent.clientY - rect.top) / scale;
+                    const { startX, startY, selectionBox } = this.marqueeSelectionState;
+
+                    const x = Math.min(startX, currentX);
+                    const y = Math.min(startY, currentY);
+                    const width = Math.abs(currentX - startX);
+                    const height = Math.abs(currentY - startY);
+
+                    selectionBox.style.left = `${x}px`;
+                    selectionBox.style.top = `${y}px`;
+                    selectionBox.style.width = `${width}px`;
+                    selectionBox.style.height = `${height}px`;
+                }
+            };
+
+            const onMouseUp = (upEvent) => {
+                // First, clean up the drag-check listener.
+                window.removeEventListener('mousemove', onMouseMoveForDragCheck);
+
+                if (this.marqueeSelectionState.isActive) {
+                    // Only perform selection if the box was actually dragged.
+                    if (didDrag) {
+                        const selectionRect = this.marqueeSelectionState.selectionBox.getBoundingClientRect();
+                        
+                        if (!upEvent.shiftKey) {
+                            this.selectedKeyframes.clear();
+                        }
+
+                        this.element.querySelectorAll('.timeline-keyframe').forEach(keyframeEl => {
+                            const keyframeRect = keyframeEl.getBoundingClientRect();
+                            const intersects = (
+                                selectionRect.left < keyframeRect.right &&
+                                selectionRect.right > keyframeRect.left &&
+                                selectionRect.top < keyframeRect.bottom &&
+                                selectionRect.bottom > keyframeRect.top
+                            );
+
+                            if (intersects) {
+                                this.selectedKeyframes.add(keyframeEl.dataset.id);
+                            }
+                        });
+                    }
+                    
+                    this.marqueeSelectionState.selectionBox.remove();
+                    this.renderTimelineActions(); // Re-render to show new selection
+                }
+
+                // If it wasn't a drag, it was a click. Clear selection.
+                if (!didDrag && !this.rangeInteractionState.isActive) {
+                    if (this.selectedKeyframes.size > 0) {
+                        this.selectedKeyframes.clear();
+                        this.renderTimelineActions();
                     }
                 }
 
-                this.startTime = newStartTime;
-                this.endTime = newEndTime;
-                
-                // Update input fields
-                this.element.querySelector(`[data-range="start"]`).value = this.startTime;
-                this.element.querySelector(`[data-range="end"]`).value = this.endTime;
-
-                // Redraw UI
-                this.renderTimelineGrid();
-                this.updateTimelineRangeOverlay();
-                this.updatePlayheadPosition();
-            };
-
-            const onMouseUp = () => {
+                // Reset all interaction states.
+                this.marqueeSelectionState.isActive = false;
                 this.rangeInteractionState.isActive = false;
                 window.removeEventListener('mousemove', onMouseMove);
                 window.removeEventListener('mouseup', onMouseUp);
@@ -528,6 +1045,7 @@ class ThreeJSNode extends BaseNode {
                 
                 // Re-render ruler and update other parts of UI if necessary
                 this.renderTimelineGrid();
+                this.renderTimelineActions();
                 this.updateTimelineRangeOverlay();
                 // We might need to update the playhead position if the range changes
                 this.updatePlayheadPosition();
@@ -540,17 +1058,18 @@ class ThreeJSNode extends BaseNode {
             this.frameDuration = 1000 / this.fps;
         });
 
-        // Listener for playhead dragging
-        const playheadHead = timelineContainer.querySelector('.playhead-head');
-        playheadHead.addEventListener('mousedown', (e) => {
+        // --- Reusable Scrubbing Logic ---
+        const handleScrub = (e) => {
             e.preventDefault();
-            
+            e.stopPropagation();
+
             const timelineBody = timelineContainer.querySelector('.timeline-body');
             const timelineRect = timelineBody.getBoundingClientRect();
 
-            const onMouseMove = (moveEvent) => {
-                const newX = moveEvent.clientX - timelineRect.left;
-                const percentage = Math.max(0, Math.min(1, newX / timelineRect.width));
+            const updateScrubPosition = (moveEvent) => {
+                const scale = this.getCanvasScale();
+                const newX = (moveEvent.clientX - timelineRect.left) / scale;
+                const percentage = Math.max(0, Math.min(1, newX / timelineBody.offsetWidth));
                 
                 const displayStartTime = this.startTime - this.timelinePadding;
                 const displayEndTime = this.endTime + this.timelinePadding;
@@ -563,10 +1082,16 @@ class ThreeJSNode extends BaseNode {
                 
                 this.updatePlayheadPosition();
 
-                // If playing, we need to make sure the 3D view updates
                 if (this.isPlaying) {
                     this.needsRender = true;
                 }
+            };
+
+            // Update position on initial click
+            updateScrubPosition(e);
+
+            const onMouseMove = (moveEvent) => {
+                updateScrubPosition(moveEvent);
             };
 
             const onMouseUp = () => {
@@ -576,7 +1101,15 @@ class ThreeJSNode extends BaseNode {
 
             window.addEventListener('mousemove', onMouseMove);
             window.addEventListener('mouseup', onMouseUp);
-        });
+        };
+
+        // Listener for playhead dragging
+        const playheadHead = timelineContainer.querySelector('.playhead-head');
+        playheadHead.addEventListener('mousedown', handleScrub);
+
+        // Listener for ruler scrubbing
+        const ruler = timelineContainer.querySelector('.timeline-ruler');
+        ruler.addEventListener('mousedown', handleScrub);
     }
 
     /**
@@ -1045,6 +1578,11 @@ class ThreeJSNode extends BaseNode {
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(width, height);
         
+        // Redraw timeline components
+        this.renderTimelineGrid();
+        this.renderTimelineActions();
+        this.updateTimelineRangeOverlay();
+
         // Mark that we need to render after resize
         this.needsRender = true;
         
@@ -1070,6 +1608,8 @@ class ThreeJSNode extends BaseNode {
      */
     destroy() {
         this.stopAnimation();
+        this.stopTimeline(); // Make sure timeline loop is stopped
+
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
         }
@@ -1077,7 +1617,18 @@ class ThreeJSNode extends BaseNode {
             this.renderer.dispose();
         }
         if (this.scene) {
-            // Dispose geometries, materials, textures
+            // TODO: Dispose geometries, materials, textures properly
+        }
+        
+        // Unsubscribe from events to prevent memory leaks
+        if(this.deleteKeyframeHandler) {
+            events.unsubscribe('threejs:delete-selected-keys', this.deleteKeyframeHandler);
+        }
+        if (this.insertKeyframeHandler) {
+            events.unsubscribe('threejs:insert-keyframe', this.insertKeyframeHandler);
+        }
+        if (this.keyDownHandler) {
+            document.removeEventListener('keydown', this.keyDownHandler);
         }
     }
 } 

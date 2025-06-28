@@ -1763,7 +1763,9 @@ input:checked + .slider:before {
 }
 
 .scene-outline-list {
-    margin-top: 8px;
+    margin-top: 0;
+    padding-top: 35px; /* Align with timeline rows below ruler */
+    box-sizing: border-box;
     overflow-y: auto;
     flex-grow: 1;
 }
@@ -1821,6 +1823,16 @@ input:checked + .slider:before {
 .scene-item-label {
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.scene-item.selected {
+    background-color: var(--color-bg-hover);
+    color: var(--color-text-emphasis);
+}
+
+/* This ensures the selection highlight is not overridden by the generic hover style */
+.scene-item.selected:hover {
+    background-color: var(--color-bg-hover);
 }
 
 .timeline-main-panel {
@@ -2112,4 +2124,65 @@ input:checked + .slider:before {
     stroke-width: 2;
     stroke-linecap: round;
     stroke-dasharray: 5, 5;
+}
+
+.timeline-action-row {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 25px;
+    border-bottom: 1px solid rgba(0,0,0,0.2);
+    box-sizing: border-box;
+    z-index: 2; /* Raise above overlay */
+    pointer-events: none; /* Allow clicks to pass through to overlay */
+}
+
+.timeline-action-row.selected {
+    background-color: rgba(62, 207, 142, 0.1);
+}
+
+.timeline-action-clip {
+    position: absolute;
+    height: 100%;
+    background-color: #4a4a4a;
+    border-radius: var(--radius-small);
+    border: 1px solid #5a5a5a;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 10px;
+    color: var(--color-text-subtle);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.timeline-keyframe {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(45deg);
+    width: 10px;
+    height: 10px;
+    background-color: var(--color-accent-dark);
+    border: 1px solid var(--color-accent);
+    cursor: pointer;
+    z-index: 5;
+    transition: background-color 0.2s, transform 0.2s;
+    pointer-events: auto; /* Make keyframes interactive */
+}
+
+.timeline-keyframe:hover {
+    transform: translate(-50%, -50%) rotate(45deg) scale(1.2);
+}
+
+.timeline-keyframe.selected {
+    background-color: var(--color-accent);
+}
+
+.timeline-selection-box {
+    position: absolute;
+    border: 1px solid var(--color-accent);
+    background-color: rgba(62, 207, 142, 0.1);
+    pointer-events: none;
+    z-index: 99;
 } 
