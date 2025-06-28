@@ -34,6 +34,13 @@ class ThreeJSNode extends BaseNode {
         this.tumblingEnabled = false;
         this.wheelTimeout = null;
 
+        // The Three.js library instance
+        this.THREE = null;
+
+        // Map to hold references to the actual Three.js objects
+        this.threeObjects = new Map();
+        this.font = null;
+
         // Timeline state
         this.isPlaying = false;
         this.playDirection = 1; // 1 for forward, -1 for backward
@@ -1269,6 +1276,7 @@ class ThreeJSNode extends BaseNode {
         const handleScrub = (e) => {
             e.preventDefault();
             e.stopPropagation();
+            this.startAnimation(); // Ensure render loop is active for scrubbing
 
             const timelineBody = timelineContainer.querySelector('.timeline-body');
             const timelineRect = timelineBody.getBoundingClientRect();
@@ -1287,11 +1295,10 @@ class ThreeJSNode extends BaseNode {
                 // Clamp to the actual start/end time, not the padded range
                 this.currentTime = Math.max(this.startTime, Math.min(this.endTime, newTime));
                 
+                // Update properties and playhead position immediately on scrub
+                this.updateAnimatedProperties(this.currentTime);
                 this.updatePlayheadPosition();
-
-                if (this.isPlaying) {
-                    this.needsRender = true;
-                }
+                this.needsRender = true;
             };
 
             // Update position on initial click
@@ -1378,6 +1385,7 @@ class ThreeJSNode extends BaseNode {
     startTimeline() {
         if (this.isPlaying) return;
         this.isPlaying = true;
+        this.startAnimation(); // Ensure render loop is active
         this.timelineAnimationId = requestAnimationFrame((t) => this.timelineLoop(t));
     }
 
@@ -1389,6 +1397,10 @@ class ThreeJSNode extends BaseNode {
         if (this.timelineAnimationId) {
             cancelAnimationFrame(this.timelineAnimationId);
             this.timelineAnimationId = null;
+        }
+        // If we're not tumbling, we can stop the render loop.
+        if (!this.tumblingEnabled) {
+            this.stopAnimation();
         }
         this.lastFrameTime = 0; // Reset for next playback
     }
@@ -1427,8 +1439,79 @@ class ThreeJSNode extends BaseNode {
             this.currentTime = this.endTime;
         }
 
+        this.updateAnimatedProperties(this.currentTime);
         this.updatePlayheadPosition();
         this.needsRender = true; // Mark for 3D viewport update
+    }
+
+    /**
+     * Updates the properties of 3D objects based on keyframe data for a given frame.
+     * @param {number} frame - The current frame to calculate animation values for.
+     */
+    updateAnimatedProperties(frame) {
+        for (const objectId in this.sceneObjects) {
+            const dataObject = this.sceneObjects[objectId];
+            const threeObject = this.threeObjects.get(objectId);
+
+            if (!dataObject.animations || !threeObject) {
+                continue;
+            }
+
+            for (const propName in dataObject.animations) {
+                const keyframes = dataObject.animations[propName];
+                if (keyframes.length === 0) continue;
+                
+                // Find surrounding keys
+                let prevKey = null;
+                let nextKey = null;
+
+                // Find the last key before or at the current frame
+                for (let i = keyframes.length - 1; i >= 0; i--) {
+                    if (keyframes[i].frame <= frame) {
+                        prevKey = keyframes[i];
+                        break;
+                    }
+                }
+                
+                // Find the first key after the current frame
+                for (let i = 0; i < keyframes.length; i++) {
+                    if (keyframes[i].frame > frame) {
+                        nextKey = keyframes[i];
+                        break;
+                    }
+                }
+
+                let value;
+                if (!prevKey && nextKey) { // Before the first key
+                    value = nextKey.value;
+                } else if (prevKey && !nextKey) { // After the last key
+                    value = prevKey.value;
+                } else if (prevKey && nextKey) { // Between two keys
+                    if (prevKey.frame === nextKey.frame) { // Exactly on a key
+                        value = prevKey.value;
+                    } else {
+                        // Linear interpolation
+                        const t = (frame - prevKey.frame) / (nextKey.frame - prevKey.frame);
+                        value = prevKey.value + (nextKey.value - prevKey.value) * t;
+                    }
+                } else if (prevKey) { // Only one key in the scene, or exactly on that key
+                    value = prevKey.value;
+                } else {
+                    continue; // No keys to animate with
+                }
+                
+                // Apply the value to the three.js object
+                const propPath = propName.split('.');
+                let current = threeObject;
+                for (let i = 0; i < propPath.length - 1; i++) {
+                    current = current[propPath[i]];
+                    if (!current) break;
+                }
+                if (current) {
+                    current[propPath[propPath.length - 1]] = value;
+                }
+            }
+        }
     }
 
     /**
@@ -1456,27 +1539,46 @@ class ThreeJSNode extends BaseNode {
     async initScene(container) {
         try {
             // Dynamically import three.js modules
-            const THREE = await import('three');
+            this.THREE = await import('three');
             const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
             const { Line2 } = await import('three/addons/lines/Line2.js');
             const { LineGeometry } = await import('three/addons/lines/LineGeometry.js');
             const { LineMaterial } = await import('three/addons/lines/LineMaterial.js');
+            const { FontLoader } = await import('three/addons/loaders/FontLoader.js');
+            const { TextGeometry } = await import('three/addons/geometries/TextGeometry.js');
+            this.TextGeometry = TextGeometry; // Store for later use
+
+            // --- Font Loading ---
+            const fontLoader = new FontLoader();
+            fontLoader.load(
+                'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_regular.typeface.json',
+                (font) => {
+                    this.font = font;
+                    // Now that the font is loaded, update any placeholders
+                    this.update3DSceneFromDataModel();
+                },
+                undefined, // onProgress callback
+                (error) => {
+                    console.error('An error occurred loading the font:', error);
+                }
+            );
 
             const width = container.clientWidth;
             const height = container.clientHeight;
 
             // Scene
-            this.scene = new THREE.Scene();
-            this.scene.background = new THREE.Color(0x1a1a1a); // Dark background
+            this.scene = new this.THREE.Scene();
+            this.scene.background = new this.THREE.Color(0x1a1a1a); // Dark background
 
             // Camera
-            this.camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            this.camera = new this.THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
             this.camera.setFocalLength(50); // Set to 50mm camera equivalent
             this.camera.position.set(20, 16, 20);
             this.camera.lookAt(0, 0, 0);
+            this.threeObjects.set('camera-1', this.camera); // Link data model ID to the camera
 
             // Renderer
-            this.renderer = new THREE.WebGLRenderer({ 
+            this.renderer = new this.THREE.WebGLRenderer({ 
                 antialias: true,
                 powerPreference: "high-performance",
                 preserveDrawingBuffer: false,
@@ -1486,7 +1588,7 @@ class ThreeJSNode extends BaseNode {
             this.renderer.setSize(width, height);
             this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for performance
             this.renderer.shadowMap.enabled = false; // Disable shadows for better performance
-            this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+            this.renderer.outputColorSpace = this.THREE.SRGBColorSpace;
             container.appendChild(this.renderer.domElement);
 
             // Controls
@@ -1498,34 +1600,37 @@ class ThreeJSNode extends BaseNode {
             this.controls.maxDistance = 500;
             this.controls.enabled = false; // Disabled by default
             this.controls.mouseButtons = {
-                LEFT: THREE.MOUSE.ROTATE,
-                MIDDLE: THREE.MOUSE.PAN,
-                RIGHT: THREE.MOUSE.DOLLY
+                LEFT: this.THREE.MOUSE.ROTATE,
+                MIDDLE: this.THREE.MOUSE.PAN,
+                RIGHT: this.THREE.MOUSE.DOLLY
             };
 
             // Lighting
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            const ambientLight = new this.THREE.AmbientLight(0xffffff, 0.5);
             this.scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            const directionalLight = new this.THREE.DirectionalLight(0xffffff, 1);
             directionalLight.position.set(5, 10, 7.5);
             this.scene.add(directionalLight);
 
             // Helpers
-            this.gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x888888);
+            this.gridHelper = new this.THREE.GridHelper(10, 10, 0x444444, 0x888888);
             this.gridHelper.position.y = -0.01; // Offset to prevent z-fighting
-            this.gridHelper.material.blending = THREE.AdditiveBlending;
+            this.gridHelper.material.blending = this.THREE.AdditiveBlending;
             this.scene.add(this.gridHelper);
 
             // Add a larger, lower density grid
-            this.largeGridHelper = new THREE.GridHelper(50, 10, 0x222222, 0x444444);
+            this.largeGridHelper = new this.THREE.GridHelper(50, 10, 0x222222, 0x444444);
             this.largeGridHelper.position.y = -0.02; // Offset further to prevent z-fighting
-            this.largeGridHelper.material.blending = THREE.AdditiveBlending;
+            this.largeGridHelper.material.blending = this.THREE.AdditiveBlending;
             this.scene.add(this.largeGridHelper);
 
-            this.createAxisHelpers(THREE);
+            this.createAxisHelpers(this.THREE);
 
             // Add infinite lines along Z and X axes
-            this.createInfiniteLines(THREE, { Line2, LineGeometry, LineMaterial });
+            this.createInfiniteLines(this.THREE, { Line2, LineGeometry, LineMaterial });
+
+            // Create 3D objects from the initial data model
+            this.update3DSceneFromDataModel();
 
             // Start animation loop
             this.animate();
@@ -1541,6 +1646,150 @@ class ThreeJSNode extends BaseNode {
             console.error("Failed to load Three.js modules:", error);
             container.innerText = "Error initializing 3D view. See console for details.";
         }
+    }
+
+    /**
+     * Updates the data model with a new list of connected objects.
+     * @param {Array<object>} objects - An array of objects representing connected nodes.
+     */
+    setConnectedObjects(objects) {
+        // Filter out defaults to find what needs to be removed
+        const existingConnectedIds = new Set();
+        for (const id in this.sceneObjects) {
+            if (id.startsWith('conn_')) {
+                existingConnectedIds.add(id);
+            }
+        }
+
+        const incomingIds = new Set(objects.map(o => `conn_${o.id}`));
+        const objectsToAdd = objects.filter(o => !existingConnectedIds.has(`conn_${o.id}`));
+        const idsToRemove = [...existingConnectedIds].filter(id => !incomingIds.has(id));
+
+        // Remove from data model
+        idsToRemove.forEach(id => {
+            delete this.sceneObjects[id];
+            const worldChildren = this.sceneObjects.world.children;
+            const index = worldChildren.indexOf(id);
+            if (index > -1) worldChildren.splice(index, 1);
+        });
+
+        // Add to data model
+        objectsToAdd.forEach(obj => {
+            const newId = `conn_${obj.id}`;
+            this.sceneObjects[newId] = {
+                id: newId,
+                name: obj.name,
+                type: obj.type,
+                content: obj.content,
+                parentId: 'world',
+                children: [],
+                actions: [{ start: this.startTime, end: this.endTime }],
+                animations: {
+                    'position.x': [], 'position.y': [], 'position.z': [],
+                    'rotation.x': [], 'rotation.y': [], 'rotation.z': [],
+                    'scale.x': [], 'scale.y': [], 'scale.z': []
+                }
+            };
+            this.sceneObjects.world.children.push(newId);
+        });
+
+        // Update UI and 3D Scene if changes were made
+        if (objectsToAdd.length > 0 || idsToRemove.length > 0) {
+            this.renderSceneOutliner();
+            this.renderTimelineActions();
+            this.update3DSceneFromDataModel();
+        }
+    }
+
+    /**
+     * Synchronizes the 3D scene with the current `sceneObjects` data model.
+     * Creates or removes 3D objects as needed.
+     */
+    update3DSceneFromDataModel() {
+        if (!this.THREE) return; // Ensure library is loaded
+
+        const managedIds = new Set();
+
+        // Add/update objects from the data model
+        for (const id in this.sceneObjects) {
+            if (id === 'world') continue; // Skip the logical container
+
+            managedIds.add(id);
+            const dataObject = this.sceneObjects[id];
+            
+            if (!this.threeObjects.has(id)) {
+                // Object doesn't exist in 3D scene, create it
+                if (dataObject.type === 'Camera') continue; // Camera is already handled
+
+                let newObject;
+                if (dataObject.type === 'BaseNode' && dataObject.content) {
+                    if (this.font) {
+                        newObject = this.createTextNodeMesh(dataObject.content);
+                    } else {
+                        // Font not loaded yet, create a placeholder
+                        const geometry = new this.THREE.BoxGeometry(0.5, 0.5, 0.5);
+                        const material = new this.THREE.MeshStandardMaterial({ color: 0x555555 });
+                        newObject = new this.THREE.Mesh(geometry, material);
+                    }
+                } else {
+                    // Fallback to a cube for other node types
+                    const geometry = new this.THREE.BoxGeometry(1.5, 1.5, 1.5);
+                    const material = new this.THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff, name: dataObject.name });
+                    newObject = new this.THREE.Mesh(geometry, material);
+                }
+                
+                this.scene.add(newObject);
+                this.threeObjects.set(id, newObject);
+            } else {
+                // Object exists, check if it needs to be updated (e.g., placeholder to text)
+                const existingObject = this.threeObjects.get(id);
+                if (dataObject.type === 'BaseNode' && dataObject.content && this.font && !(existingObject.geometry instanceof this.TextGeometry)) {
+                    // It's a note, the font is loaded, but the current 3D object is not text. Replace it.
+                    this.scene.remove(existingObject);
+                    const newTextObject = this.createTextNodeMesh(dataObject.content);
+                    this.scene.add(newTextObject);
+                    this.threeObjects.set(id, newTextObject); // Replace in map
+                }
+            }
+        }
+
+        // Remove 3D objects that are no longer in the data model
+        this.threeObjects.forEach((obj, id) => {
+            if (!managedIds.has(id)) {
+                // Check if the object is actually in the scene before removing
+                const objectToRemove = this.threeObjects.get(id);
+                if (objectToRemove && objectToRemove.parent === this.scene) {
+                    this.scene.remove(objectToRemove);
+                }
+                this.threeObjects.delete(id);
+            }
+        });
+
+        this.needsRender = true;
+    }
+
+    /**
+     * Creates a 3D text mesh.
+     * @param {string} text - The text to display.
+     * @returns {THREE.Mesh} The created 3D text mesh.
+     */
+    createTextNodeMesh(text) {
+        if (!this.font) return null;
+
+        const geometry = new this.TextGeometry(text, {
+            font: this.font,
+            size: 0.5,
+            height: 0.1,
+            curveSegments: 12,
+            bevelEnabled: false
+        });
+
+        geometry.center(); // Center the geometry so rotation/position is intuitive
+
+        const material = new this.THREE.MeshStandardMaterial({ color: 0xeeeeee });
+        const textMesh = new this.THREE.Mesh(geometry, material);
+        
+        return textMesh;
     }
 
     /**
@@ -1844,4 +2093,4 @@ class ThreeJSNode extends BaseNode {
             document.removeEventListener('keydown', this.keyDownHandler);
         }
     }
-} 
+}

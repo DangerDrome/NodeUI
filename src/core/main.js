@@ -233,9 +233,31 @@ class Main {
                 this.nodeManager.addNode(new BaseNode(options));
             }
         });
-        events.subscribe('edge:create', (options) => this.nodeManager.addEdge(new BaseEdge(options)));
+        events.subscribe('edge:create', (options) => {
+            this.nodeManager.addEdge(new BaseEdge(options));
+            // Use timeout to ensure connections are established before updating
+            setTimeout(() => {
+                const startNode = this.nodes.get(options.startNodeId);
+                const endNode = this.nodes.get(options.endNodeId);
+                if (startNode && startNode.type === 'ThreeJSNode') this._updateThreeJSNodeInputs(startNode.id);
+                if (endNode && endNode.type === 'ThreeJSNode') this._updateThreeJSNodeInputs(endNode.id);
+            }, 0);
+        });
         events.subscribe('node:delete', (nodeId) => this.nodeManager.removeNode(nodeId));
-        events.subscribe('edge:delete', (edgeId) => this.nodeManager.removeEdge(edgeId));
+        events.subscribe('edge:delete', (edgeId) => {
+            const edge = this.edges.get(edgeId);
+            if (!edge) return;
+            const startNode = this.nodes.get(edge.startNodeId);
+            const endNode = this.nodes.get(edge.endNodeId);
+
+            this.nodeManager.removeEdge(edgeId);
+
+            // Use timeout to ensure connections are removed before updating
+            setTimeout(() => {
+                if (startNode && startNode.type === 'ThreeJSNode') this._updateThreeJSNodeInputs(startNode.id);
+                if (endNode && endNode.type === 'ThreeJSNode') this._updateThreeJSNodeInputs(endNode.id);
+            }, 0);
+        });
         events.subscribe('edge:update', (data) => this.updateEdgeProps(data));
         events.subscribe('snap:grid-toggle', () => this.contextMenuHandler.toggleSnapToGrid());
         events.subscribe('node:update', (data) => this.nodeManager.updateNode(data));
@@ -259,6 +281,43 @@ class Main {
         // SubGraph file operations (no longer for navigation)
         events.subscribe('subgraph:save', (data) => this.saveSubGraph(data));
         events.subscribe('subgraph:load', (data) => this.loadSubGraph(data));
+    }
+
+    /**
+     * Finds all nodes connected to a ThreeJSNode and tells it to update its layers.
+     * @param {string} nodeId The ID of the ThreeJSNode to update.
+     * @private
+     */
+    _updateThreeJSNodeInputs(nodeId) {
+        const threeNode = this.nodes.get(nodeId);
+        if (!threeNode || threeNode.type !== 'ThreeJSNode' || !threeNode.connections) return;
+
+        const connectedObjects = [];
+        const connectedEdgeIds = new Set();
+
+        for (const edgeSet of threeNode.connections.values()) {
+            edgeSet.forEach(edgeId => connectedEdgeIds.add(edgeId));
+        }
+
+        connectedEdgeIds.forEach(edgeId => {
+            const edge = this.edges.get(edgeId);
+            if (!edge) return;
+            
+            const otherNodeId = edge.startNodeId === nodeId ? edge.endNodeId : edge.startNodeId;
+            const otherNode = this.nodes.get(otherNodeId);
+
+            // Avoid connecting to itself or other viewports
+            if (otherNode && otherNode.type !== 'ThreeJSNode') {
+                 connectedObjects.push({
+                    id: otherNode.id,
+                    name: otherNode.title,
+                    type: otherNode.type,
+                    content: otherNode.content
+                });
+            }
+        });
+        
+        threeNode.setConnectedObjects(connectedObjects);
     }
 
     /**
