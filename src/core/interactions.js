@@ -833,7 +833,7 @@ class Interactions {
                 break;
             case 'Delete':
             case 'Backspace':
-                this.nodeUI.nodeManager.deleteSelection();
+                this.nodeUI.deleteSelection();
                 break;
             case 'c':
                 if (!isModKey && !isEditingContent) {

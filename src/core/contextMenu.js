@@ -255,14 +255,24 @@ class ContextMenu {
             const threeJsNode = this.nodeUI.nodes.get(threeJsNodeId);
 
             if (threeJsNode) {
+                // If right-clicking on a ThreeJSNode that isn't part of a multi-selection,
+                // clear the current selection and select just this node.
+                if (!this.nodeUI.selectedNodes.has(threeJsNode.id)) {
+                    this.nodeUI.clearSelection();
+                    this.nodeUI.selectNode(threeJsNode.id);
+                    events.publish('selection:changed', {
+                        selectedNodeIds: Array.from(this.nodeUI.selectedNodes),
+                        selectedEdgeIds: Array.from(this.nodeUI.selectedEdges)
+                    });
+                }
+
                 if (target.closest('.threejs-canvas-container')) {
                     this.showViewportContextMenu(event.clientX, event.clientY, threeJsNode);
                 } else if (target.closest('.timeline-editor-container')) {
                     this.showTimelineContextMenu(event.clientX, event.clientY, threeJsNode, event.target);
                 } else {
-                    // It's in the node but not in a specific region, maybe show a generic node menu?
-                    // For now, do nothing or fall back to canvas menu.
-                    this.showCanvasContextMenu(event.clientX, event.clientY);
+                    // It's in the node but not in a specific region, show the viewport menu
+                    this.showViewportContextMenu(event.clientX, event.clientY, threeJsNode);
                 }
                 return; // Stop further processing
             }
@@ -659,6 +669,9 @@ class ContextMenu {
      * @param {ThreeJSNode} node The ThreeJSNode instance.
      */
     showViewportContextMenu(x, y, node) {
+        const hasSelection = this.nodeUI.selectedNodes.size > 0 || this.nodeUI.selectedEdges.size > 0;
+        const menu = this.nodeUI.contextMenuSettings.canvas;
+        
         const items = [
             {
                 label: 'Frame All',
@@ -675,6 +688,13 @@ class ContextMenu {
                     { label: 'Light', action: () => console.log('Action: Add Light') },
                     { label: 'Camera', action: () => console.log('Action: Add Camera') }
                 ]
+            },
+            { isSeparator: true },
+            {
+                label: menu.delete.label,
+                iconClass: menu.delete.iconClass,
+                action: () => this.nodeUI.deleteSelection(),
+                disabled: !hasSelection
             }
         ];
         this.show(x, y, items);

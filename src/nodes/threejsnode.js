@@ -332,9 +332,8 @@ class ThreeJSNode extends BaseNode {
             this.deleteSelectedKeyframes();
         };
 
-        // Subscribe to the delete event. We need to store the handler to unsubscribe later.
-        this.deleteKeyframeHandler = handler;
-        events.subscribe('threejs:delete-selected-keys', this.deleteKeyframeHandler);
+        // Subscribe to the delete event. We need to store the subscription to unsubscribe later.
+        this.deleteKeyframeHandler = events.subscribe('threejs:delete-selected-keys', handler);
 
         // Subscribe to the insert event
         const insertHandler = (data) => {
@@ -342,21 +341,18 @@ class ThreeJSNode extends BaseNode {
                 this.insertKeyframe();
             }
         };
-        this.insertKeyframeHandler = insertHandler;
-        events.subscribe('threejs:insert-keyframe', this.insertKeyframeHandler);
+        this.insertKeyframeHandler = events.subscribe('threejs:insert-keyframe', insertHandler);
 
         // Subscribe to copy/paste events
         const copyHandler = (data) => {
             if (data.nodeId === this.id) this.copySelectedKeyframes();
         };
-        this.copyKeyframeHandler = copyHandler;
-        events.subscribe('threejs:copy-selected-keys', this.copyKeyframeHandler);
+        this.copyKeyframeHandler = events.subscribe('threejs:copy-selected-keys', copyHandler);
 
         const pasteHandler = (data) => {
             if (data.nodeId === this.id) this.pasteSelectedKeyframes();
         };
-        this.pasteKeyframeHandler = pasteHandler;
-        events.subscribe('threejs:paste-selected-keys', this.pasteKeyframeHandler);
+        this.pasteKeyframeHandler = events.subscribe('threejs:paste-selected-keys', pasteHandler);
 
         // Also listen for keyboard events for deletion and insertion
         const onKeyDown = (e) => {
@@ -367,6 +363,8 @@ class ThreeJSNode extends BaseNode {
                         e.preventDefault();
                         this.deleteSelectedKeyframes();
                     }
+                    // If no keyframes are selected, let the default delete behavior work
+                    // (which will delete the node if it's selected)
                 } else if (e.key.toLowerCase() === 'i') {
                     // Prevent default browser actions (like opening a page info dialog)
                     e.preventDefault();
@@ -2078,16 +2076,16 @@ class ThreeJSNode extends BaseNode {
         
         // Unsubscribe from events to prevent memory leaks
         if(this.deleteKeyframeHandler) {
-            events.unsubscribe('threejs:delete-selected-keys', this.deleteKeyframeHandler);
+            this.deleteKeyframeHandler.unsubscribe();
         }
         if (this.insertKeyframeHandler) {
-            events.unsubscribe('threejs:insert-keyframe', this.insertKeyframeHandler);
+            this.insertKeyframeHandler.unsubscribe();
         }
         if (this.copyKeyframeHandler) {
-            events.unsubscribe('threejs:copy-selected-keys', this.copyKeyframeHandler);
+            this.copyKeyframeHandler.unsubscribe();
         }
         if (this.pasteKeyframeHandler) {
-            events.unsubscribe('threejs:paste-selected-keys', this.pasteKeyframeHandler);
+            this.pasteKeyframeHandler.unsubscribe();
         }
         if (this.keyDownHandler) {
             document.removeEventListener('keydown', this.keyDownHandler);
