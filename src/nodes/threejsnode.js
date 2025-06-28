@@ -57,6 +57,18 @@ class ThreeJSNode extends BaseNode {
             startHeight: 0
         };
 
+        this.actionClipInteractionState = {
+            isActive: false,
+            interactionType: null, // 'move', 'resize-start', 'resize-end'
+            action: null,
+            object: null,
+            initialMouseX: 0,
+            pixelsPerFrame: 0,
+            initialStartFrame: 0,
+            initialEndFrame: 0,
+            initialKeyframes: []
+        };
+
         // Range interaction state
         this.rangeInteractionState = {
             isActive: false,
@@ -84,7 +96,7 @@ class ThreeJSNode extends BaseNode {
         // Scene and animation data model
         this.sceneObjects = {
             'world': { id: 'world', name: 'World', type: 'Scene', parentId: null, children: ['camera-1', 'cube-1'] },
-            'camera-1': { id: 'camera-1', name: 'Camera', type: 'Camera', parentId: 'world', children: [], actions: [{start: 1, end: 25}], 
+            'camera-1': { id: 'camera-1', name: 'Camera', type: 'Camera', parentId: 'world', children: [], actions: [{start: 1000, end: 1100}], 
                 animations: {
                     'position.x': [],
                     'position.y': [],
@@ -94,7 +106,7 @@ class ThreeJSNode extends BaseNode {
                     'rotation.z': []
                 } 
             },
-            'cube-1': { id: 'cube-1', name: 'Cube', type: 'Mesh', parentId: 'world', children: [], actions: [{start: 1, end: 25}],
+            'cube-1': { id: 'cube-1', name: 'Cube', type: 'Mesh', parentId: 'world', children: [], actions: [{start: 1005, end: 1045}],
                 animations: {
                     'position.x': [
                         { id: 'k_px_1', frame: 1010, value: 0 },
@@ -326,13 +338,32 @@ class ThreeJSNode extends BaseNode {
         this.insertKeyframeHandler = insertHandler;
         events.subscribe('threejs:insert-keyframe', this.insertKeyframeHandler);
 
-        // Also listen for keyboard events for deletion
+        // Subscribe to copy/paste events
+        const copyHandler = (data) => {
+            if (data.nodeId === this.id) this.copySelectedKeyframes();
+        };
+        this.copyKeyframeHandler = copyHandler;
+        events.subscribe('threejs:copy-selected-keys', this.copyKeyframeHandler);
+
+        const pasteHandler = (data) => {
+            if (data.nodeId === this.id) this.pasteSelectedKeyframes();
+        };
+        this.pasteKeyframeHandler = pasteHandler;
+        events.subscribe('threejs:paste-selected-keys', this.pasteKeyframeHandler);
+
+        // Also listen for keyboard events for deletion and insertion
         const onKeyDown = (e) => {
             // Only act if the mouse is over this node's element
-            if (this.element.matches(':hover') && (e.key === 'Delete' || e.key === 'Backspace')) {
-                if (this.selectedKeyframes.size > 0) {
+            if (this.element.matches(':hover')) {
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    if (this.selectedKeyframes.size > 0) {
+                        e.preventDefault();
+                        this.deleteSelectedKeyframes();
+                    }
+                } else if (e.key.toLowerCase() === 'i') {
+                    // Prevent default browser actions (like opening a page info dialog)
                     e.preventDefault();
-                    this.deleteSelectedKeyframes();
+                    this.insertKeyframe();
                 }
             }
         };
@@ -340,6 +371,92 @@ class ThreeJSNode extends BaseNode {
         // We need to add and remove this listener from the document
         this.keyDownHandler = onKeyDown;
         document.addEventListener('keydown', this.keyDownHandler);
+    }
+
+    /**
+     * Copies selected keyframes to a global clipboard.
+     * The keyframes are stored with frames relative to the first selected key.
+     */
+    copySelectedKeyframes() {
+        if (this.selectedKeyframes.size === 0) return;
+
+        let minFrame = Infinity;
+        const copiedKeysData = [];
+
+        this.selectedKeyframes.forEach(keyframeId => {
+            const [objId, propName, keyId] = keyframeId.split('__');
+            const object = this.sceneObjects[objId];
+            if (object && object.animations && object.animations[propName]) {
+                const key = object.animations[propName].find(k => k.id === keyId);
+                if (key) {
+                    copiedKeysData.push({
+                        objId,
+                        propName,
+                        key: { ...key } // Store a copy of the key
+                    });
+                    if (key.frame < minFrame) {
+                        minFrame = key.frame;
+                    }
+                }
+            }
+        });
+
+        // Make frames relative to the first keyframe
+        copiedKeysData.forEach(data => {
+            data.key.frame -= minFrame;
+        });
+
+        window.timelineClipboard = copiedKeysData;
+        console.log(`Copied ${copiedKeysData.length} keyframes to clipboard.`);
+    }
+
+    /**
+     * Pastes keyframes from the global clipboard onto the timeline.
+     * The keyframes are positioned relative to the current playhead.
+     */
+    pasteSelectedKeyframes() {
+        if (!window.timelineClipboard) return;
+
+        const pasteFrame = this.currentTime;
+        const newSelection = new Set();
+
+        window.timelineClipboard.forEach(data => {
+            const object = this.sceneObjects[data.objId];
+            if (object && object.animations && object.animations[data.propName]) {
+                const anims = object.animations[data.propName];
+                const newFrame = pasteFrame + data.key.frame;
+
+                // Create a new unique key
+                const newKey = {
+                    ...data.key,
+                    id: `k_${data.propName.replace('.', '_')}_${crypto.randomUUID().substring(0, 4)}`,
+                    frame: newFrame
+                };
+
+                // Remove any existing key at the target frame before pasting
+                const existingKeyIndex = anims.findIndex(k => k.frame === newFrame);
+                if (existingKeyIndex !== -1) {
+                    anims.splice(existingKeyIndex, 1);
+                }
+
+                anims.push(newKey);
+                newSelection.add(`${data.objId}__${data.propName}__${newKey.id}`);
+            }
+        });
+
+        // Sort all affected animation arrays
+        const affectedProps = new Set(window.timelineClipboard.map(d => `${d.objId}__${d.propName}`));
+        affectedProps.forEach(propString => {
+            const [objId, propName] = propString.split('__');
+            this.sceneObjects[objId].animations[propName].sort((a, b) => a.frame - b.frame);
+        });
+
+        // Update selection to the newly pasted keys
+        this.selectedKeyframes.clear();
+        this.selectedKeyframes = newSelection;
+        
+        this.renderTimelineActions();
+        console.log(`Pasted ${window.timelineClipboard.length} keyframes.`);
     }
 
     /**
@@ -513,7 +630,97 @@ class ThreeJSNode extends BaseNode {
                     
                     actionClip.style.left = `${left}%`;
                     actionClip.style.width = `${width}%`;
-                    actionClip.textContent = object.name;
+                    
+                    actionClip.innerHTML = `
+                        <div class="action-clip-handle" data-handle-type="start"></div>
+                        <span class="action-clip-label">${object.name}</span>
+                        <div class="action-clip-handle" data-handle-type="end"></div>
+                    `;
+
+                    actionClip.addEventListener('mousedown', (e) => {
+                        e.stopPropagation(); // Prevent other timeline interactions
+
+                        const targetHandle = e.target.closest('.action-clip-handle');
+                        const state = this.actionClipInteractionState;
+
+                        state.isActive = true;
+                        state.action = action;
+                        state.object = object;
+                        state.initialMouseX = e.clientX;
+                        state.initialStartFrame = action.start;
+                        state.initialEndFrame = action.end;
+
+                        const grid = this.element.querySelector('.timeline-keyframe-grid');
+                        const gridWidth = grid.offsetWidth;
+                        const displayRangeValue = (this.endTime + this.timelinePadding) - (this.startTime - this.timelinePadding);
+                        state.pixelsPerFrame = gridWidth / displayRangeValue;
+                        
+                        if (targetHandle) {
+                            state.interactionType = targetHandle.dataset.handleType === 'start' ? 'resize-start' : 'resize-end';
+                        } else {
+                            state.interactionType = 'move';
+                            
+                            // Store initial keyframe positions for dragging
+                            state.initialKeyframes = [];
+                            if (object.animations) {
+                                for (const propName in object.animations) {
+                                    object.animations[propName].forEach(key => {
+                                        state.initialKeyframes.push({
+                                            keyRef: key, 
+                                            initialFrame: key.frame
+                                        });
+                                    });
+                                }
+                            }
+                        }
+                        
+                        const onMouseMove = (moveEvent) => {
+                            if (!state.isActive) return;
+
+                            const scale = this.getCanvasScale();
+                            const dx = (moveEvent.clientX - state.initialMouseX) / scale;
+                            const dFrames = Math.round(dx / state.pixelsPerFrame);
+                            
+                            switch (state.interactionType) {
+                                case 'move':
+                                    state.action.start = state.initialStartFrame + dFrames;
+                                    state.action.end = state.initialEndFrame + dFrames;
+                                    state.initialKeyframes.forEach(item => {
+                                        item.keyRef.frame = item.initialFrame + dFrames;
+                                    });
+                                    break;
+                                case 'resize-start':
+                                    state.action.start = Math.min(state.initialStartFrame + dFrames, state.action.end - 1);
+                                    break;
+                                case 'resize-end':
+                                    state.action.end = Math.max(state.initialEndFrame + dFrames, state.action.start + 1);
+                                    break;
+                            }
+
+                            // Redraw everything
+                            this.renderTimelineActions();
+                        };
+
+                        const onMouseUp = () => {
+                            if (!state.isActive) return;
+
+                            // When moving, we need to sort all modified animation arrays
+                            if (state.interactionType === 'move' && state.object.animations) {
+                                for (const propName in state.object.animations) {
+                                    state.object.animations[propName].sort((a,b) => a.frame - b.frame);
+                                }
+                            }
+
+                            // Reset state
+                            state.isActive = false;
+                            state.initialKeyframes = [];
+                            window.removeEventListener('mousemove', onMouseMove);
+                            window.removeEventListener('mouseup', onMouseUp);
+                        };
+
+                        window.addEventListener('mousemove', onMouseMove);
+                        window.addEventListener('mouseup', onMouseUp);
+                    });
 
                     row.appendChild(actionClip);
                 });
@@ -1626,6 +1833,12 @@ class ThreeJSNode extends BaseNode {
         }
         if (this.insertKeyframeHandler) {
             events.unsubscribe('threejs:insert-keyframe', this.insertKeyframeHandler);
+        }
+        if (this.copyKeyframeHandler) {
+            events.unsubscribe('threejs:copy-selected-keys', this.copyKeyframeHandler);
+        }
+        if (this.pasteKeyframeHandler) {
+            events.unsubscribe('threejs:paste-selected-keys', this.pasteKeyframeHandler);
         }
         if (this.keyDownHandler) {
             document.removeEventListener('keydown', this.keyDownHandler);

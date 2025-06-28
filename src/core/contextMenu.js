@@ -712,16 +712,13 @@ class ContextMenu {
                 label: 'Copy Selected Keyframes',
                 iconClass: 'icon-copy',
                 disabled: !isKeyframeSelected,
-                action: () => {
-                    console.log('Action: Copy Keyframes for node', node.id);
-                    // Actual copy logic would go here
-                }
+                action: () => events.publish('threejs:copy-selected-keys', { nodeId: node.id })
             },
             {
                 label: 'Paste Keyframes',
                 iconClass: 'icon-clipboard',
                 disabled: !window.timelineClipboard,
-                action: () => console.log('Action: Paste Keyframes for node', node.id)
+                action: () => events.publish('threejs:paste-selected-keys', { nodeId: node.id })
             }
         ];
         this.show(x, y, items);

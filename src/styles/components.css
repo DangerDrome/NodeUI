@@ -2150,11 +2150,36 @@ input:checked + .slider:before {
     box-sizing: border-box;
     display: flex;
     align-items: center;
-    padding: 0 8px;
+    justify-content: space-between;
     font-size: 10px;
     color: var(--color-text-subtle);
     overflow: hidden;
+    cursor: move;
+    z-index: 3; /* Raise it above the action row's base level */
+    pointer-events: auto; /* Make it interactive */
+}
+
+.action-clip-label {
+    flex-grow: 1;
+    padding: 0 4px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    pointer-events: none; /* Make sure label doesn't interfere with dragging */
+}
+
+.action-clip-handle {
+    width: 5px;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.15);
+    cursor: ew-resize;
+    flex-shrink: 0;
+    transition: background-color 0.2s ease;
+}
+
+.action-clip-handle:hover {
+    background-color: var(--color-accent);
 }
 
 .timeline-keyframe {
