@@ -40,7 +40,7 @@ This phase brings the timeline to life by adding the ability to create and displ
 
 The final phase connects the keyframe data to the three.js engine to drive the actual animation.
 
-- [ ] **Create 3D Object Representations:** Create corresponding `THREE.Object3D` in the three.js scene for each animatable node.
-- [ ] **Implement Interpolation Logic:** Update the animation loop to calculate interpolated transform values based on keyframes.
-- [ ] **Update 3D Objects:** Apply the interpolated values to the corresponding `THREE.Object3D` properties.
-- [ ] **Render Scene:** Ensure the three.js renderer updates on each frame during playback. 
+- [x] **Create 3D Object Representations:** Create corresponding `THREE.Object3D` in the three.js scene for each animatable node.
+- [x] **Implement Interpolation Logic:** Update the animation loop to calculate interpolated transform values based on keyframes.
+- [x] **Update 3D Objects:** Apply the interpolated values to the corresponding `THREE.Object3D` properties.
+- [x] **Render Scene:** Ensure the three.js renderer updates on each frame during playback. 

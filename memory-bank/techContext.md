@@ -133,6 +133,11 @@ flowchart TD
 
 ### External Resources
 - **three.js**: Used for 3D rendering within the `ThreeJSNode`. It is loaded from a CDN via an `importmap` in `index.html`, so no local installation or build step is required.
+  - Core `three.js` library
+  - `OrbitControls.js` for camera manipulation
+  - `Line2.js`, `LineGeometry.js`, `LineMaterial.js` for advanced line rendering
+  - `FontLoader.js` and `TextGeometry.js` for rendering 3D text
+  - A `helvetiker_regular.typeface.json` font file is also loaded from a CDN.
 - No CSS frameworks
 - No build tools required
 

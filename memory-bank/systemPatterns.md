@@ -147,6 +147,7 @@ flowchart LR
 - **Conditional Animation Loops**: Animation loops are only active when needed (during user interaction or timeline playback) to conserve resources and prevent unnecessary rendering.
 - **Render State Optimization**: Intelligent tracking of render state prevents unnecessary WebGL render calls when the 3D scene is static, significantly improving performance.
 - **GPU Acceleration Patterns**: CSS optimizations and WebGL configurations are used to leverage hardware acceleration for smooth 3D rendering performance.
+- **Direct State Push for Specialized Nodes**: This pattern is used for updating the `ThreeJSNode` based on graph topology, allowing for dynamic and responsive 3D rendering.
 
 ## Technical Decisions
 
