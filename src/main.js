@@ -2146,21 +2146,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const canvasContainer = document.getElementById('nodeui-canvas-container');
         const app = new Main(canvasContainer);
 
-        // Load the initial graph from embedded data or graph.json
+        // Load the initial graph from graph.json or embedded data
         const loadInitialGraph = async () => {
-            // Priority 1: Try to load from embedded data (always works)
-            try {
-                const embeddedGraph = window.embeddedGraphData;
-                if (embeddedGraph) {
-                    console.log('%c[Info]%c Loading embedded graph data', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
-                    events.publish('graph:load-content', JSON.stringify(embeddedGraph));
-                    return;
-                }
-            } catch (error) {
-                console.log('%c[Info]%c No embedded graph data found', 'color: #8e8e8e; font-weight: bold;', 'color: inherit;');
-            }
-
-            // Priority 2: Try to load from file (only if running on server)
+            // Priority 1: Try to load from graph.json (if running on server)
             if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
                 try {
                     const response = await fetch('graph.json');
@@ -2177,25 +2165,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.log('%c[Info]%c Running from file:// protocol, skipping fetch', 'color: #8e8e8e; font-weight: bold;', 'color: inherit;');
             }
 
-            // Priority 3: Create a default graph with a settings node
-            console.log('%c[Info]%c Creating default graph with settings node', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
+            // Priority 2: Try to load from embedded data (fallback for file:// protocol)
+            try {
+                const embeddedGraph = window.embeddedGraphData;
+                if (embeddedGraph) {
+                    console.log('%c[Info]%c Loading embedded graph data', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
+                    events.publish('graph:load-content', JSON.stringify(embeddedGraph));
+                    return;
+                }
+            } catch (error) {
+                console.log('%c[Info]%c No embedded graph data found', 'color: #8e8e8e; font-weight: bold;', 'color: inherit;');
+            }
+
+            // Priority 3: Create a default empty graph
+            console.log('%c[Info]%c Creating default empty graph', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
             const defaultGraph = {
-                nodes: [
-                    {
-                        id: 'settings-1',
-                        type: 'SettingsNode',
-                        x: 100,
-                        y: 100,
-                        width: 200,
-                        height: 120,
-                        color: 'default',
-                        title: 'Settings',
-                        data: {
-                            projectName: 'Untitled Graph',
-                            thumbnailUrl: ''
-                        }
-                    }
-                ],
+                nodes: [],
                 edges: [],
                 canvasState: {
                     scale: 1,

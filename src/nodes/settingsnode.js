@@ -605,10 +605,8 @@ class SettingsNode extends BaseNode {
                     }
                 }
             } catch (e) {
-                // Log a warning if we can't access a stylesheet (e.g., CORS)
-                if (e instanceof DOMException && e.name === 'SecurityError') {
-                    console.warn(`Could not access CSS rules from stylesheet: ${sheet.href}. This is expected for cross-origin stylesheets.`);
-                } else {
+                // Silently skip cross-origin stylesheets (expected behavior)
+                if (!(e instanceof DOMException && e.name === 'SecurityError')) {
                     console.error("An unexpected error occurred while collecting CSS variables:", e);
                 }
             }
