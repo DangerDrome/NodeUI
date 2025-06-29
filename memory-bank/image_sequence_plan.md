@@ -2,18 +2,80 @@
 
 This plan outlines the implementation of 2D image sequence playback within the 3D viewport.
 
-## Phase 1: Create the `ImageSequenceNode`
+## Phase 1: Create the `ImageSequenceNode` ✅ COMPLETED
 
-- [ ] **Create `ImageSequenceNode.js`:**
+- [x] **Create `ImageSequenceNode.js`:**
     - Inherit from `BaseNode`.
     - Create a simple UI with a title and a content area for the thumbnail.
-- [ ] **Implement Thumbnail Viewer:**
+- [x] **Implement Thumbnail Viewer:**
     - The content area will display a single thumbnail from the image sequence.
-- [ ] **Implement Thumbnail Scrubbing:**
+- [x] **Implement Thumbnail Scrubbing:**
     - Add event listeners (`mousedown`, `mousemove`, `mouseup`, `mouseleave`) to the thumbnail element.
     - On drag, calculate the frame index based on horizontal mouse movement and update the thumbnail's `src`.
-- [ ] **Data Structure:**
+- [x] **Data Structure:**
     - The node will hold a hardcoded array of image file paths for initial implementation.
+- [x] **Keyboard Navigation:**
+    - Left arrow key steps to previous frame
+    - Right arrow key steps to next frame
+    - Node is focusable with tabindex for keyboard interaction
+    - Wraps around at sequence boundaries (last frame → first frame, first frame → last frame)
+- [x] **Play/Pause Functionality:**
+    - Space bar toggles play/pause state
+    - Default 24 FPS playback speed
+    - Visual play indicator (▶) in frame counter when playing
+    - Automatically pauses when scrubbing starts
+    - Publishes `imagesequence:play` and `imagesequence:pause` events
+    - Configurable FPS with `setFPS()` method (1-60 FPS range)
+    - Proper cleanup of animation intervals on destroy
+
+**Implementation Details:**
+- Created `src/nodes/imagesequencenode.js` with full scrubbing functionality
+- Added CSS styles in `src/styles/components.css` for visual feedback
+- Registered node type in `src/core/main.js` and context menu
+- Added context menu entry in `graph.json`
+- Includes frame indicator, placeholder for empty sequences, and smooth scrubbing
+- Publishes `imagesequence:frame-changed` events for timeline integration
+- Added `nextFrame()` and `previousFrame()` methods for keyboard navigation
+- Node is focusable with `tabindex="0"` for keyboard interaction
+- Arrow keys prevent default behavior and stop propagation to avoid conflicts
+- Added `play()`, `pause()`, and `togglePlayPause()` methods
+- Animation state management with `isPlaying` flag and `animationInterval`
+- Frame duration calculation based on FPS setting
+- Scrubbing automatically pauses playback to prevent conflicts
+- Proper event cleanup in `destroy()` method
+
+## Phase 1.5: Drag & Drop Support ✅ COMPLETED
+
+- [x] **Multiple Image File Detection:**
+    - Modified `src/core/file.js` to detect when multiple image files are dropped
+    - Automatically creates an ImageSequenceNode instead of individual image nodes
+- [x] **Single Image Sequence Detection:**
+    - Added `isLikelySequenceImage()` method to detect sequence patterns in filenames
+    - Detects patterns like: `_0001.jpg`, `-001.png`, `[0001].jpg`, `frame001.jpg`, etc.
+    - Automatically creates ImageSequenceNode for single images that match sequence patterns
+    - No user choice overlay - always creates sequence nodes for detected sequence images
+- [x] **File Processing:**
+    - Sorts image files by name for consistent ordering
+    - Converts all images to data URLs for storage in the node
+    - Creates descriptive title from base filename and frame count
+    - Special title for single sequence frames: "(Sequence Frame)"
+- [x] **Node Creation:**
+    - Creates ImageSequenceNode with appropriate size and position
+    - Sets blue color theme to distinguish from regular image nodes
+    - Initializes with first frame (index 0)
+    - Handles both multi-frame sequences and single-frame sequences
+
+**Implementation Details:**
+- Updated `onDrop` method in `src/core/file.js` to check for multiple image files
+- Added `createImageSequenceNode` helper method for processing image sequences
+- Added `isLikelySequenceImage` method to detect sequence patterns in filenames
+- Maintains backward compatibility with single image drops and other file types
+- Sequence detection patterns include:
+  - Frame numbers with separators: `_0001.jpg`, `-001.png`, `.0001.jpg`
+  - Frame numbers in brackets: `[0001].jpg`, `(001).png`
+  - Keywords: `frame001.jpg`, `shot_001.png`, `seq001.jpg`
+  - Timecode patterns: `_00_00_01_000.jpg`
+  - Simple numbers: `image1.jpg`, `shot2.png`
 
 ## Phase 2: Implement "2D Mode" in the `ThreeJSNode`
 

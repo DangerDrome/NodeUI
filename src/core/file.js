@@ -448,9 +448,19 @@ class File {
         }
 
         const position = this.nodeUI.getMousePosition(event);
+        const files = Array.from(event.dataTransfer.files);
 
-        // Process all dropped files
-        Array.from(event.dataTransfer.files).forEach((file, index) => {
+        // Check if we have multiple image files for an image sequence
+        const imageFiles = files.filter(file => file.type.startsWith('image/'));
+        
+        if (imageFiles.length > 1) {
+            // Create an ImageSequenceNode with multiple images
+            this.createImageSequenceNode(imageFiles, position);
+            return;
+        }
+
+        // Process all dropped files individually
+        files.forEach((file, index) => {
             const filePosition = {
                 x: position.x + index * 20, // Offset subsequent files
                 y: position.y + index * 20
@@ -484,7 +494,7 @@ class File {
                 return;
             }
 
-            // Handle image embedding
+            // Handle single image embedding (always as BaseNode, never as ImageSequenceNode)
             if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -876,6 +886,85 @@ class File {
                 lastModified: new Date().toISOString()
             }
         };
+    }
+
+    /**
+     * Creates an ImageSequenceNode from multiple image files.
+     * @param {File[]} imageFiles - Array of image files.
+     * @param {object} position - The drop position {x, y}.
+     * @param {boolean} isSequenceDetected - Whether this was detected as part of a sequence.
+     */
+    createImageSequenceNode(imageFiles, position, isSequenceDetected = false) {
+        // Sort files by name to ensure consistent ordering
+        const sortedFiles = imageFiles.sort((a, b) => a.name.localeCompare(b.name));
+        
+        // Convert files to data URLs
+        const imagePromises = sortedFiles.map(file => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+        });
+
+        Promise.all(imagePromises).then(imageUrls => {
+            // Create a descriptive title from the file names
+            const baseName = sortedFiles[0].name.replace(/\.[^/.]+$/, ''); // Remove extension
+            let title;
+            
+            if (isSequenceDetected && imageFiles.length === 1) {
+                // This is a single image detected as part of a sequence
+                title = `${baseName} (Sequence Frame)`;
+            } else if (imageFiles.length > 1) {
+                title = `${baseName} Sequence (${imageFiles.length} frames)`;
+            } else {
+                title = `${baseName} (Single Frame)`;
+            }
+
+            // Create the ImageSequenceNode
+            events.publish('node:create', {
+                x: position.x - 150, // Center the node
+                y: position.y - 100,
+                width: 300,
+                height: 200,
+                title: title,
+                type: 'ImageSequenceNode',
+                color: 'blue',
+                imageSequence: imageUrls,
+                currentFrame: 0
+            });
+        });
+    }
+
+    /**
+     * Detects if an image filename suggests it's part of a sequence.
+     * @param {string} filename - The filename to check.
+     * @returns {boolean} True if the filename suggests it's part of a sequence.
+     */
+    isLikelySequenceImage(filename) {
+        const name = filename.toLowerCase();
+        
+        // Common sequence patterns
+        const sequencePatterns = [
+            // Frame numbers with underscores: image_0001.jpg, shot_001.png
+            /_[0-9]{3,4}\.[a-z]+$/,
+            // Frame numbers with dashes: image-0001.jpg, shot-001.png
+            /-[0-9]{3,4}\.[a-z]+$/,
+            // Frame numbers with dots: image.0001.jpg, shot.001.png
+            /\.[0-9]{3,4}\.[a-z]+$/,
+            // Frame numbers in brackets: image[0001].jpg, shot[001].png
+            /\[[0-9]{3,4}\]\.[a-z]+$/,
+            // Frame numbers in parentheses: image(0001).jpg, shot(001).png
+            /\([0-9]{3,4}\)\.[a-z]+$/,
+            // Keywords that suggest sequences
+            /(frame|shot|seq|anim|sequence|clip)[-_]?[0-9]*\.[a-z]+$/,
+            // Timecode patterns: image_00_00_01_000.jpg
+            /_[0-9]{2}_[0-9]{2}_[0-9]{2}_[0-9]{3}\.[a-z]+$/,
+            // Simple numbered sequences: image1.jpg, shot2.png
+            /[0-9]{1,4}\.[a-z]+$/
+        ];
+        
+        return sequencePatterns.some(pattern => pattern.test(name));
     }
 }
 

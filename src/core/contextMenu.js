@@ -240,7 +240,7 @@ class ContextMenu {
      */
     onContextMenu(event) {
         // Only show context menu for events inside the app's containers
-        const isInsideContainer = event.target.closest('#canvas-container') || event.target.closest('#pinned-node-container');
+        const isInsideContainer = event.target.closest('#nodeui-canvas-container') || event.target.closest('#nodeui-pinned-node-container');
         if (!isInsideContainer) {
             return;
         }
@@ -364,6 +364,10 @@ class ContextMenu {
             {
                 key: 'log',
                 type: 'LogNode',
+            },
+            {
+                key: 'imageSequence',
+                type: 'ImageSequenceNode',
             }
         ];
 
@@ -388,6 +392,8 @@ class ContextMenu {
                         newNode = new SubGraphNode({ x: worldPos.x, y: worldPos.y });
                     } else if (action.type === 'ThreeJSNode') {
                         newNode = new ThreeJSNode({ x: worldPos.x, y: worldPos.y });
+                    } else if (action.type === 'ImageSequenceNode') {
+                        newNode = new ImageSequenceNode({ x: worldPos.x, y: worldPos.y });
                     }
                     else {
                         newNode = new BaseNode({ x: worldPos.x, y: worldPos.y, title: menuConfig.label, type: action.type });

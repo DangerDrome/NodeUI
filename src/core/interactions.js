@@ -17,7 +17,7 @@ class Interactions {
      */
     onMouseDown(event) {
         // Only process events inside the main container or pinned container
-        const isInsideContainer = event.target.closest('#canvas-container') || event.target.closest('#pinned-node-container');
+        const isInsideContainer = event.target.closest('#nodeui-canvas-container') || event.target.closest('#nodeui-pinned-node-container');
         if (!isInsideContainer && !this.nodeUI.draggingState.isDragging && !this.nodeUI.resizingState.isResizing) {
             return;
         }
@@ -446,7 +446,7 @@ class Interactions {
         }
 
         // Only process events inside the main container or pinned container
-        const isInsideContainer = event.target.closest('#canvas-container') || event.target.closest('#pinned-node-container');
+        const isInsideContainer = event.target.closest('#nodeui-canvas-container') || event.target.closest('#nodeui-pinned-node-container');
         if (!isInsideContainer && !this.nodeUI.draggingState.isDragging && !this.nodeUI.resizingState.isResizing) {
             return;
         }
@@ -984,19 +984,35 @@ class Interactions {
         this.nodeUI.selectedNodes.forEach(nodeId => {
             const node = this.nodeUI.nodes.get(nodeId);
             if (node) {
-                const nodeData = { 
-                    ...node,
-                    element: null, 
-                    handles: {},
-                    connections: new Map()
-                };
+                let nodeData;
+                
+                // Try to use the node's serialize method, with fallback
+                if (typeof node.serialize === 'function') {
+                    try {
+                        nodeData = node.serialize();
+                    } catch (error) {
+                        console.warn('Error serializing node:', error);
+                        nodeData = { ...node };
+                    }
+                } else {
+                    // Fallback to basic object spread
+                    nodeData = { ...node };
+                }
+                
+                // Remove DOM-specific properties that shouldn't be copied
+                delete nodeData.element;
+                delete nodeData.handles;
+                delete nodeData.connections;
+                delete nodeData.keyboardListener;
+                delete nodeData.scrubbingListeners;
+                delete nodeData.animationInterval;
+                delete nodeData.thumbnailElement;
+                
                 if (node.isPinned) {
                     nodeData.x = (node.x - this.nodeUI.panZoom.offsetX) / this.nodeUI.panZoom.scale;
                     nodeData.y = (node.y - this.nodeUI.panZoom.offsetY) / this.nodeUI.panZoom.scale;
                 }
-                if (node instanceof GroupNode) {
-                    nodeData.containedNodeIds = Array.from(node.containedNodeIds);
-                }
+                
                 this.nodeUI.clipboard.nodes.push(nodeData);
             }
         });
@@ -1060,11 +1076,21 @@ class Interactions {
                 isPinned: false,
                 containedNodeIds: nodeData.containedNodeIds
             };
+
+            // Add type-specific properties
             if (nodeData.type === 'GroupNode' && nodeData.containedNodeIds) {
                 newNodeData.containedNodeIds = nodeData.containedNodeIds.map(oldChildId => 
                     idMap.get(oldChildId) || oldChildId
                 ).filter(id => id);
             }
+
+            // Add ImageSequenceNode specific properties
+            if (nodeData.type === 'ImageSequenceNode') {
+                newNodeData.imageSequence = nodeData.imageSequence;
+                newNodeData.currentFrame = nodeData.currentFrame;
+                newNodeData.fps = nodeData.fps;
+            }
+
             if (newNodeData.type === 'RoutingNode') {
                 this.nodeUI.nodeManager.addNode(new RoutingNode(newNodeData));
             } else if (newNodeData.type === 'GroupNode') {
@@ -1073,8 +1099,13 @@ class Interactions {
                 this.nodeUI.nodeManager.addNode(new LogNode(newNodeData));
             } else if (newNodeData.type === 'SettingsNode') {
                 this.nodeUI.nodeManager.addNode(new SettingsNode(newNodeData));
-            }
-            else {
+            } else if (newNodeData.type === 'ImageSequenceNode') {
+                this.nodeUI.nodeManager.addNode(new ImageSequenceNode(newNodeData));
+            } else if (newNodeData.type === 'SubGraphNode') {
+                this.nodeUI.nodeManager.addNode(new SubGraphNode(newNodeData));
+            } else if (newNodeData.type === 'ThreeJSNode') {
+                this.nodeUI.nodeManager.addNode(new ThreeJSNode(newNodeData));
+            } else {
                 this.nodeUI.nodeManager.addNode(new BaseNode(newNodeData));
             }
             if (nodeData.isPinned) {

@@ -27,25 +27,29 @@ async function loadCoreModules() {
         'src/nodes/imagesequencenode.js'
     ];
 
-    const allModules = [...modules, ...nodeModules];
-
-    const loadPromises = allModules.map(modulePath => {
-        return new Promise((resolve, reject) => {
+    // Load core modules first
+    for (const modulePath of modules) {
+        await new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.src = modulePath;
             script.onload = () => resolve();
             script.onerror = () => reject(new Error(`Failed to load ${modulePath}`));
             document.head.appendChild(script);
         });
-    });
-
-    try {
-        await Promise.all(loadPromises);
-        console.log('All core modules and node classes loaded successfully');
-    } catch (error) {
-        console.error('Error loading core modules:', error);
-        throw error;
     }
+
+    // Load node modules sequentially to ensure dependencies are loaded first
+    for (const modulePath of nodeModules) {
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = modulePath;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error(`Failed to load ${modulePath}`));
+            document.head.appendChild(script);
+        });
+    }
+
+    console.log('All core modules and node classes loaded successfully');
 }
 
 class Main {
@@ -2131,28 +2135,79 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Load all core modules first
         await loadCoreModules();
         
+        // Wait for markdown processor to be ready
+        if (window.markdownReady) {
+            await window.markdownReady;
+        }
+        
         // Wait a bit for modules to initialize
         await new Promise(resolve => setTimeout(resolve, 100));
         
         const canvasContainer = document.getElementById('nodeui-canvas-container');
         const app = new Main(canvasContainer);
 
-        // Load the initial graph from graph.json
-        fetch('graph.json')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+        // Load the initial graph from embedded data or graph.json
+        const loadInitialGraph = async () => {
+            // Priority 1: Try to load from embedded data (always works)
+            try {
+                const embeddedGraph = window.embeddedGraphData;
+                if (embeddedGraph) {
+                    console.log('%c[Info]%c Loading embedded graph data', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
+                    events.publish('graph:load-content', JSON.stringify(embeddedGraph));
+                    return;
                 }
-                return response.text(); // Get as text to pass to the event
-            })
-            .then(jsonString => {
-                console.log('%c[Test]%c Loading initial graph from graph.json', 'color: #8e8e8e; font-weight: bold;', 'color: inherit;');
-                events.publish('graph:load-content', jsonString);
-            })
-            .catch(error => {
-                console.error("Could not load initial graph.json:", error);
-                // If loading fails, it will still create the default settings node.
-            });
+            } catch (error) {
+                console.log('%c[Info]%c No embedded graph data found', 'color: #8e8e8e; font-weight: bold;', 'color: inherit;');
+            }
+
+            // Priority 2: Try to load from file (only if running on server)
+            if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+                try {
+                    const response = await fetch('graph.json');
+                    if (response.ok) {
+                        const jsonString = await response.text();
+                        console.log('%c[Info]%c Loading initial graph from graph.json', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
+                        events.publish('graph:load-content', jsonString);
+                        return;
+                    }
+                } catch (error) {
+                    console.log('%c[Info]%c Could not load graph.json from server', 'color: #ffa500; font-weight: bold;', 'color: inherit;');
+                }
+            } else {
+                console.log('%c[Info]%c Running from file:// protocol, skipping fetch', 'color: #8e8e8e; font-weight: bold;', 'color: inherit;');
+            }
+
+            // Priority 3: Create a default graph with a settings node
+            console.log('%c[Info]%c Creating default graph with settings node', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');
+            const defaultGraph = {
+                nodes: [
+                    {
+                        id: 'settings-1',
+                        type: 'SettingsNode',
+                        x: 100,
+                        y: 100,
+                        width: 200,
+                        height: 120,
+                        color: 'default',
+                        title: 'Settings',
+                        data: {
+                            projectName: 'Untitled Graph',
+                            thumbnailUrl: ''
+                        }
+                    }
+                ],
+                edges: [],
+                canvasState: {
+                    scale: 1,
+                    offsetX: 0,
+                    offsetY: 0
+                }
+            };
+            
+            events.publish('graph:load-content', JSON.stringify(defaultGraph));
+        };
+
+        await loadInitialGraph();
     } catch (error) {
         console.error('Failed to initialize NodeUI:', error);
     }

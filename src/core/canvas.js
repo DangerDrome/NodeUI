@@ -19,7 +19,7 @@ class Canvas {
         container.innerHTML = '';
 
         // --- Pinned Node Layer (Topmost) ---
-        this.nodeUI.pinnedNodeContainer = document.getElementById('pinned-node-container');
+        this.nodeUI.pinnedNodeContainer = document.getElementById('nodeui-pinned-node-container');
 
         // --- Grid Layer (Bottom) ---
         this.nodeUI.gridSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');

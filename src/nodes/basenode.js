@@ -200,6 +200,11 @@ class BaseNode {
      * @param {HTMLElement} contentArea The element to render into.
      */
     async renderMarkdown(contentArea) {
+        // Wait for markdown processor to be ready
+        if (window.markdownReady) {
+            await window.markdownReady;
+        }
+        
         if (!window.markdownProcessor) {
             console.warn('Markdown processor (remark) is not ready.');
             contentArea.innerText = this.content || '';

@@ -5,127 +5,305 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NodeUI</title>
     <link rel="stylesheet" href="src/styles/styles.css">
-    <link rel="stylesheet" href="src/styles/variables.css">
-    <link rel="stylesheet" href="src/styles/icons.css">
-    <link rel="stylesheet" href="src/styles/components.css">
 </head>
 <body>
-    <div id="app">
-        <div id="canvas-container">
+    <div id="nodeui-app">
+        <div id="nodeui-canvas-container">
             <!-- Main NodeUI canvas will be rendered here -->
         </div>
-        <div id="pinned-node-container">
+        <div id="nodeui-pinned-node-container">
             <!-- Pinned nodes will be rendered here -->
         </div>
     </div>
 
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
     <!-- External Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-        }
-      }
-    </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="src/core/libs.js"></script>
     
-    <script type="module">
-        import {unified} from 'https://esm.sh/unified'
-        import {visit} from 'https://esm.sh/unist-util-visit'
-        import remarkParse from 'https://esm.sh/remark-parse'
-        import remarkGfm from 'https://esm.sh/remark-gfm'
-        import remarkBreaks from 'https://esm.sh/remark-breaks'
-        import remarkRehype from 'https://esm.sh/remark-rehype'
-        import rehypeRaw from 'https://esm.sh/rehype-raw'
-        import rehypeHighlight from 'https://esm.sh/rehype-highlight'
-        import rehypeStringify from 'https://esm.sh/rehype-stringify'
+    <!-- Markdown Processing -->
+    <script src="src/core/markdown.js"></script>
 
-        function remarkVideo() {
-            return async (tree) => {
-                const nodesToTransform = [];
-
-                visit(tree, 'image', (node) => {
-                    if (node.alt && node.alt.toLowerCase() === 'video') {
-                        nodesToTransform.push(node);
-                    }
-                });
-
-                for (const node of nodesToTransform) {
-                    const url = node.url.trim();
-
-                    if (url.startsWith('local-video://')) {
-                        try {
-                            const fileId = url.substring('local-video://'.length);
-                            const file = await assetDb.getFile(fileId);
-                            const blobUrl = URL.createObjectURL(file);
-                            node.type = 'html';
-                            node.value = `<video controls width="100%"><source src="${blobUrl}"></video>`;
-                        } catch (error) {
-                            console.error(`Failed to load local video ${url}:`, error);
-                            node.type = 'html';
-                            node.value = `<p>Error loading video: ${url}</p>`;
+    <!-- Embedded Graph Data (for serverless operation) -->
+    <script>
+        window.embeddedGraphData = {
+            "metadata": {
+                "projectName": "Untitled Graph",
+                "thumbnailUrl": "",
+                "contextMenuSettings": {
+                    "canvas": {
+                        "changeBackground": {
+                            "label": "Background",
+                            "iconClass": "icon-paint-roller"
+                        },
+                        "cut": {
+                            "label": "Cut",
+                            "iconClass": "icon-scissors"
+                        },
+                        "copy": {
+                            "label": "Copy",
+                            "iconClass": "icon-copy"
+                        },
+                        "paste": {
+                            "label": "Paste",
+                            "iconClass": "icon-clipboard"
+                        },
+                        "delete": {
+                            "label": "Delete",
+                            "iconClass": "icon-trash-2"
+                        },
+                        "note": {
+                            "label": "Note",
+                            "iconClass": "icon-file-text"
+                        },
+                        "routingNode": {
+                            "label": "Router",
+                            "iconClass": "icon-network"
+                        },
+                        "group": {
+                            "label": "Group",
+                            "iconClass": "icon-group"
+                        },
+                        "log": {
+                            "label": "Log",
+                            "iconClass": "icon-terminal"
+                        },
+                        "settings": {
+                            "label": "Settings",
+                            "iconClass": "icon-settings"
+                        },
+                        "subgraph": {
+                            "label": "Subgraph",
+                            "iconClass": "icon-box"
+                        },
+                        "threejs": {
+                            "label": "3D Viewport",
+                            "iconClass": "icon-cube"
+                        },
+                        "imageSequence": {
+                            "label": "Image Sequence",
+                            "iconClass": "icon-image-play"
+                        },
+                        "snapGrid": {
+                            "label": "Grid Snap",
+                            "iconClass": "icon-grid-2x2"
+                        },
+                        "snapObject": {
+                            "label": "Obj Snap",
+                            "iconClass": "icon-layout-panel-left"
                         }
-                    } else {
-                        const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/;
-                        const youtubeMatch = url.match(youtubeRegex);
-
-                        if (youtubeMatch) {
-                            const videoId = youtubeMatch[1];
-                            node.type = 'html';
-                            node.value = `
-                                <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;">
-                                    <iframe 
-                                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
-                                        src="https://www.youtube.com/embed/${videoId}" 
-                                        frameborder="0" 
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                        allowfullscreen>
-                                    </iframe>
-                                </div>`;
-                        } else {
-                            node.type = 'html';
-                            node.value = `<video controls width="100%"><source src="${url}"></video>`;
+                    },
+                    "edge": {
+                        "edit": {
+                            "label": "Edit Label",
+                            "iconClass": "icon-edit"
+                        },
+                        "addRoutingNode": {
+                            "label": "Add Routing Node",
+                            "iconClass": "icon-network"
+                        },
+                        "delete": {
+                            "label": "Delete",
+                            "iconClass": "icon-trash-2"
                         }
                     }
                 }
-            };
-        }
-
-        window.markdownProcessor = unified()
-            .use(remarkParse)
-            .use(remarkGfm)
-            .use(remarkBreaks)
-            .use(remarkVideo)
-            .use(remarkRehype, { allowDangerousHtml: true })
-            .use(rehypeRaw)
-            .use(rehypeHighlight)
-            .use(rehypeStringify)
+            },
+            "nodes": [
+                {
+                    "id": "6d283218-0898-455a-b3a8-824040bf0fff",
+                    "x": 354.93454560445895,
+                    "y": 218.92267936284017,
+                    "width": 326,
+                    "height": 175,
+                    "title": "Note",
+                    "content": "# NodeUI",
+                    "type": "BaseNode",
+                    "color": "green",
+                    "isPinned": false
+                },
+                {
+                    "id": "92e495fa-de3e-4bbd-8ddb-e6f3d8942c34",
+                    "x": 842.1922450311854,
+                    "y": 472.21361132078135,
+                    "width": 30,
+                    "height": 30,
+                    "title": "",
+                    "content": "",
+                    "type": "RoutingNode",
+                    "color": "red",
+                    "isPinned": false
+                },
+                {
+                    "id": "d52b299b-62c8-4ea9-90bc-ea9b82abceb6",
+                    "x": 349.1988962618407,
+                    "y": 594.7959548414241,
+                    "width": 571.5450598217664,
+                    "height": 366.4170986927168,
+                    "title": "A GROUP",
+                    "content": "",
+                    "type": "GroupNode",
+                    "color": "default",
+                    "isPinned": false,
+                    "containedNodeIds": [
+                        "3ce80377-34fd-4510-887c-b668084a1642"
+                    ]
+                },
+                {
+                    "id": "3ce80377-34fd-4510-887c-b668084a1642",
+                    "x": 411.5248312719683,
+                    "y": 694.839785276926,
+                    "width": 427.20945926061046,
+                    "height": 192.14614601615926,
+                    "title": "Note",
+                    "content": "# I'm Nested!",
+                    "type": "BaseNode",
+                    "color": "purple",
+                    "isPinned": false
+                },
+                {
+                    "id": "3c3fcc22-9a05-49ba-b676-4ace2c10eb3c",
+                    "x": 1215.547394980832,
+                    "y": 754.3552706800274,
+                    "width": 30,
+                    "height": 30,
+                    "title": "",
+                    "content": "",
+                    "type": "RoutingNode",
+                    "color": "blue",
+                    "isPinned": false
+                },
+                {
+                    "id": "2a976fde-a10c-4f3d-a375-41d593f208d7",
+                    "x": 951.8691482677407,
+                    "y": 160.75523732345462,
+                    "width": 500,
+                    "height": 400,
+                    "title": "3D Viewport",
+                    "content": "",
+                    "type": "ThreeJSNode",
+                    "color": "default",
+                    "isPinned": false
+                },
+                {
+                    "id": "ea3ac3ee-aa04-40c2-9a50-88428bb974b8",
+                    "x": 1357.8295793056943,
+                    "y": 690.9128582850057,
+                    "width": 300,
+                    "height": 200,
+                    "title": "A SUBGRAPH",
+                    "content": "",
+                    "type": "SubGraphNode",
+                    "color": "yellow",
+                    "isPinned": false
+                },
+                {
+                    "id": "02880782-b25e-4c83-8984-b7118c7c9430",
+                    "x": 1594.242208823795,
+                    "y": 311.341341267745,
+                    "width": 30,
+                    "height": 30,
+                    "title": "",
+                    "content": "",
+                    "type": "RoutingNode",
+                    "color": "default",
+                    "isPinned": false
+                },
+                {
+                    "id": "test-image-sequence-001",
+                    "x": 200,
+                    "y": 200,
+                    "width": 300,
+                    "height": 200,
+                    "title": "Test Image Sequence",
+                    "content": "",
+                    "type": "ImageSequenceNode",
+                    "color": "blue",
+                    "isPinned": false,
+                    "imageSequence": [
+                        "https://picsum.photos/300/200?random=1",
+                        "https://picsum.photos/300/200?random=2",
+                        "https://picsum.photos/300/200?random=3",
+                        "https://picsum.photos/300/200?random=4",
+                        "https://picsum.photos/300/200?random=5"
+                    ],
+                    "currentFrame": 0
+                }
+            ],
+            "edges": [
+                {
+                    "id": "6b5d62a7-f8ec-448f-b6ad-4e26fa2dc4d6",
+                    "startNodeId": "d52b299b-62c8-4ea9-90bc-ea9b82abceb6",
+                    "endNodeId": "3c3fcc22-9a05-49ba-b676-4ace2c10eb3c",
+                    "startHandleId": "right",
+                    "endHandleId": "bottom",
+                    "routingPoints": [],
+                    "type": "BaseEdge",
+                    "label": "AND ROUTERS"
+                },
+                {
+                    "id": "9b5482b8-cf8a-4d1a-a3b5-b99102be13e9",
+                    "startNodeId": "3c3fcc22-9a05-49ba-b676-4ace2c10eb3c",
+                    "endNodeId": "2a976fde-a10c-4f3d-a375-41d593f208d7",
+                    "startHandleId": "top",
+                    "endHandleId": "bottom",
+                    "routingPoints": [],
+                    "type": "BaseEdge",
+                    "label": "3D VIEWPORTS"
+                },
+                {
+                    "id": "440f4bb3-807d-480b-94a8-408f389d69c3",
+                    "startNodeId": "92e495fa-de3e-4bbd-8ddb-e6f3d8942c34",
+                    "endNodeId": "d52b299b-62c8-4ea9-90bc-ea9b82abceb6",
+                    "startHandleId": "bottom",
+                    "endHandleId": "top",
+                    "routingPoints": [],
+                    "type": "BaseEdge",
+                    "label": "HAS GROUPS"
+                },
+                {
+                    "id": "f81f42b5-9379-47de-8df4-caf0a5cb0d22",
+                    "startNodeId": "6d283218-0898-455a-b3a8-824040bf0fff",
+                    "endNodeId": "92e495fa-de3e-4bbd-8ddb-e6f3d8942c34",
+                    "startHandleId": "bottom",
+                    "endHandleId": "top",
+                    "routingPoints": [],
+                    "type": "BaseEdge",
+                    "label": "IS COOL"
+                },
+                {
+                    "id": "45dbe6df-b876-46b7-b221-19543e977f99",
+                    "startNodeId": "2a976fde-a10c-4f3d-a375-41d593f208d7",
+                    "endNodeId": "02880782-b25e-4c83-8984-b7118c7c9430",
+                    "startHandleId": "right",
+                    "endHandleId": "left",
+                    "routingPoints": [],
+                    "type": "BaseEdge",
+                    "label": ""
+                },
+                {
+                    "id": "5ab8c32e-d51c-4ac3-9c91-da27447d28b5",
+                    "startNodeId": "02880782-b25e-4c83-8984-b7118c7c9430",
+                    "endNodeId": "ea3ac3ee-aa04-40c2-9a50-88428bb974b8",
+                    "startHandleId": "right",
+                    "endHandleId": "top",
+                    "routingPoints": [],
+                    "type": "BaseEdge",
+                    "label": "EDGE LABELS"
+                },
+                {
+                    "id": "19018b03-a80b-4ca7-9aed-305c79d633ba",
+                    "startNodeId": "3ce80377-34fd-4510-887c-b668084a1642",
+                    "endNodeId": "6d283218-0898-455a-b3a8-824040bf0fff",
+                    "startHandleId": "left",
+                    "endHandleId": "left",
+                    "routingPoints": [],
+                    "type": "BaseEdge",
+                    "label": ""
+                }
+            ]
+        };
     </script>
 
-    <!-- Core functionality -->
-    <script src="src/core/events.js"></script>
-    <script src="src/core/canvas.js"></script>
-    <script src="src/core/file.js"></script>
-    <script src="src/core/contextMenu.js"></script>
-    <script src="src/core/nodes.js"></script>
-    <script src="src/core/interactions.js"></script>
-    <script src="src/core/edges.js"></script>
-    <script src="src/core/main.js"></script>
-
-    <!-- Base Classes -->
-    <script src="src/nodes/basenode.js"></script>
-<script src="src/nodes/baseedge.js"></script>
-<script src="src/nodes/routingnode.js"></script>
-<script src="src/nodes/groupnode.js"></script>
-<script src="src/nodes/lognode.js"></script>
-<script src="src/nodes/settingsnode.js"></script>
-<script src="src/nodes/subgraphnode.js"></script>
-<script src="src/nodes/threejsnode.js"></script>
+    <!-- Core Application -->
+    <script src="src/main.js"></script>
 </body>
 </html> 

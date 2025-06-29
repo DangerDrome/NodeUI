@@ -52,6 +52,10 @@
           "label": "3D Viewport",
           "iconClass": "icon-cube"
         },
+        "imageSequence": {
+          "label": "Image Sequence",
+          "iconClass": "icon-image-play"
+        },
         "snapGrid": {
           "label": "Grid Snap",
           "iconClass": "icon-grid-2x2"
@@ -176,6 +180,26 @@
       "type": "RoutingNode",
       "color": "default",
       "isPinned": false
+    },
+    {
+      "id": "test-image-sequence-001",
+      "x": 200,
+      "y": 200,
+      "width": 300,
+      "height": 200,
+      "title": "Test Image Sequence",
+      "content": "",
+      "type": "ImageSequenceNode",
+      "color": "blue",
+      "isPinned": false,
+      "imageSequence": [
+        "https://picsum.photos/300/200?random=1",
+        "https://picsum.photos/300/200?random=2",
+        "https://picsum.photos/300/200?random=3",
+        "https://picsum.photos/300/200?random=4",
+        "https://picsum.photos/300/200?random=5"
+      ],
+      "currentFrame": 0
     }
   ],
   "edges": [

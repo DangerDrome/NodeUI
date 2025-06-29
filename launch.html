@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NodeUI - Launch Options</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #1c1c1c;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+        .container {
+            background: #242424;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #3a3a3a;
+        }
+        h1 {
+            color: #3ecf8e;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .option {
+            background: #2d2d2d;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #3ecf8e;
+        }
+        .option h3 {
+            color: #3ecf8e;
+            margin-top: 0;
+        }
+        .code {
+            background: #1c1c1c;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            margin: 10px 0;
+            border: 1px solid #3a3a3a;
+        }
+        .button {
+            display: inline-block;
+            background: #3ecf8e;
+            color: #1c1c1c;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: background 0.2s;
+        }
+        .button:hover {
+            background: #2bbf7e;
+        }
+        .warning {
+            background: #ffa500;
+            color: #1c1c1c;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .success {
+            background: #3ecf8e;
+            color: #1c1c1c;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 NodeUI Launch Options</h1>
+        
+        <div class="success">
+            ✅ NodeUI is now configured to run completely serverless! No HTTP server required.
+        </div>
+
+        <div class="option">
+            <h3>🎯 Option 1: Direct Launch (Recommended)</h3>
+            <p>Simply open the main application file directly in your browser:</p>
+            <a href="index.html" class="button">Launch NodeUI</a>
+            <p><em>This will work with the embedded graph data and no CORS issues!</em></p>
+        </div>
+
+        <div class="option">
+            <h3>🔧 Option 2: Chrome with Security Disabled</h3>
+            <p>If you encounter any issues, launch Chrome with web security disabled:</p>
+            
+            <h4>macOS:</h4>
+            <div class="code">
+                open -a "Google Chrome" --args --disable-web-security --user-data-dir="/tmp/chrome_dev_test" --allow-file-access-from-files
+            </div>
+            
+            <h4>Windows:</h4>
+            <div class="code">
+                chrome.exe --disable-web-security --user-data-dir="C:\temp\chrome_dev_test"
+            </div>
+            
+            <h4>Linux:</h4>
+            <div class="code">
+                google-chrome --disable-web-security --user-data-dir="/tmp/chrome_dev_test"
+            </div>
+        </div>
+
+        <div class="option">
+            <h3>🌐 Option 3: Local Server (If Needed)</h3>
+            <p>If you prefer to use a local server for any reason:</p>
+            
+            <h4>Python:</h4>
+            <div class="code">
+                python3 -m http.server 8000
+            </div>
+            <p>Then visit: <a href="http://localhost:8000" class="button">http://localhost:8000</a></p>
+            
+            <h4>Node.js:</h4>
+            <div class="code">
+                npx http-server -p 8000
+            </div>
+        </div>
+
+        <div class="warning">
+            ⚠️ <strong>Note:</strong> The embedded graph data includes a complete demo with all node types. 
+            You can still save/load graphs using the settings node, and all features work without a server.
+        </div>
+
+        <div class="option">
+            <h3>🎉 What's New</h3>
+            <ul>
+                <li>✅ <strong>Serverless Operation:</strong> No HTTP server required</li>
+                <li>✅ <strong>Embedded Graph Data:</strong> Demo graph loads automatically</li>
+                <li>✅ <strong>CORS-Free:</strong> Works directly from file system</li>
+                <li>✅ <strong>Fallback System:</strong> Multiple loading methods</li>
+                <li>✅ <strong>Graceful Error Handling:</strong> Clear feedback and solutions</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html> 
