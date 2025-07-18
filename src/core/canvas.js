@@ -4,7 +4,7 @@
  */
 
 // NodeUI Version - dynamically loaded from version.json
-const NODEUI_VERSION = window.NODE_UI_VERSION || '1.1.0';
+const NODEUI_VERSION = window.NODE_UI_VERSION || '1.1.1';
 
 class Canvas {
     constructor(nodeUI) {

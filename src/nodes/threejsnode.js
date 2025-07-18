@@ -1704,7 +1704,7 @@ class ThreeJSNode extends BaseNode {
      * Creates or removes 3D objects as needed.
      */
     update3DSceneFromDataModel() {
-        if (!this.THREE) return; // Ensure library is loaded
+        if (!this.THREE || !this.scene) return; // Ensure library is loaded and scene is initialized
 
         const managedIds = new Set();
 
