@@ -59,6 +59,7 @@ class Main {
         this.container = container;
         this.nodes = new Map();
         this.edges = new Map();
+        this.nodeEdges = new Map(); // Maps nodeId -> Set<edgeId> for fast edge lookups
         this.selectedNodes = new Set();
         this.selectedEdges = new Set();
 
@@ -81,6 +82,12 @@ class Main {
             shakeCooldown: false,
             droppableEdge: null, // Track which edge we can drop onto
             isDraggingPinned: false
+        };
+
+        // Edge update batching for performance during drag operations
+        this.edgeUpdateBatch = {
+            pendingUpdates: new Set(),
+            animationFrameId: null
         };
 
         this.resizingState = {
@@ -198,7 +205,6 @@ class Main {
         this.canvasRenderer.initCanvas();
         this.bindEventListeners();
         this.subscribeToEvents();
-        this.startPhysicsLoop(); // Start the physics simulation
         
         // Handle initial URL hash
         if (!window.location.hash) {
@@ -682,17 +688,20 @@ class Main {
     /**
      * Updates all edges connected to a given node.
      * @param {string} nodeId - The ID of the node that has moved.
-     * @param {boolean} pluck - Whether to "pluck" the edge to start physics.
      */
-    updateConnectedEdges(nodeId, pluck = true) {
+    updateConnectedEdges(nodeId) {
         const node = this.nodes.get(nodeId);
         if (!node) return;
         
-        // This method is called on visual updates (move, resize, color change)
-        this.edges.forEach(edge => {
-            let needsUpdate = false;
+        // Fast lookup: only iterate through edges connected to this node
+        const connectedEdgeIds = this.nodeEdges.get(nodeId);
+        if (!connectedEdgeIds) return;
+        
+        connectedEdgeIds.forEach(edgeId => {
+            const edge = this.edges.get(edgeId);
+            if (!edge) return;
+            
             if (edge.startNodeId === nodeId) {
-                needsUpdate = true;
                 // If the node is the start of an edge, its position and color change.
                 edge.startPosition = this.getHandlePosition(edge.startNodeId, edge.startHandleId);
                 
@@ -704,21 +713,77 @@ class Main {
                 const markerState = edge.groupElement.classList.contains('is-hovered') ? 'border-hover' : 'border';
                 edge.element.setAttribute('marker-end', `url(#arrowhead-${nodeColor}-${markerState})`);
 
-                this.updateEdge(edge.id);
+                this.scheduleEdgeUpdate(edge.id);
             } else if (edge.endNodeId === nodeId) {
-                needsUpdate = true;
                 // If the node is the end of an edge, only its position changes.
                 // The color is determined by the start node.
                 edge.endPosition = this.getHandlePosition(edge.endNodeId, edge.endHandleId);
-                this.updateEdge(edge.id);
-            }
-            if (needsUpdate && pluck && this.edgeGravity) {
-                this.pluckEdge(edge);
+                this.scheduleEdgeUpdate(edge.id);
             }
         });
         
         // Ensure the node's own handles are correctly reflecting their state
         node.checkConnections();
+    }
+
+    /**
+     * Schedules an edge update for batching during drag operations.
+     * @param {string} edgeId - The ID of the edge to update.
+     */
+    scheduleEdgeUpdate(edgeId) {
+        if (!this.draggingState.isDragging) {
+            // Not dragging, update immediately
+            this.updateEdge(edgeId);
+            return;
+        }
+
+        // Add to batch and schedule frame update
+        this.edgeUpdateBatch.pendingUpdates.add(edgeId);
+        
+        if (!this.edgeUpdateBatch.animationFrameId) {
+            this.edgeUpdateBatch.animationFrameId = requestAnimationFrame(() => {
+                this.processBatchedEdgeUpdates();
+            });
+        }
+    }
+
+    /**
+     * Processes all batched edge updates in a single frame.
+     */
+    processBatchedEdgeUpdates() {
+        const updates = Array.from(this.edgeUpdateBatch.pendingUpdates);
+        this.edgeUpdateBatch.pendingUpdates.clear();
+        this.edgeUpdateBatch.animationFrameId = null;
+
+        // During drag, only update positions (skip expensive operations)
+        if (this.draggingState.isDragging) {
+            updates.forEach(edgeId => {
+                this.updateEdgePositionOnly(edgeId);
+            });
+        } else {
+            // Not dragging, do full updates
+            updates.forEach(edgeId => {
+                this.updateEdge(edgeId);
+            });
+        }
+    }
+
+    /**
+     * Updates only the position of an edge (optimized for drag operations).
+     * @param {string} edgeId - The ID of the edge to update.
+     */
+    updateEdgePositionOnly(edgeId) {
+        const edge = this.edges.get(edgeId);
+        if (!edge || !edge.element) return;
+
+        // Calculate and update only the path, skip markers and labels
+        const pathData = this.canvasRenderer.calculateEdgePath(edge);
+        if (pathData) {
+            edge.element.setAttribute('d', pathData);
+            if (edge.hitArea) {
+                edge.hitArea.setAttribute('d', pathData);
+            }
+        }
     }
 
     // --- Selection Logic ---
@@ -1162,12 +1227,42 @@ class Main {
 
         // If there are enough rapid direction changes, it's a shake.
         if (directionChanges > this.shakeSensitivity) {
-            console.log(`Node ${node.id} was shaken! Releasing connections.`);
+            console.log(`Node ${node.id} was shaken! Reconnecting through connections.`);
+            
+            // Find all incoming and outgoing edges
+            const incomingEdges = [];
+            const outgoingEdges = [];
+            
+            this.edges.forEach(edge => {
+                if (edge.endNodeId === node.id) {
+                    incomingEdges.push(edge);
+                } else if (edge.startNodeId === node.id) {
+                    outgoingEdges.push(edge);
+                }
+            });
+            
+            // Create new connections to bridge through the shaken node
+            incomingEdges.forEach(inEdge => {
+                outgoingEdges.forEach(outEdge => {
+                    // Create a new edge connecting the nodes that were connected through the shaken node
+                    const newEdge = new BaseEdge({
+                        startNodeId: inEdge.startNodeId,
+                        startHandleId: inEdge.startHandleId,
+                        endNodeId: outEdge.endNodeId,
+                        endHandleId: outEdge.endHandleId,
+                        label: '' // Combine labels if needed
+                    });
+                    this.nodeManager.addEdge(newEdge);
+                });
+            });
+            
+            // Now delete all edges connected to the shaken node
             this.edges.forEach(edge => {
                 if (edge.startNodeId === node.id || edge.endNodeId === node.id) {
                     events.publish('edge:delete', edge.id);
                 }
             });
+            
             this.draggingState.shakeCooldown = true; // Activate cooldown
             this.draggingState.shakeHistory = []; // Clear history to prevent re-triggering
         }
@@ -1732,22 +1827,6 @@ class Main {
         }
     }
 
-    /**
-     * Starts the physics simulation loop.
-     */
-    startPhysicsLoop() {
-        // Moved to CanvasRenderer
-        this.canvasRenderer.startPhysicsLoop();
-    }
-
-    /**
-     * "Plucks" an edge, giving its control point velocity and starting the physics simulation.
-     * @param {BaseEdge} edge 
-     */
-    pluckEdge(edge) {
-        // Moved to CanvasRenderer
-        this.canvasRenderer.pluckEdge(edge);
-    }
 
     /**
      * Finds an edge based on its start and end positions. Note: This is a fallback and can be slow.

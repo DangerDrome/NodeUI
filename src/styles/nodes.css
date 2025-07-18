@@ -448,7 +448,8 @@ g[data-color="purple"].is-hovered .edge { stroke: var(--color-node-purple-border
 }
 
 .edge.is-droppable {
-    stroke-dasharray: 8, 8;
+    stroke-dasharray: 10, 5;
+    stroke-width: 3;
 }
 
 .edge.edge-drawing {

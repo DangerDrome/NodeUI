@@ -9,6 +9,13 @@ class Interactions {
      */
     constructor(nodeUI) {
         this.nodeUI = nodeUI;
+        
+        // Throttle edge collision detection for performance
+        this.edgeCollisionThrottle = {
+            lastCheck: 0,
+            checkInterval: 8, // ~120fps for more responsive feedback
+            pendingCheck: false
+        };
     }
 
     /**
@@ -299,22 +306,8 @@ class Interactions {
                 this.nodeUI.checkForShake(primaryNode);
             }
 
-            // Clear previous droppable state
-            if (this.nodeUI.draggingState.droppableEdge) {
-                this.nodeUI.draggingState.droppableEdge.classList.remove('is-droppable');
-                this.nodeUI.draggingState.droppableEdge = null;
-            }
-
-            // Check for new droppable edge
-            let foundDroppable = false;
-            for (const edge of this.nodeUI.edges.values()) {
-                if (this.isPointOnEdge(primaryNode, edge)) {
-                    edge.element.classList.add('is-droppable');
-                    this.nodeUI.draggingState.droppableEdge = edge.element;
-                    foundDroppable = true;
-                    break;
-                }
-            }
+            // Check edge collision on every frame for smooth feedback
+            this.checkEdgeCollision(primaryNode);
 
             return;
         }
@@ -1183,8 +1176,9 @@ class Interactions {
         this.updateGroupingForMovedNodes();
 
         // Clear any final droppable state
-        if (this.nodeUI.draggingState.droppableEdge) {
-            this.nodeUI.draggingState.droppableEdge.classList.remove('is-droppable');
+        const droppableEdge = this.nodeUI.draggingState.droppableEdge;
+        if (droppableEdge && droppableEdge.element) {
+            droppableEdge.element.classList.remove('is-droppable');
             this.nodeUI.draggingState.droppableEdge = null;
         }
 
@@ -1379,20 +1373,183 @@ class Interactions {
      * @param {BaseEdge} edge The edge to check against.
      * @returns {boolean}
      */
-    isPointOnEdge(node, edge) {
+    /**
+     * Edge collision detection for smooth visual feedback during drag.
+     * @param {BaseNode} node - The node being dragged.
+     */
+    checkEdgeCollision(node) {
+        // Clear previous droppable state
+        const prevDroppable = this.nodeUI.draggingState.droppableEdge;
+        if (prevDroppable) {
+            if (prevDroppable.element) prevDroppable.element.classList.remove('is-droppable');
+            this.nodeUI.draggingState.droppableEdge = null;
+        }
+
+        // Check for new droppable edge
+        for (const edge of this.nodeUI.edges.values()) {
+            if (this.isPointNearEdgeSimple(node, edge)) {
+                edge.element.classList.add('is-droppable');
+                this.nodeUI.draggingState.droppableEdge = edge;
+                break;
+            }
+        }
+    }
+
+    /**
+     * Simple fast edge detection for drag feedback.
+     * @param {BaseNode} node - The node to check.
+     * @param {BaseEdge} edge - The edge to check against.
+     * @returns {boolean} True if node is near the edge.
+     */
+    isPointNearEdgeSimple(node, edge) {
+        if (!edge.element || !edge.startPosition || !edge.endPosition) return false;
+
+        const nodeCenter = { x: node.x + node.width / 2, y: node.y + node.height / 2 };
+        
+        // Simple distance to line segment calculation
+        const A = nodeCenter.x - edge.startPosition.x;
+        const B = nodeCenter.y - edge.startPosition.y;
+        const C = edge.endPosition.x - edge.startPosition.x;
+        const D = edge.endPosition.y - edge.startPosition.y;
+
+        const dot = A * C + B * D;
+        const lenSq = C * C + D * D;
+        
+        if (lenSq === 0) return false;
+
+        let param = dot / lenSq;
+        param = Math.max(0, Math.min(1, param));
+
+        const xx = edge.startPosition.x + param * C;
+        const yy = edge.startPosition.y + param * D;
+
+        const dx = nodeCenter.x - xx;
+        const dy = nodeCenter.y - yy;
+        
+        return Math.sqrt(dx * dx + dy * dy) <= 50; // Generous 50px tolerance
+    }
+
+    /**
+     * Optimized edge collision detection with bounding box pre-filtering.
+     * @param {BaseNode} node - The node to check collision for.
+     * @param {BaseEdge} edge - The edge to check collision against.
+     * @returns {boolean} True if the node overlaps with the edge.
+     */
+    isPointOnEdgeOptimized(node, edge) {
+        if (!edge.element || !edge.startPosition || !edge.endPosition) return false;
+
+        const nodeCenter = { x: node.x + node.width / 2, y: node.y + node.height / 2 };
+        const tolerance = 40; // Generous tolerance for easier edge targeting
+
+        // Quick bounding box check first - add extra padding for curved edges
+        const boundingPadding = 50; // Account for curve control points
+        const minX = Math.min(edge.startPosition.x, edge.endPosition.x) - boundingPadding;
+        const maxX = Math.max(edge.startPosition.x, edge.endPosition.x) + boundingPadding;
+        const minY = Math.min(edge.startPosition.y, edge.endPosition.y) - boundingPadding;
+        const maxY = Math.max(edge.startPosition.y, edge.endPosition.y) + boundingPadding;
+
+        if (nodeCenter.x < minX || nodeCenter.x > maxX || nodeCenter.y < minY || nodeCenter.y > maxY) {
+            return false; // Quick rejection - not even close to the edge
+        }
+
+        // For edges with routing points, use more precise but still efficient detection
+        if (edge.routingPoints && edge.routingPoints.length > 0) {
+            return this.isPointOnRoutedEdge(nodeCenter, edge, tolerance);
+        }
+
+        // For simple edges, check against the actual curve path
+        // Since edges are curved, we need to sample a few points along the curve
+        return this.isPointNearCurvedEdge(nodeCenter, edge, tolerance);
+    }
+
+    /**
+     * Check if point is near a curved edge using limited sampling.
+     * @param {Object} point - The point to check.
+     * @param {BaseEdge} edge - The edge to check against.
+     * @param {number} tolerance - Maximum distance to consider as collision.
+     * @returns {boolean} True if point is within tolerance of the edge.
+     */
+    isPointNearCurvedEdge(point, edge, tolerance) {
         if (!edge.element) return false;
-        const point = { x: node.x + node.width / 2, y: node.y + node.height / 2 };
+        
         const path = edge.element;
         const len = path.getTotalLength();
         if (len === 0) return false;
 
-        for (let i = 0; i < len; i += 5) {
-            const p = path.getPointAtLength(i);
-            if (Math.hypot(p.x - point.x, p.y - point.y) < 10) { // 10px tolerance
+        // Sample at 10 strategic points along the curve for good coverage
+        // This is much less than the original which sampled every 5 pixels
+        const samples = 10;
+        const step = len / samples;
+
+        for (let i = 0; i <= samples; i++) {
+            const p = path.getPointAtLength(i * step);
+            if (Math.hypot(p.x - point.x, p.y - point.y) <= tolerance) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Efficient point-to-line distance calculation.
+     * @param {Object} point - The point to check.
+     * @param {Object} lineStart - Start point of the line.
+     * @param {Object} lineEnd - End point of the line.
+     * @param {number} tolerance - Maximum distance to consider as collision.
+     * @returns {boolean} True if point is within tolerance of the line.
+     */
+    isPointNearLine(point, lineStart, lineEnd, tolerance) {
+        const A = point.x - lineStart.x;
+        const B = point.y - lineStart.y;
+        const C = lineEnd.x - lineStart.x;
+        const D = lineEnd.y - lineStart.y;
+
+        const dot = A * C + B * D;
+        const lenSq = C * C + D * D;
+        
+        if (lenSq === 0) return Math.hypot(A, B) <= tolerance;
+
+        const param = dot / lenSq;
+        let xx, yy;
+
+        if (param < 0) {
+            xx = lineStart.x;
+            yy = lineStart.y;
+        } else if (param > 1) {
+            xx = lineEnd.x;
+            yy = lineEnd.y;
+        } else {
+            xx = lineStart.x + param * C;
+            yy = lineStart.y + param * D;
+        }
+
+        const dx = point.x - xx;
+        const dy = point.y - yy;
+        return Math.hypot(dx, dy) <= tolerance;
+    }
+
+    /**
+     * Check collision with routed edges (edges with routing points).
+     * @param {Object} point - The point to check.
+     * @param {BaseEdge} edge - The edge with routing points.
+     * @param {number} tolerance - Maximum distance to consider as collision.
+     * @returns {boolean} True if point is within tolerance of any edge segment.
+     */
+    isPointOnRoutedEdge(point, edge, tolerance) {
+        const points = [edge.startPosition, ...edge.routingPoints, edge.endPosition];
+        
+        for (let i = 0; i < points.length - 1; i++) {
+            if (this.isPointNearLine(point, points[i], points[i + 1], tolerance)) {
                 return true;
             }
         }
         return false;
+    }
+
+    isPointOnEdge(node, edge) {
+        // Legacy method - redirect to optimized version
+        return this.isPointOnEdgeOptimized(node, edge);
     }
 
     /**

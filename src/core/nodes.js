@@ -32,6 +32,10 @@ class Nodes {
         this.nodeUI.edges.set(edge.id, edge);
         edge.render(this.nodeUI.canvasGroup); // Edges are SVG elements
         
+        // Update node-edge mapping for fast lookups
+        this._addToNodeEdgeMapping(edge.startNodeId, edge.id);
+        this._addToNodeEdgeMapping(edge.endNodeId, edge.id);
+        
         // Calculate initial positions and draw the edge immediately
         const startNode = this.nodeUI.nodes.get(edge.startNodeId);
         const endNode = this.nodeUI.nodes.get(edge.endNodeId);
@@ -83,6 +87,10 @@ class Nodes {
     removeEdge(edgeId) {
         const edge = this.nodeUI.edges.get(edgeId);
         if (!edge) return;
+
+        // Update node-edge mapping for fast lookups
+        this._removeFromNodeEdgeMapping(edge.startNodeId, edge.id);
+        this._removeFromNodeEdgeMapping(edge.endNodeId, edge.id);
 
         // Update node connection states before removing the edge
         const startNode = this.nodeUI.nodes.get(edge.startNodeId);
@@ -432,6 +440,33 @@ class Nodes {
             this.nodeUI.pinnedNodes.delete(nodeId);
         }
         this.nodeUI.updateConnectedEdges(nodeId);
+    }
+
+    /**
+     * Helper method to add an edge to the node-edge mapping.
+     * @param {string} nodeId - The ID of the node.
+     * @param {string} edgeId - The ID of the edge.
+     */
+    _addToNodeEdgeMapping(nodeId, edgeId) {
+        if (!this.nodeUI.nodeEdges.has(nodeId)) {
+            this.nodeUI.nodeEdges.set(nodeId, new Set());
+        }
+        this.nodeUI.nodeEdges.get(nodeId).add(edgeId);
+    }
+
+    /**
+     * Helper method to remove an edge from the node-edge mapping.
+     * @param {string} nodeId - The ID of the node.
+     * @param {string} edgeId - The ID of the edge.
+     */
+    _removeFromNodeEdgeMapping(nodeId, edgeId) {
+        const edgeSet = this.nodeUI.nodeEdges.get(nodeId);
+        if (edgeSet) {
+            edgeSet.delete(edgeId);
+            if (edgeSet.size === 0) {
+                this.nodeUI.nodeEdges.delete(nodeId);
+            }
+        }
     }
 }
 

@@ -37,11 +37,6 @@ class BaseEdge {
         this.type = type;
         this.label = label;
 
-        this.physics = {
-            sag: 0,
-            velocity: 0,
-            isSettled: true
-        };
 
         this.element = null; // To hold the DOM element (e.g., an SVG path)
         this.hitArea = null; // A thicker, invisible path for easier interaction

@@ -268,7 +268,7 @@ class Canvas {
     }
 
     /**
-     * Calculates a curved path between two points with optional sag.
+     * Calculates a curved path between two points.
      * @param {{x:number, y:number}} startPos The start point.
      * @param {{x:number, y:number}} endPos The end point.
      * @param {string} startHandle The orientation of the start handle.
@@ -276,33 +276,36 @@ class Canvas {
      * @returns {string} The SVG path `d` attribute string.
      */
     calculateCurve(startPos, endPos, startHandle, endHandle) {
-        const edge = this.nodeUI.findEdgeByPositions(startPos, endPos);
-        let sag = 0;
-
-        if (this.nodeUI.edgeGravity > 0 && edge) {
-            if (edge.physics.isSettled) {
-                const dist = Math.hypot(endPos.x - startPos.x, endPos.y - startPos.y);
-                sag = (dist / 150) * this.nodeUI.edgeGravity;
-                edge.physics.sag = sag; // Set initial resting sag
-            } else {
-                sag = edge.physics.sag;
-            }
-        }
-        
-        return this._getCurvedPathD(startPos, endPos, startHandle, endHandle, sag);
+        return this._getCurvedPathD(startPos, endPos, startHandle, endHandle);
     }
 
     /**
-     * A pure function to calculate the SVG path data for a cubic Bézier curve,
-     * with an optional vertical sag.
+     * Calculates the SVG path for an edge based on its current state.
+     * @param {BaseEdge} edge - The edge to calculate the path for.
+     * @returns {string} The SVG path `d` attribute string.
+     */
+    calculateEdgePath(edge) {
+        if (!edge.startPosition || !edge.endPosition) return '';
+
+        if (edge.routingPoints && edge.routingPoints.length > 0) {
+            // Use spline calculation for edges with routing points
+            const points = [edge.startPosition, ...edge.routingPoints, edge.endPosition];
+            return this.calculateSpline(points, edge.startHandleId, edge.endHandleId);
+        } else {
+            // Use curve calculation for simple edges
+            return this.calculateCurve(edge.startPosition, edge.endPosition, edge.startHandleId, edge.endHandleId);
+        }
+    }
+
+    /**
+     * A pure function to calculate the SVG path data for a cubic Bézier curve.
      * @param {{x:number, y:number}} startPos The start point.
      * @param {{x:number, y:number}} endPos The end point.
      * @param {string} startHandle The orientation of the start handle.
      * @param {string} endHandle The orientation of the end handle.
-     * @param {number} [sag=0] - The amount of vertical sag to apply.
      * @returns {string} The SVG path `d` attribute string.
      */
-    _getCurvedPathD(startPos, endPos, startHandle, endHandle, sag = 0) {
+    _getCurvedPathD(startPos, endPos, startHandle, endHandle) {
         // P0 and P3 are the start and end points of the edge, but we will draw from p1 to p2.
         const p0 = { ...startPos };
         const p3 = { ...endPos };
@@ -348,23 +351,6 @@ class Canvas {
             case 'right':  cp2.x += offset; break;
         }
 
-        // Apply tapered sag. The sag is reduced for vertical connections to
-        // create a more natural exit angle from the node before hanging.
-        if (sag > 0) {
-            let sag1 = sag;
-            let sag2 = sag;
-
-            // Reduce sag effect on the control point if the handle is vertical.
-            if (startHandle === 'top' || startHandle === 'bottom') {
-                sag1 *= 0.25;
-            }
-            if (endHandle === 'top' || endHandle === 'bottom') {
-                sag2 *= 0.25;
-            }
-
-            cp1.y += sag1;
-            cp2.y += sag2;
-        }
 
         // The path starts from the padded point (p1), not the handle center (p0).
         return `M ${p1.x} ${p1.y} C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${p2.x} ${p2.y}`;
@@ -401,7 +387,7 @@ class Canvas {
 
         // Force-update edges connected to pinned nodes so they follow the pan/zoom
         this.nodeUI.pinnedNodes.forEach(nodeId => {
-            this.nodeUI.updateConnectedEdges(nodeId, false); // Don't pluck during simple pan/zoom
+            this.nodeUI.updateConnectedEdges(nodeId);
         });
     }
 
@@ -554,83 +540,6 @@ class Canvas {
         return false;
     }
 
-    /**
-     * Starts the physics simulation loop for edge sagging.
-     */
-    startPhysicsLoop() {
-        const stiffness = 0.02;
-        const damping = 0.90;
-
-        const update = () => {
-            let hasUnsettledEdges = false;
-
-            this.nodeUI.edges.forEach(edge => {
-                if (edge.physics.isSettled) return;
-
-                // If gravity is turned off mid-simulation, settle the edge.
-                if (this.nodeUI.edgeGravity === 0) {
-                    edge.physics.isSettled = true;
-                    edge.physics.sag = 0;
-                    edge.physics.velocity = 0;
-                    this.updateEdge(edge.id);
-                    return;
-                }
-
-                hasUnsettledEdges = true;
-
-                if (edge.routingPoints.length > 0) {
-                    edge.physics.isSettled = true;
-                    return;
-                }
-                
-                const startPos = edge.startPosition;
-                const endPos = edge.endPosition;
-                const dist = Math.hypot(endPos.x - startPos.x, endPos.y - startPos.y);
-                const restingSag = (dist / 150) * this.nodeUI.edgeGravity;
-
-                const force = (restingSag - edge.physics.sag) * stiffness;
-                
-                edge.physics.velocity += force;
-                edge.physics.velocity *= damping;
-                edge.physics.sag += edge.physics.velocity;
-                
-                const pathData = this._getCurvedPathD(edge.startPosition, edge.endPosition, edge.startHandleId, edge.endHandleId, edge.physics.sag);
-                if (edge.element) {
-                    edge.element.setAttribute('d', pathData);
-                    edge.hitArea.setAttribute('d', pathData);
-                }
-
-                if (Math.abs(edge.physics.velocity) < 0.01 && Math.abs(restingSag - edge.physics.sag) < 0.01) {
-                    edge.physics.isSettled = true;
-                    this.updateEdge(edge.id);
-                }
-            });
-
-            if (hasUnsettledEdges) {
-                requestAnimationFrame(update);
-            }
-        };
-
-        events.subscribe('physics:start', () => {
-            requestAnimationFrame(update);
-        });
-    }
-
-    /**
-     * "Plucks" an edge, giving its control point velocity and starting the physics simulation.
-     * @param {BaseEdge} edge 
-     */
-    pluckEdge(edge) {
-        if (!edge || this.nodeUI.edgeGravity === 0) return;
-        
-        // Give it a little push when plucked
-        edge.physics.velocity += 2;
-        
-        if (edge.physics.isSettled) {
-            edge.physics.isSettled = false;
-            events.publish('physics:start');
-        }
-    }
 
     /**
      * Starts the edge cutting line drawing.

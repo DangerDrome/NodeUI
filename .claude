@@ -1,0 +1,199 @@
+# NodeUI - Claude Init File
+# A powerful, serverless node-based interface for interactive graphs and 3D visualizations
+
+project_info:
+  name: "NodeUI"
+  description: "Organize and visualize files, links and notes in a node-based interface"
+  version: "2.0"
+  type: "Frontend Application"
+  framework: "Vanilla JavaScript"
+  architecture: "Modular, Component-Based"
+  
+core_technologies:
+  - "Vanilla JavaScript (ES6+)"
+  - "HTML5 Canvas & SVG"
+  - "CSS3 with Custom Properties"
+  - "Three.js for 3D visualization"
+  - "Local Storage for persistence"
+  - "No build tools or servers required"
+
+project_structure:
+  entry_points:
+    - "index.html - Main application"
+    - "launch.html - Launch page with instructions"
+    - "src/main.js - Application entry point"
+  
+  core_modules:
+    canvas: "src/core/canvas.js - Canvas rendering and SVG operations"
+    context_menu: "src/core/contextMenu.js - Context menu system"
+    edges: "src/core/edges.js - Edge drawing and routing"
+    events: "src/core/events.js - Event handling system"
+    file: "src/core/file.js - File operations and persistence"
+    interactions: "src/core/interactions.js - Mouse/touch/keyboard interactions"
+    libs: "src/core/libs.js - External library loading"
+    main: "src/core/main.js - Core application logic"
+    markdown: "src/core/markdown.js - Markdown processing"
+  
+  node_types:
+    base: "src/nodes/basenode.js - Base node class (extends from)"
+    base_edge: "src/nodes/baseedge.js - Base edge class"
+    group: "src/nodes/groupnode.js - Group node implementation"
+    image_sequence: "src/nodes/imagesequencenode.js - Image sequence handling"
+    log: "src/nodes/lognode.js - Logging node"
+    routing: "src/nodes/routingnode.js - Routing node"
+    settings: "src/nodes/settingsnode.js - Settings node"
+    subgraph: "src/nodes/subgraphnode.js - SubGraph node (nested graphs)"
+    threejs: "src/nodes/threejsnode.js - 3D viewport node"
+  
+  styles:
+    main: "src/styles/styles.css - Main stylesheet (imports all others)"
+    variables: "src/styles/variables.css - CSS custom properties"
+    icons: "src/styles/icons.css - Icon definitions"
+    layout: "src/styles/layout.css - Layout and positioning"
+    nodes: "src/styles/nodes.css - Node-specific styles"
+    timeline: "src/styles/timeline.css - Timeline UI styles"
+
+key_features:
+  - "Multiple Node Types: Base, Group, Log, Routing, Settings, SubGraph, ThreeJS"
+  - "Interactive Edges: Visual connections between nodes"
+  - "Context Menus: Right-click operations for all node types"
+  - "Drag & Drop: Intuitive node manipulation and file import"
+  - "Properties Panel: Configure node attributes and settings"
+  - "SubGraph System: Create nested, self-contained graphs"
+  - "3D Viewport: Integrated Three.js scene with timeline"
+  - "Timeline System: Advanced keyframe management and animation"
+  - "Performance Optimized: GPU-accelerated rendering"
+  - "Zero Server Required: Works completely offline"
+
+architecture_patterns:
+  core_systems:
+    - "NodeUI: Core orchestration and state management"
+    - "CanvasRenderer: Visual rendering and SVG operations"
+    - "FileHandler: File operations, save/load, drag & drop"
+    - "ContextMenuHandler: Context menu display and edge editing"
+    - "NodeManager: Node/edge lifecycle and grouping"
+    - "InteractionHandler: Mouse/touch/keyboard interactions"
+    - "EdgeHandler: Edge drawing and routing logic"
+  
+  class_inheritance:
+    - "All nodes extend BaseNode class"
+    - "All edges extend BaseEdge class"
+    - "Implement required methods and properties"
+    - "Register node types in main application"
+  
+  modular_design:
+    - "Clear separation of concerns"
+    - "Core modules handle specific functionality"
+    - "Individual node type implementations"
+    - "Organized CSS for different UI components"
+    - "Centralized dependency management"
+
+development_guidelines:
+  node_creation:
+    - "Create new file in src/nodes/"
+    - "Extend the BaseNode class"
+    - "Implement required methods and properties"
+    - "Register the node type in main application"
+  
+  styling:
+    - "Modify src/styles/variables.css for colors, fonts, spacing"
+    - "Edit src/styles/nodes.css for node appearance and animations"
+    - "Adjust src/styles/layout.css for overall application layout"
+  
+  code_standards:
+    - "ES6+ JavaScript features"
+    - "Modular architecture with clear interfaces"
+    - "Performance-first approach"
+    - "Local storage for data persistence"
+    - "GPU acceleration where possible"
+
+user_interactions:
+  mouse_keyboard:
+    - "Right-click canvas → Add Node"
+    - "Drag from node output to input (connect)"
+    - "Click and drag nodes (move)"
+    - "Shift+click or drag selection box (multi-select)"
+    - "Delete key: Remove selected nodes/edges"
+    - "R + Drag: Create routing node"
+    - "I: Insert keyframe (in timeline)"
+    - "Ctrl/Cmd + C/V: Copy/paste nodes"
+    - "Ctrl/Cmd + Z: Undo (when implemented)"
+
+performance_features:
+  - "Conditional animation loops"
+  - "Intelligent render state tracking"
+  - "GPU acceleration for 3D rendering"
+  - "Optimized event handling"
+  - "Local storage for graph data"
+  - "JSON export/import functionality"
+  - "Screenshot capture capability"
+
+technical_requirements:
+  browser_support:
+    - "Modern browsers with ES6+ support"
+    - "WebGL support for 3D viewport"
+    - "Local storage for data persistence"
+  
+  no_dependencies:
+    - "No build tools required"
+    - "No server required"
+    - "CORS-free local execution"
+    - "Double-click index.html to launch"
+
+data_persistence:
+  - "Local storage for graph data"
+  - "JSON export/import functionality"
+  - "graph.json: Default graph data"
+  - "test-graph.json: Test graph data"
+
+debugging_testing:
+  launch_options:
+    - "Double-click index.html (recommended)"
+    - "python3 -m http.server 8000"
+    - "npx http-server"
+    - "php -S localhost:8000"
+  
+  development_context:
+    - "Check memory-bank/ documentation"
+    - "Review activeContext.md for current development"
+    - "See progress.md for progress tracking"
+    - "Read systemPatterns.md for architecture patterns"
+    - "Check techContext.md for technical context"
+
+common_tasks:
+  adding_node_type:
+    - "Create class file in src/nodes/"
+    - "Extend BaseNode or specific node type"
+    - "Implement render(), update(), and other required methods"
+    - "Add node type registration in core/main.js"
+    - "Update context menu to include new node type"
+  
+  customizing_appearance:
+    - "Modify CSS custom properties in variables.css"
+    - "Update node-specific styles in nodes.css"
+    - "Adjust layout in layout.css"
+    - "Add new icons in icons.css"
+  
+  extending_functionality:
+    - "Add new core modules in src/core/"
+    - "Implement new interaction patterns in interactions.js"
+    - "Extend file handling in file.js"
+    - "Add new edge types in edges.js"
+
+memory_bank_docs:
+  - "activeContext.md: Current development context"
+  - "progress.md: Progress tracking"
+  - "projectbrief.md: Project overview"
+  - "systemPatterns.md: System architecture patterns"
+  - "techContext.md: Technical context"
+
+license: "MIT License"
+repository: "https://github.com/DangerDrome/NodeUI"
+
+notes:
+  - "Serverless architecture - works completely offline"
+  - "Zero build tools - pure web technologies"
+  - "Performance optimized with GPU acceleration"
+  - "Modular design allows easy extension"
+  - "Comprehensive documentation in memory-bank/"
+  - "Support for complex 3D visualizations and animations"
