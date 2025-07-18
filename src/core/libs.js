@@ -16,29 +16,53 @@ function loadImportMap() {
     document.head.appendChild(importMapScript);
 }
 
-// Load other external libraries
+// Lazy loading promises for libraries
+let html2canvasPromise = null;
+let dompurifyPromise = null;
+
+// Lazy load html2canvas when needed
+window.loadHtml2Canvas = function() {
+    if (!html2canvasPromise) {
+        html2canvasPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+            script.onload = () => {
+                console.log('html2canvas loaded successfully');
+                resolve();
+            };
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+    return html2canvasPromise;
+};
+
+// Lazy load DOMPurify when needed
+window.loadDOMPurify = function() {
+    if (!dompurifyPromise) {
+        dompurifyPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js';
+            script.onload = () => {
+                console.log('DOMPurify loaded successfully');
+                resolve();
+            };
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+    return dompurifyPromise;
+};
+
+// Load minimal external resources
 function loadExternalLibraries() {
-    // Icon Library
-    const lucideScript = document.createElement('script');
-    lucideScript.src = 'https://unpkg.com/lucide@latest';
-    document.head.appendChild(lucideScript);
-
-    // Utility Libraries
-    const html2canvasScript = document.createElement('script');
-    html2canvasScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-    document.head.appendChild(html2canvasScript);
-
-    const dompurifyScript = document.createElement('script');
-    dompurifyScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js';
-    document.head.appendChild(dompurifyScript);
-
-    // Syntax Highlighting CSS
+    // Syntax Highlighting CSS (lightweight, non-blocking)
     const highlightCSS = document.createElement('link');
     highlightCSS.rel = 'stylesheet';
     highlightCSS.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
     document.head.appendChild(highlightCSS);
 
-    console.log('External libraries loaded successfully');
+    console.log('Minimal external resources loaded');
 }
 
 // Load import map immediately, then other libraries when DOM is ready

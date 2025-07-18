@@ -338,6 +338,9 @@ class File {
      * Captures the current graph view as a Base64 PNG image using html2canvas.
      */
     async takeScreenshot() {
+        console.log("Loading html2canvas...");
+        await window.loadHtml2Canvas();
+        
         console.log("Starting screenshot with html2canvas...");
         try {
             const padding = 50;

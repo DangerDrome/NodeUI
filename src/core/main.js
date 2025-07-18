@@ -15,9 +15,12 @@ async function loadCoreModules() {
         'src/core/edges.js'
     ];
 
-    const nodeModules = [
+    const baseNodeModules = [
         'src/nodes/basenode.js',
-        'src/nodes/baseedge.js',
+        'src/nodes/baseedge.js'
+    ];
+
+    const extendedNodeModules = [
         'src/nodes/routingnode.js',
         'src/nodes/groupnode.js',
         'src/nodes/lognode.js',
@@ -27,23 +30,28 @@ async function loadCoreModules() {
         'src/nodes/imagesequencenode.js'
     ];
 
-    const allModules = [...modules, ...nodeModules];
-
-    const loadPromises = allModules.map(modulePath => {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = modulePath;
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error(`Failed to load ${modulePath}`));
-            document.head.appendChild(script);
-        });
+    // Helper function to load a script
+    const loadScript = (src) => new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(script);
     });
 
     try {
-        await Promise.all(loadPromises);
+        // Load all core modules in parallel
+        await Promise.all(modules.map(loadScript));
+        
+        // Load base node/edge classes first
+        await Promise.all(baseNodeModules.map(loadScript));
+        
+        // Then load all extended node types in parallel
+        await Promise.all(extendedNodeModules.map(loadScript));
+        
         console.log('All core modules and node classes loaded successfully');
     } catch (error) {
-        console.error('Error loading core modules:', error);
+        console.error('Error loading modules:', error);
         throw error;
     }
 }
@@ -1749,6 +1757,7 @@ class Main {
      * Captures the current graph view as a Base64 PNG image using html2canvas.
      */
     async takeScreenshot() {
+        await window.loadHtml2Canvas();
         // Moved to FileHandler
         this.fileHandler.takeScreenshot();
     }

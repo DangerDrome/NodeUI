@@ -200,10 +200,11 @@ class BaseNode {
      * @param {HTMLElement} contentArea The element to render into.
      */
     async renderMarkdown(contentArea) {
-        // Wait for markdown processor to be ready
-        if (window.markdownReady) {
-            await window.markdownReady;
+        // Initialize markdown processor if not already done
+        if (!window.markdownReady) {
+            window.markdownReady = window.initializeMarkdown();
         }
+        await window.markdownReady;
         
         if (!window.markdownProcessor) {
             console.warn('Markdown processor (remark) is not ready.');
@@ -214,6 +215,11 @@ class BaseNode {
         try {
             const file = await window.markdownProcessor.process(this.content || '');
             const dirtyHtml = String(file);
+
+            // Load DOMPurify if not already loaded
+            if (typeof DOMPurify === 'undefined') {
+                await window.loadDOMPurify();
+            }
 
             // Sanitize the HTML to prevent XSS attacks before inserting it.
             contentArea.innerHTML = DOMPurify.sanitize(dirtyHtml, {

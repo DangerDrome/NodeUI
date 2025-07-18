@@ -1,19 +1,36 @@
-// Markdown Processing Setup
-// Load dependencies from CDN
-(async function() {
-    // Create a promise that resolves when markdown processor is ready
-    window.markdownReady = new Promise(async (resolve) => {
+// Markdown Processing Setup - Lazy Loading
+let markdownInitPromise = null;
+
+// Function to initialize markdown processor on demand
+window.initializeMarkdown = function() {
+    if (markdownInitPromise) {
+        return markdownInitPromise;
+    }
+    
+    markdownInitPromise = new Promise(async (resolve) => {
         try {
-            // Load the required modules from CDN
-            const { unified } = await import('https://esm.sh/unified');
-            const { visit } = await import('https://esm.sh/unist-util-visit');
-            const remarkParse = await import('https://esm.sh/remark-parse');
-            const remarkGfm = await import('https://esm.sh/remark-gfm');
-            const remarkBreaks = await import('https://esm.sh/remark-breaks');
-            const remarkRehype = await import('https://esm.sh/remark-rehype');
-            const rehypeRaw = await import('https://esm.sh/rehype-raw');
-            const rehypeHighlight = await import('https://esm.sh/rehype-highlight');
-            const rehypeStringify = await import('https://esm.sh/rehype-stringify');
+            // Load all required modules from CDN in parallel
+            const [
+                { unified },
+                { visit },
+                remarkParse,
+                remarkGfm,
+                remarkBreaks,
+                remarkRehype,
+                rehypeRaw,
+                rehypeHighlight,
+                rehypeStringify
+            ] = await Promise.all([
+                import('https://cdn.jsdelivr.net/npm/unified@11/+esm'),
+                import('https://cdn.jsdelivr.net/npm/unist-util-visit@5/+esm'),
+                import('https://cdn.jsdelivr.net/npm/remark-parse@11/+esm'),
+                import('https://cdn.jsdelivr.net/npm/remark-gfm@4/+esm'),
+                import('https://cdn.jsdelivr.net/npm/remark-breaks@4/+esm'),
+                import('https://cdn.jsdelivr.net/npm/remark-rehype@11/+esm'),
+                import('https://cdn.jsdelivr.net/npm/rehype-raw@7/+esm'),
+                import('https://cdn.jsdelivr.net/npm/rehype-highlight@7/+esm'),
+                import('https://cdn.jsdelivr.net/npm/rehype-stringify@10/+esm')
+            ]);
 
             function remarkVideo() {
                 return async (tree) => {
@@ -84,4 +101,9 @@
             resolve(); // Resolve anyway to prevent blocking
         }
     });
-})(); 
+    
+    return markdownInitPromise;
+};
+
+// For backward compatibility, set markdownReady to null initially
+window.markdownReady = null; 
