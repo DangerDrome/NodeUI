@@ -1224,6 +1224,16 @@ class Interactions {
         this.nodeUI.draggingState.targetNode = null;
         this.nodeUI.draggingState.shakeCooldown = false; // Reset cooldown
         this.nodeUI.draggingState.isDraggingPinned = false;
+        
+        // Force update all edges connected to moved nodes to ensure labels are in correct position
+        nodesMoved.forEach(nodeId => {
+            const connectedEdges = this.nodeUI.nodeEdges.get(nodeId);
+            if (connectedEdges) {
+                connectedEdges.forEach(edgeId => {
+                    this.nodeUI.updateEdge(edgeId);
+                });
+            }
+        });
     }
 
     /**

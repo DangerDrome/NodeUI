@@ -784,12 +784,35 @@ class Main {
         const edge = this.edges.get(edgeId);
         if (!edge || !edge.element) return;
 
-        // Calculate and update only the path, skip markers and labels
+        // Calculate and update the path
         const pathData = this.canvasRenderer.calculateEdgePath(edge);
         if (pathData) {
             edge.element.setAttribute('d', pathData);
             if (edge.hitArea) {
                 edge.hitArea.setAttribute('d', pathData);
+            }
+            
+            // Also update label position if label exists
+            if (edge.labelElement && edge.label) {
+                const path = edge.element;
+                const len = path.getTotalLength();
+                if (len > 0) {
+                    const midPoint = path.getPointAtLength(len / 2);
+                    edge.labelElement.setAttribute('x', midPoint.x);
+                    edge.labelElement.setAttribute('y', midPoint.y);
+                    
+                    // Also move the label background if it exists
+                    if (edge.labelBackgroundElement) {
+                        try {
+                            const labelBBox = edge.labelElement.getBBox();
+                            const padding = 4;
+                            edge.labelBackgroundElement.setAttribute('x', labelBBox.x - padding);
+                            edge.labelBackgroundElement.setAttribute('y', labelBBox.y - padding);
+                        } catch (e) {
+                            // Ignore getBBox errors during rapid updates
+                        }
+                    }
+                }
             }
         }
     }
