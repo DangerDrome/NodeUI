@@ -3,8 +3,8 @@
  * visual updates, physics simulation, and canvas transformations.
  */
 
-// NodeUI Version
-const NODEUI_VERSION = '2.0.0';
+// NodeUI Version - dynamically loaded from version.json
+const NODEUI_VERSION = window.NODE_UI_VERSION || '1.1.0';
 
 class Canvas {
     constructor(nodeUI) {

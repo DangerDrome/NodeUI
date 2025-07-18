@@ -19,6 +19,45 @@
     <!-- External Libraries -->
     <script src="src/core/libs.js"></script>
     
+    <!-- Version Management -->
+    <script>
+        // Embedded version information (updated from version.json)
+        window.NODE_UI_VERSION = '1.1.0';
+        window.NODE_UI_VERSION_DATA = {
+            version: '1.1.0',
+            lastUpdated: '2025-01-18',
+            changes: {
+                '1.1.0': {
+                    date: '2025-01-18',
+                    description: 'Major performance optimizations',
+                    changes: [
+                        'Removed edge physics system for better performance',
+                        'Optimized edge updates from O(n) to O(k) complexity',
+                        'Added shake-to-reconnect feature for node connections',
+                        'Implemented parallel loading for faster startup',
+                        'Made markdown parser and heavy libraries lazy-load',
+                        'Fixed module dependency loading issues',
+                        'Increased edge drop detection tolerance to 50px'
+                    ]
+                },
+                '1.0.0': {
+                    date: '2025-01-17',
+                    description: 'Initial release',
+                    changes: [
+                        'Core node-based UI system',
+                        'Multiple node types (Base, Group, Log, Settings, etc.)',
+                        'Edge connections with routing',
+                        'Pan and zoom functionality',
+                        'Drag and drop file support',
+                        'Markdown rendering',
+                        '3D viewport integration'
+                    ]
+                }
+            }
+        };
+        console.log(`NodeUI v${window.NODE_UI_VERSION}`);
+    </script>
+    
     <!-- Markdown Processing -->
     <script src="src/core/markdown.js"></script>
 

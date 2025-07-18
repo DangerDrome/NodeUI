@@ -243,6 +243,13 @@ class SettingsNode extends BaseNode {
         section.className = 'settings-section';
         section.innerHTML = '<h3>Project</h3>';
 
+        // Add version info
+        const versionInfo = document.createElement('div');
+        versionInfo.className = 'settings-version-info';
+        versionInfo.style.cssText = 'font-size: 12px; color: var(--color-text-muted); margin-bottom: 10px;';
+        versionInfo.textContent = `NodeUI v${window.NODE_UI_VERSION || 'unknown'}`;
+        section.appendChild(versionInfo);
+
         section.appendChild(this.createTextInput('projectName', 'Project Name', 'project-name-input'));
         section.appendChild(this.createTextInput('thumbnailUrl', 'Thumbnail URL', 'thumbnail-url-input'));
         
