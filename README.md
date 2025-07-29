@@ -2,7 +2,7 @@
 
 A powerful, serverless node-based interface for creating interactive graphs and 3D visualizations. Built with vanilla JavaScript, HTML, and CSS - no build tools or servers required.
 
-## 🚀 Features
+## Features
 
 ### Core Node System
 - **Multiple Node Types**: Base, Group, Log, Routing, Settings, SubGraph, ThreeJS
