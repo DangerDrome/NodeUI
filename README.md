@@ -23,7 +23,7 @@ A powerful, serverless node-based interface for creating interactive graphs and 
 - **Embedded Data**: Demo graph included for immediate testing
 - **Double-Click Launch**: Open index.html directly in any browser
 
-## 🏗️ Architecture
+## Architecture
 
 ### Modular Design
 ```
@@ -67,7 +67,7 @@ src/
 - **InteractionHandler**: Mouse/touch/keyboard interactions
 - **EdgeHandler**: Edge drawing and routing logic
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Option 1: Double-Click Launch (Recommended)
 1. Download or clone the repository
@@ -92,7 +92,7 @@ php -S localhost:8000
 
 Then visit `http://localhost:8000`
 
-## 🎯 Usage
+## Usage
 
 ### Basic Operations
 - **Create Nodes**: Right-click canvas → Add Node
@@ -114,7 +114,7 @@ Then visit `http://localhost:8000`
 - `Ctrl/Cmd + C/V`: Copy/paste nodes
 - `Ctrl/Cmd + Z`: Undo (when implemented)
 
-## 🛠️ Development
+## Development
 
 ### Project Structure
 The application follows a modular architecture with clear separation of concerns:
@@ -137,7 +137,7 @@ CSS is organized into focused files:
 - `timeline.css`: Timeline UI components
 - `variables.css`: CSS custom properties and theming
 
-## 🔧 Technical Details
+## Technical Details
 
 ### Browser Compatibility
 - Modern browsers with ES6+ support
@@ -155,7 +155,7 @@ CSS is organized into focused files:
 - JSON export/import functionality
 - Screenshot capture capability
 
-## 📁 File Structure
+## File Structure
 
 ```
 NodeUI2/
@@ -177,7 +177,7 @@ NodeUI2/
     └── styles/             # CSS stylesheets
 ```
 
-## 🎨 Customization
+## Customization
 
 ### Theming
 Modify `src/styles/variables.css` to customize colors, fonts, and spacing.
@@ -188,7 +188,7 @@ Edit `src/styles/nodes.css` to customize node appearance and animations.
 ### Layout
 Adjust `src/styles/layout.css` to modify the overall application layout.
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -196,11 +196,11 @@ Adjust `src/styles/layout.css` to modify the overall application layout.
 4. Test thoroughly
 5. Submit a pull request
 
-## 📄 License
+## License
 
 This project is open source and available under the [MIT License](LICENSE).
 
-## 🆘 Support
+## Support
 
 For issues, questions, or contributions:
 1. Check the memory bank documentation in `/memory-bank/`
