@@ -5,7 +5,6 @@
 
 const DEFAULT_CONTEXT_MENU_SETTINGS = {
     canvas: {
-        changeBackground: { label: "Background", iconClass: "icon-paint-roller" },
         cut: { label: "Cut", iconClass: "icon-scissors" },
         copy: { label: "Copy", iconClass: "icon-copy" },
         paste: { label: "Paste", iconClass: "icon-clipboard" },
@@ -14,9 +13,9 @@ const DEFAULT_CONTEXT_MENU_SETTINGS = {
         routingNode: { label: "Router", iconClass: "icon-network" },
         group: { label: "Group", iconClass: "icon-group" },
         log: { label: "Log", iconClass: "icon-terminal" },
-        settings: { label: "Settings", iconClass: "icon-settings" },
         subgraph: { label: "Subgraph", iconClass: "icon-box" },
-        threejs: { label: "3D Viewport", iconClass: "icon-cube" },
+        saveGraph: { label: "Save Graph", iconClass: "icon-download" },
+        loadGraph: { label: "Load Graph", iconClass: "icon-upload" },
         snapGrid: { label: "Grid Snap", iconClass: "icon-grid-2x2" },
         snapObject: { label: "Obj Snap", iconClass: "icon-layout-panel-left" }
     },
@@ -159,6 +158,14 @@ class File {
             };
             if (node instanceof GroupNode) {
                 nodeData.containedNodeIds = Array.from(node.containedNodeIds);
+            }
+            
+            // Save SubGraphNode specific data
+            if (node.type === 'SubGraphNode') {
+                nodeData.subgraphId = node.subgraphId;
+                nodeData.subgraphPath = node.subgraphPath;
+                nodeData.internalGraph = node.internalGraph;
+                nodeData.exposedAttributes = node.exposedAttributes;
             }
 
             // If node is pinned, its coords are in screen space. Convert to world space for saving.
@@ -582,13 +589,13 @@ class File {
                         <div class="drop-overlay-option-icon">
                             <i class="icon-refresh-cw"></i>
                         </div>
-                        <div class="drop-overlay-option-text">Replace Current Graph</div>
+                        <div class="drop-overlay-option-text">Replace</div>
                     </div>
                     <div class="drop-overlay-option" data-action="subgraph">
                         <div class="drop-overlay-option-icon">
                             <i class="icon-squares-subtract"></i>
                         </div>
-                        <div class="drop-overlay-option-text">Create SubGraph Node</div>
+                        <div class="drop-overlay-option-text">Subgraph</div>
                     </div>
                 </div>
                 <button class="drop-overlay-cancel">Cancel</button>

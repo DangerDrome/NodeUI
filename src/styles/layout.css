@@ -242,11 +242,11 @@ body {
     display: none;
     background-color: var(--color-bg-panel);
     border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-small);
+    border-radius: var(--radius-medium);
     box-shadow: var(--shadow-small);
     z-index: 100000;
-    min-width: 180px;
-    padding: 4px;
+    min-width: 200px;
+    padding: 6px;
 }
 
 .context-menu ul {
@@ -258,7 +258,7 @@ body {
 .context-menu li {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     padding: 8px 12px;
     cursor: pointer;
     border-radius: var(--radius-small);
@@ -287,8 +287,8 @@ body {
 .context-menu-separator {
     height: 0;
     padding: 0;
-    margin: 8px 12px;
-    border-top: 2px solid var(--color-border-default);
+    margin: 6px 12px;
+    border-top: 1px solid var(--color-border-default);
     background-color: transparent;
     cursor: default;
     display: block;
@@ -340,61 +340,104 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    animation: overlayFadeIn 0.2s ease-out;
+}
+
+@keyframes overlayFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .drop-overlay-content {
-    background: var(--color-bg-panel);
-    border: 2px solid var(--color-border-default);
-    border-radius: var(--radius-medium);
-    padding: 32px;
+    background: linear-gradient(to bottom, rgba(36, 36, 36, 0.95), rgba(28, 28, 28, 0.95));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 40px;
     text-align: center;
-    max-width: 400px;
-    box-shadow: var(--shadow-large);
+    max-width: 420px;
+    box-shadow: 
+        0 24px 48px -12px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .drop-overlay-title {
     color: var(--color-text-emphasis);
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 600;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
 }
 
 .drop-overlay-subtitle {
     color: var(--color-text-subtle);
     font-size: 14px;
-    margin-bottom: 24px;
+    margin-bottom: 32px;
+    opacity: 0.8;
 }
 
 .drop-overlay-options {
     display: flex;
-    gap: 16px;
+    gap: 20px;
     justify-content: center;
+    margin-bottom: 8px;
 }
 
 .drop-overlay-option {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 16px;
-    border: 2px solid var(--color-border-default);
-    border-radius: var(--radius-medium);
-    background: var(--color-bg-default);
+    gap: 12px;
+    padding: 24px 32px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
     cursor: pointer;
     transition: all 0.2s ease;
-    min-width: 120px;
+    min-width: 140px;
+    position: relative;
+    overflow: hidden;
+}
+
+.drop-overlay-option::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), transparent);
+    opacity: 0;
+    transition: opacity 0.2s ease;
 }
 
 .drop-overlay-option:hover {
-    border-color: var(--color-accent);
-    background: var(--color-bg-hover);
+    border-color: rgba(62, 207, 142, 0.5);
+    background: rgba(62, 207, 142, 0.08);
     transform: translateY(-2px);
+    box-shadow: 0 8px 24px -8px rgba(62, 207, 142, 0.3);
+}
+
+.drop-overlay-option:hover::before {
+    opacity: 1;
 }
 
 .drop-overlay-option:active {
@@ -402,13 +445,21 @@ body {
 }
 
 .drop-overlay-option-icon {
-    width: 32px;
-    height: 32px;
+    width: 56px;
+    height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 32px;
     color: var(--color-accent);
+    background: rgba(62, 207, 142, 0.1);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.drop-overlay-option:hover .drop-overlay-option-icon {
+    background: rgba(62, 207, 142, 0.2);
+    transform: scale(1.05);
 }
 
 .drop-overlay-option-icon .icon-camera::before {
@@ -421,25 +472,28 @@ body {
 
 .drop-overlay-option-text {
     color: var(--color-text-default);
-    font-size: 12px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 600;
     text-align: center;
 }
 
 .drop-overlay-cancel {
-    margin-top: 16px;
-    padding: 8px 16px;
+    margin-top: 20px;
+    padding: 10px 24px;
     background: transparent;
-    border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-small);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
     color: var(--color-text-subtle);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 14px;
+    font-weight: 500;
     transition: all 0.2s ease;
+    backdrop-filter: blur(10px);
 }
 
 .drop-overlay-cancel:hover {
-    border-color: var(--color-text-default);
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
     color: var(--color-text-default);
 }
 

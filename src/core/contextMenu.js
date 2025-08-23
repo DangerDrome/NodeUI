@@ -49,9 +49,43 @@ class ContextMenu {
         });
 
         this.menuElement.appendChild(itemList);
-        this.menuElement.style.left = `${x}px`;
-        this.menuElement.style.top = `${y}px`;
+        
+        // Position the menu initially to measure its size
+        this.menuElement.style.left = '0px';
+        this.menuElement.style.top = '0px';
         this.menuElement.style.display = 'block';
+        
+        // Get menu dimensions
+        const menuRect = this.menuElement.getBoundingClientRect();
+        const padding = 10; // Safety margin from screen edges
+        
+        // Calculate adjusted position to prevent clipping
+        let adjustedX = x;
+        let adjustedY = y;
+        
+        // Check right edge
+        if (x + menuRect.width + padding > window.innerWidth) {
+            adjustedX = window.innerWidth - menuRect.width - padding;
+        }
+        
+        // Check bottom edge
+        if (y + menuRect.height + padding > window.innerHeight) {
+            adjustedY = window.innerHeight - menuRect.height - padding;
+        }
+        
+        // Check left edge
+        if (adjustedX < padding) {
+            adjustedX = padding;
+        }
+        
+        // Check top edge
+        if (adjustedY < padding) {
+            adjustedY = padding;
+        }
+        
+        // Apply final position
+        this.menuElement.style.left = `${adjustedX}px`;
+        this.menuElement.style.top = `${adjustedY}px`;
     }
 
     /**
@@ -419,39 +453,32 @@ class ContextMenu {
             });
         });
         
+        // Add separator before save/load
+        items.push({ isSeparator: true });
+        
+        // Add save/load graph options
+        const saveGraphMenu = this.nodeUI.contextMenuSettings.canvas.saveGraph;
+        if (saveGraphMenu) {
+            items.push({
+                label: saveGraphMenu.label,
+                iconClass: saveGraphMenu.iconClass,
+                action: () => events.publish('graph:save')
+            });
+        }
+        
+        const loadGraphMenu = this.nodeUI.contextMenuSettings.canvas.loadGraph;
+        if (loadGraphMenu) {
+            items.push({
+                label: loadGraphMenu.label,
+                iconClass: loadGraphMenu.iconClass,
+                action: () => this.triggerGraphLoad()
+            });
+        }
+        
         // Add other context menu items if not in edge-draw mode
         if (!edgeStartInfo) {
-            // Background color submenu
-            const backgroundSubmenu = [];
-            const colors = ['default', 'red', 'green', 'blue', 'yellow', 'purple'];
-            
-            colors.forEach(color => {
-                // The value to set for the overlay. 'transparent' for default, or the var for others.
-                const finalValue = color === 'default' ? 'transparent' : `var(--color-bg-canvas-${color})`;
-            
-                // The color for the swatch preview. The actual color for colored ones, the base color for default.
-                const swatchColorVar = color === 'default' ? '--color-bg-default' : `--color-bg-canvas-${color}`;
-                
-                backgroundSubmenu.push({
-                    label: color.charAt(0).toUpperCase() + color.slice(1),
-                    iconHtml: `<span class="context-menu-swatch" style="background-color: var(${swatchColorVar})"></span>`,
-                    action: () => {
-                        document.documentElement.style.setProperty('--color-bg-canvas', finalValue);
-                    }
-                });
-            });
-
             // Snap settings
             items.push({ isSeparator: true });
-
-            const changeBackgroundMenu = this.nodeUI.contextMenuSettings.canvas.changeBackground;
-            if (changeBackgroundMenu) {
-                items.push({
-                    label: changeBackgroundMenu.label,
-                    iconClass: changeBackgroundMenu.iconClass,
-                    submenu: backgroundSubmenu
-                });
-            }
 
             const snapGridLabel = `${this.nodeUI.contextMenuSettings.canvas.snapGrid.label}: ${this.nodeUI.snapToGrid ? 'On' : 'Off'}`;
             const snapObjectLabel = `${this.nodeUI.contextMenuSettings.canvas.snapObject.label}: ${this.nodeUI.snapToObjects ? 'On' : 'Off'}`;
@@ -502,6 +529,38 @@ class ContextMenu {
         }
 
         this.show(x, y, items);
+    }
+
+    /**
+     * Triggers a file input to load a graph from JSON.
+     */
+    triggerGraphLoad() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.style.display = 'none';
+        
+        input.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        // Validate it's JSON before loading
+                        JSON.parse(e.target.result);
+                        events.publish('graph:load-content', e.target.result);
+                    } catch (error) {
+                        console.error('Invalid JSON file:', error);
+                        alert('Invalid JSON file format');
+                    }
+                };
+                reader.readAsText(file);
+            }
+            document.body.removeChild(input);
+        });
+        
+        document.body.appendChild(input);
+        input.click();
     }
 
     /**

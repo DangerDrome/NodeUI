@@ -147,10 +147,6 @@ class Main {
 
         this.contextMenuSettings = {
             canvas: {
-                changeBackground: {
-                    label: "Background",
-                    iconClass: "icon-paint-roller"
-                },
                 cut: { label: "Cut", iconClass: "icon-scissors" },
                 copy: { label: "Copy", iconClass: "icon-copy" },
                 paste: { label: "Paste", iconClass: "icon-clipboard" },
@@ -159,10 +155,9 @@ class Main {
                 routingNode: { label: "Router", iconClass: "icon-network" },
                 group: { label: "Group", iconClass: "icon-group" },
                 log: { label: "Log", iconClass: "icon-terminal" },
-                settings: { label: "Settings", iconClass: "icon-settings" },
                 subgraph: { label: "Subgraph", iconClass: "icon-box" },
-                threejs: { label: "3D Viewport", iconClass: "icon-cube" },
-                imageSequence: { label: "Image Sequence", iconClass: "icon-camera" },
+                saveGraph: { label: "Save Graph", iconClass: "icon-download" },
+                loadGraph: { label: "Load Graph", iconClass: "icon-upload" },
                 snapGrid: { label: "Grid Snap", iconClass: "icon-grid-2x2" },
                 snapObject: { label: "Obj Snap", iconClass: "icon-layout-panel-left" }
             },
@@ -2294,7 +2289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             events.publish('graph:load-content', JSON.stringify(defaultGraph));
         };
 
-        await loadInitialGraph();
+        // await loadInitialGraph(); // Disabled - start with blank canvas
     } catch (error) {
         console.error('Failed to initialize NodeUI:', error);
     }
