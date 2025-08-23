@@ -46,6 +46,11 @@ body {
     overflow: hidden;
     cursor: default;
     background-color: var(--color-bg-canvas);
+    outline: none;
+}
+
+#nodeui-canvas-container:focus {
+    outline: 2px solid transparent;
 }
 
 #nodeui-pinned-node-container {
@@ -229,7 +234,8 @@ body {
 
 .selection-box {
     position: absolute;
-    border: 1px solid var(--color-accent);
+    border: 2px dashed var(--color-accent);
+    border-radius: var(--radius-medium);
     background-color: rgba(62, 207, 142, 0.1);
     pointer-events: none;
     z-index: 9999;

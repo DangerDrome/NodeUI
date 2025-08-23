@@ -209,6 +209,9 @@ class Main {
         this.bindEventListeners();
         this.subscribeToEvents();
         
+        // Ensure the container can receive keyboard events
+        this.container.focus();
+        
         // Handle initial URL hash
         if (!window.location.hash) {
             window.location.hash = 'main';
@@ -223,6 +226,11 @@ class Main {
      * Binds DOM event listeners for canvas interactions.
      */
     bindEventListeners() {
+        // Ensure container gets focus on click
+        this.container.addEventListener('mousedown', () => {
+            this.container.focus();
+        });
+        
         document.addEventListener('mousedown', this.interactionHandler.onMouseDown.bind(this.interactionHandler));
         document.addEventListener('mousemove', this.interactionHandler.onMouseMove.bind(this.interactionHandler));
         document.addEventListener('mouseup', this.interactionHandler.onMouseUp.bind(this.interactionHandler));
@@ -1585,6 +1593,168 @@ class Main {
     }
 
     /**
+     * Creates a new subgraph node containing the currently selected nodes.
+     */
+    subgraphSelection() {
+        if (this.selectedNodes.size < 1) return;
+
+        // First, collect all nodes that will be moved (including contained nodes)
+        const selectedNodeIds = Array.from(this.selectedNodes);
+        const allNodeIds = new Set(selectedNodeIds);
+        
+        // If any selected node is a GroupNode, include all its contained nodes
+        selectedNodeIds.forEach(nodeId => {
+            const node = this.nodes.get(nodeId);
+            if (node && (node instanceof GroupNode || node.type === 'GroupNode')) {
+                if (node.containedNodeIds) {
+                    node.containedNodeIds.forEach(containedId => {
+                        allNodeIds.add(containedId);
+                    });
+                }
+            }
+        });
+        
+        // Calculate bounding box for all nodes being moved
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+
+        allNodeIds.forEach(nodeId => {
+            const node = this.nodes.get(nodeId);
+            if (node) {
+                minX = Math.min(minX, node.x);
+                minY = Math.min(minY, node.y);
+                maxX = Math.max(maxX, node.x + node.width);
+                maxY = Math.max(maxY, node.y + node.height);
+            }
+        });
+
+        const padding = 40; // Add padding around the nodes
+        const subgraphX = minX - padding;
+        const subgraphY = minY - padding;
+        const subgraphWidth = (maxX - minX) + (padding * 2);
+        const subgraphHeight = (maxY - minY) + (padding * 2);
+
+        // Create the subgraph node
+        const newSubgraph = new SubGraphNode({
+            x: subgraphX,
+            y: subgraphY,
+            width: subgraphWidth,
+            height: subgraphHeight,
+            title: 'Subgraph'
+        });
+
+        this.addNode(newSubgraph);
+
+        // Convert to array for processing
+        const nodesToMove = Array.from(allNodeIds);
+        const edgesToMove = new Set();
+
+        // Find all edges connected to nodes being moved
+        nodesToMove.forEach(nodeId => {
+            const connectedEdges = this.nodeEdges.get(nodeId);
+            if (connectedEdges) {
+                connectedEdges.forEach(edgeId => {
+                    const edge = this.edges.get(edgeId);
+                    if (edge && nodesToMove.includes(edge.startNodeId) && nodesToMove.includes(edge.endNodeId)) {
+                        edgesToMove.add(edgeId);
+                    }
+                });
+            }
+        });
+
+        // Store nodes and edges in the subgraph's internal graph
+        newSubgraph.internalGraph = {
+            nodes: [],
+            edges: []
+        };
+
+        // Copy nodes to subgraph with relative positions
+        nodesToMove.forEach(nodeId => {
+            const node = this.nodes.get(nodeId);
+            if (node) {
+                // Extract node data
+                const nodeData = {
+                    id: node.id,
+                    x: node.x - subgraphX,  // Adjust position to be relative to the subgraph
+                    y: node.y - subgraphY,
+                    width: node.width,
+                    height: node.height,
+                    title: node.title,
+                    content: node.content,
+                    type: node.type,
+                    color: node.color,
+                    isPinned: false  // Don't pin inside subgraph
+                };
+                
+                // Add type-specific data
+                if (node instanceof GroupNode || node.type === 'GroupNode') {
+                    nodeData.containedNodeIds = Array.from(node.containedNodeIds || []);
+                }
+                if (node.type === 'SubGraphNode') {
+                    nodeData.subgraphId = node.subgraphId;
+                    nodeData.subgraphPath = node.subgraphPath;
+                    nodeData.internalGraph = node.internalGraph;
+                    nodeData.exposedAttributes = node.exposedAttributes;
+                }
+                if (node.type === 'ThreeJSNode') {
+                    nodeData.sceneData = node.sceneData;
+                    nodeData.animationData = node.animationData;
+                }
+                if (node.type === 'ImageSequenceNode') {
+                    nodeData.imageSequence = node.imageSequence;
+                    nodeData.currentFrame = node.currentFrame;
+                    nodeData.fps = node.fps;
+                }
+                
+                // Store node data in subgraph
+                newSubgraph.internalGraph.nodes.push(nodeData);
+            }
+        });
+
+        // Copy edges to subgraph
+        edgesToMove.forEach(edgeId => {
+            const edge = this.edges.get(edgeId);
+            if (edge) {
+                // Store edge data in subgraph
+                newSubgraph.internalGraph.edges.push({
+                    id: edge.id,
+                    startNodeId: edge.startNodeId,
+                    endNodeId: edge.endNodeId,
+                    startHandleId: edge.startHandleId,
+                    endHandleId: edge.endHandleId,
+                    label: edge.label
+                });
+            }
+        });
+
+        // Delete the original nodes and edges from the main graph
+        edgesToMove.forEach(edgeId => {
+            events.publish('edge:delete', edgeId);
+        });
+        
+        nodesToMove.forEach(nodeId => {
+            events.publish('node:delete', nodeId);
+        });
+
+        // Update selection to be just the new subgraph
+        this.clearSelection();
+        this.selectNode(newSubgraph.id);
+        events.publish('selection:changed', {
+            selectedNodeIds: Array.from(this.selectedNodes),
+            selectedEdgeIds: Array.from(this.selectedEdges)
+        });
+        
+        // Update the subgraph preview
+        if (newSubgraph.renderPreview) {
+            setTimeout(() => {
+                newSubgraph.renderPreview();
+            }, 100);
+        }
+    }
+
+    /**
      * Creates a new BaseNode at the last known mouse position.
      */
     createNodeAtMousePosition() {
@@ -2118,6 +2288,11 @@ class Main {
             this.panZoom.offsetY = graphData.canvasState.offsetY || 0;
             this.canvasRenderer.updateCanvasTransform();
         }
+        
+        // Frame all nodes to center them in the viewport
+        setTimeout(() => {
+            this.frameSelection();
+        }, 100);
     }
 
     /**

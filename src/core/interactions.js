@@ -94,7 +94,7 @@ class Interactions {
             }
 
             if (node.isPinned && !(node instanceof SettingsNode)) { // Allow settings node to be dragged even if pinned
-                this.startDrag(nodeId, event.clientX, event.clientY, true);
+                this.startDrag(nodeId, event.clientX, event.clientY, true, event);
                 return;
             }
 
@@ -106,7 +106,7 @@ class Interactions {
                 this.nodeUI.clearSelection();
                 this.nodeUI.selectNode(nodeId);
             }
-            this.startDrag(nodeId, event.clientX, event.clientY);
+            this.startDrag(nodeId, event.clientX, event.clientY, false, event);
             return;
         } 
         
@@ -464,7 +464,7 @@ class Interactions {
         if (nodeElement) {
             event.preventDefault(); // Prevent scrolling
             const nodeId = nodeElement.id;
-            this.startDrag(nodeId, touch.clientX, touch.clientY);
+            this.startDrag(nodeId, touch.clientX, touch.clientY, false, null);
             return;
         } 
         
@@ -818,14 +818,14 @@ class Interactions {
             }
         }
 
-        switch (event.key) {
-            case 'Escape':
+        switch (event.key.toLowerCase()) {
+            case 'escape':
                 if (this.nodeUI.edgeHandler.isDrawing()) {
                     this.nodeUI.endDrawingEdge();
                 }
                 break;
-            case 'Delete':
-            case 'Backspace':
+            case 'delete':
+            case 'backspace':
                 this.nodeUI.deleteSelection();
                 break;
             case 'c':
@@ -834,10 +834,22 @@ class Interactions {
                     this.nodeUI.container.classList.add('is-cutting');
                 }
                 break;
+            case 'g':
+                if (!isModKey && !isEditingContent) {
+                    event.preventDefault();
+                    this.nodeUI.groupSelection();
+                }
+                break;
             case 'r':
                 if (!isModKey && !isEditingContent) {
                     this.nodeUI.edgeHandler.getRoutingCutState().isRouting = true;
                     this.nodeUI.container.classList.add('is-routing');
+                }
+                break;
+            case 's':
+                if (!isModKey && !isEditingContent) {
+                    event.preventDefault();
+                    this.nodeUI.subgraphSelection();
                 }
                 break;
         }
@@ -1138,19 +1150,130 @@ class Interactions {
      * @param {number} clientX - The clientX from the triggering event.
      * @param {number} clientY - The clientY from the triggering event.
      */
-    startDrag(nodeId, clientX, clientY, isPinned = false) {
-        const node = this.nodeUI.nodes.get(nodeId);
+    startDrag(nodeId, clientX, clientY, isPinned = false, event = null) {
+        let node = this.nodeUI.nodes.get(nodeId);
         if (!node) return;
+        
+        let actualNodeId = nodeId;
+        let actualNode = node;
+
+        // Check if Alt key is pressed for duplication
+        if (event && event.altKey) {
+            // Calculate where we clicked on the original node
+            const rect = node.element.getBoundingClientRect();
+            const clickOffsetX = (clientX - rect.left) / this.nodeUI.panZoom.scale;
+            const clickOffsetY = (clientY - rect.top) / this.nodeUI.panZoom.scale;
+            
+            // Get mouse position in world coordinates
+            const mouseWorldX = (clientX - this.nodeUI.panZoom.offsetX) / this.nodeUI.panZoom.scale;
+            const mouseWorldY = (clientY - this.nodeUI.panZoom.offsetY) / this.nodeUI.panZoom.scale;
+            
+            // Create duplicate at the mouse position adjusted for click offset
+            const duplicateX = mouseWorldX - clickOffsetX;
+            const duplicateY = mouseWorldY - clickOffsetY;
+            
+            const nodeData = {
+                id: node.id,
+                x: duplicateX,
+                y: duplicateY,
+                width: node.width,
+                height: node.height,
+                title: node.title,
+                content: node.content,
+                type: node.type,
+                color: node.color,
+                isPinned: false
+            };
+            
+            // Add type-specific data
+            if (node instanceof GroupNode || node.type === 'GroupNode') {
+                nodeData.containedNodeIds = Array.from(node.containedNodeIds || []);
+            }
+            if (node.type === 'SubGraphNode') {
+                nodeData.subgraphId = node.subgraphId;
+                nodeData.subgraphPath = node.subgraphPath;
+                nodeData.internalGraph = node.internalGraph;
+                nodeData.exposedAttributes = node.exposedAttributes;
+            }
+            if (node.type === 'ThreeJSNode') {
+                nodeData.sceneData = node.sceneData;
+                nodeData.animationData = node.animationData;
+            }
+            if (node.type === 'ImageSequenceNode') {
+                nodeData.imageSequence = node.imageSequence;
+                nodeData.currentFrame = node.currentFrame;
+                nodeData.fps = node.fps;
+            }
+            
+            // Create new node at the same position as original
+            const newId = crypto.randomUUID();
+            const duplicatedNode = this.createNodeFromData({
+                ...nodeData,
+                id: newId
+            });
+            
+            if (duplicatedNode) {
+                this.nodeUI.nodeManager.addNode(duplicatedNode);
+                
+                // Duplicate all connected edges
+                const connectedEdges = this.nodeUI.nodeEdges.get(nodeId);
+                if (connectedEdges) {
+                    connectedEdges.forEach(edgeId => {
+                        const edge = this.nodeUI.edges.get(edgeId);
+                        if (edge) {
+                            if (edge.startNodeId === nodeId) {
+                                // Create edge from new node to end
+                                events.publish('edge:create', {
+                                    startNodeId: newId,
+                                    startHandleId: edge.startHandleId,
+                                    endNodeId: edge.endNodeId,
+                                    endHandleId: edge.endHandleId,
+                                    label: edge.label
+                                });
+                            } else if (edge.endNodeId === nodeId) {
+                                // Create edge from start to new node
+                                events.publish('edge:create', {
+                                    startNodeId: edge.startNodeId,
+                                    startHandleId: edge.startHandleId,
+                                    endNodeId: newId,
+                                    endHandleId: edge.endHandleId,
+                                    label: edge.label
+                                });
+                            }
+                        }
+                    });
+                }
+                
+                // Clear selection and select only the new node
+                this.nodeUI.clearSelection();
+                this.nodeUI.selectNode(newId);
+                
+                // Ensure the DOM element exists and position is synced
+                if (!duplicatedNode.element) {
+                    console.warn('Duplicated node element not ready');
+                    return;
+                }
+                
+                // Ensure the DOM position matches the node position
+                duplicatedNode.element.style.left = `${duplicatedNode.x}px`;
+                duplicatedNode.element.style.top = `${duplicatedNode.y}px`;
+                
+                // Switch to dragging the duplicated node
+                actualNode = duplicatedNode;
+                actualNodeId = newId;
+            }
+        }
 
         this.nodeUI.draggingState.isDragging = true;
-        this.nodeUI.draggingState.targetNode = node;
+        this.nodeUI.draggingState.targetNode = actualNode;
         this.nodeUI.draggingState.isDraggingPinned = isPinned;
         
         // Store initial mouse position and node's original position
         this.nodeUI.draggingState.startX = clientX;
         this.nodeUI.draggingState.startY = clientY;
         
-        const nodesToMove = this.getNodesToMove(nodeId);
+        
+        const nodesToMove = this.getNodesToMove(actualNodeId);
         
         nodesToMove.forEach(nodeToMoveId => {
             const nodeToMove = this.nodeUI.nodes.get(nodeToMoveId);
@@ -1163,7 +1286,33 @@ class Interactions {
         this.nodeUI.draggingState.shakeHistory = [];
         this.nodeUI.draggingState.lastShakeTime = Date.now();
         
-        node.element.classList.add('is-dragging');
+        actualNode.element.classList.add('is-dragging');
+    }
+
+    /**
+     * Creates a node instance from node data.
+     * @param {object} nodeData - The node data.
+     * @returns {BaseNode} The created node instance.
+     */
+    createNodeFromData(nodeData) {
+        switch (nodeData.type) {
+            case 'GroupNode':
+                return new GroupNode(nodeData);
+            case 'RoutingNode':
+                return new RoutingNode(nodeData);
+            case 'LogNode':
+                return new LogNode(nodeData);
+            case 'SettingsNode':
+                return new SettingsNode(nodeData);
+            case 'SubGraphNode':
+                return new SubGraphNode(nodeData);
+            case 'ThreeJSNode':
+                return new ThreeJSNode(nodeData);
+            case 'ImageSequenceNode':
+                return new ImageSequenceNode(nodeData);
+            default:
+                return new BaseNode(nodeData);
+        }
     }
 
     /**

@@ -1589,6 +1589,7 @@ class Main {
         });
     }
 
+
     /**
      * Creates a new BaseNode at the last known mouse position.
      */
