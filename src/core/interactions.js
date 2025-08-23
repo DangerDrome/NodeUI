@@ -1573,6 +1573,35 @@ class Interactions {
         const originalEndNodeId = edge.endNodeId;
         const originalStartHandleId = edge.startHandleId;
         const originalEndHandleId = edge.endHandleId;
+        
+        // Determine the direction of the edge to choose appropriate handles
+        const p1 = edge.startPosition;
+        const p2 = edge.endPosition;
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        
+        let startHandle, endHandle;
+        
+        // Determine if edge is more horizontal or vertical
+        if (Math.abs(dx) > Math.abs(dy)) {
+            // More horizontal
+            if (dx > 0) {
+                startHandle = 'left';
+                endHandle = 'right';
+            } else {
+                startHandle = 'right';
+                endHandle = 'left';
+            }
+        } else {
+            // More vertical
+            if (dy > 0) {
+                startHandle = 'top';
+                endHandle = 'bottom';
+            } else {
+                startHandle = 'bottom';
+                endHandle = 'top';
+            }
+        }
 
         // Delete the original edge first to correctly update handle states
         if (removeOriginalEdge) {
@@ -1584,11 +1613,11 @@ class Interactions {
             startNodeId: originalStartNodeId, 
             startHandleId: originalStartHandleId, 
             endNodeId: node.id, 
-            endHandleId: 'left' 
+            endHandleId: startHandle 
         });
         events.publish('edge:create', { 
             startNodeId: node.id, 
-            startHandleId: 'right', 
+            startHandleId: endHandle, 
             endNodeId: originalEndNodeId, 
             endHandleId: originalEndHandleId 
         });

@@ -674,12 +674,44 @@ class Canvas {
                 const point2 = path.getPointAtLength(i + 5 > len ? len : i + 5);
                 const intersection = this.getLineIntersection(p1, p2, point1, point2);
                 if (intersection) {
-                    const routingNode = new RoutingNode({ x: intersection.x, y: intersection.y });
+                    const routingNode = new RoutingNode({ 
+                        x: intersection.x - 15, // Center the 30px node
+                        y: intersection.y - 15 
+                    });
                     this.nodeUI.addNode(routingNode);
                     
+                    // Determine the direction of the edge to choose appropriate handles
+                    const p1 = edge.startPosition;
+                    const p2 = edge.endPosition;
+                    const dx = p2.x - p1.x;
+                    const dy = p2.y - p1.y;
+                    
+                    let startHandle, endHandle;
+                    
+                    // Determine if edge is more horizontal or vertical
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        // More horizontal
+                        if (dx > 0) {
+                            startHandle = 'left';
+                            endHandle = 'right';
+                        } else {
+                            startHandle = 'right';
+                            endHandle = 'left';
+                        }
+                    } else {
+                        // More vertical
+                        if (dy > 0) {
+                            startHandle = 'top';
+                            endHandle = 'bottom';
+                        } else {
+                            startHandle = 'bottom';
+                            endHandle = 'top';
+                        }
+                    }
+                    
                     // Create two new edges
-                    events.publish('edge:create', { startNodeId: edge.startNodeId, startHandleId: edge.startHandleId, endNodeId: routingNode.id, endHandleId: 'left' });
-                    events.publish('edge:create', { startNodeId: routingNode.id, startHandleId: 'right', endNodeId: edge.endNodeId, endHandleId: edge.endHandleId });
+                    events.publish('edge:create', { startNodeId: edge.startNodeId, startHandleId: edge.startHandleId, endNodeId: routingNode.id, endHandleId: startHandle });
+                    events.publish('edge:create', { startNodeId: routingNode.id, startHandleId: endHandle, endNodeId: edge.endNodeId, endHandleId: edge.endHandleId });
                     
                     // Delete the original edge
                     events.publish('edge:delete', edge.id);

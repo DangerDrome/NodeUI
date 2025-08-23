@@ -596,12 +596,47 @@ class ContextMenu {
                     const midX = (p1.x + p2.x) / 2;
                     const midY = (p1.y + p2.y) / 2;
 
-                    const routingNode = new RoutingNode({ x: midX, y: midY });
+                    // Adjust position to center the routing node on the edge midpoint
+                    const routingNode = new RoutingNode({ 
+                        x: midX - 15, // Half of default width (30)
+                        y: midY - 15  // Half of default height (30)
+                    });
                     this.nodeUI.addNode(routingNode);
                     
+                    // Determine the direction of the edge to choose appropriate handles
+                    const dx = p2.x - p1.x;
+                    const dy = p2.y - p1.y;
+                    
+                    let startHandle, endHandle;
+                    
+                    // Determine if edge is more horizontal or vertical
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        // More horizontal
+                        if (dx > 0) {
+                            // Left to right
+                            startHandle = 'left';
+                            endHandle = 'right';
+                        } else {
+                            // Right to left
+                            startHandle = 'right';
+                            endHandle = 'left';
+                        }
+                    } else {
+                        // More vertical
+                        if (dy > 0) {
+                            // Top to bottom
+                            startHandle = 'top';
+                            endHandle = 'bottom';
+                        } else {
+                            // Bottom to top
+                            startHandle = 'bottom';
+                            endHandle = 'top';
+                        }
+                    }
+                    
                     // Create two new edges connecting to the new routing node
-                    events.publish('edge:create', { startNodeId: edge.startNodeId, startHandleId: edge.startHandleId, endNodeId: routingNode.id, endHandleId: 'left' });
-                    events.publish('edge:create', { startNodeId: routingNode.id, startHandleId: 'right', endNodeId: edge.endNodeId, endHandleId: edge.endHandleId });
+                    events.publish('edge:create', { startNodeId: edge.startNodeId, startHandleId: edge.startHandleId, endNodeId: routingNode.id, endHandleId: startHandle });
+                    events.publish('edge:create', { startNodeId: routingNode.id, startHandleId: endHandle, endNodeId: edge.endNodeId, endHandleId: edge.endHandleId });
                     
                     // Delete the original edge
                     events.publish('edge:delete', edge.id);
