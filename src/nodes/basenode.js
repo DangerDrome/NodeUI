@@ -245,7 +245,11 @@ class BaseNode {
         const videos = contentArea.querySelectorAll('video[data-auto-resize="true"]');
         
         videos.forEach(video => {
-            video.addEventListener('loadedmetadata', () => {
+            // Use a debounced resize to avoid multiple rapid updates
+            let resizeTimeout;
+            const handleResize = () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
                 const videoWidth = video.videoWidth;
                 const videoHeight = video.videoHeight;
                 
@@ -304,7 +308,10 @@ class BaseNode {
                         window.nodeui.canvasRenderer.requestRedraw();
                     }
                 }
-            });
+                }, 100); // 100ms debounce
+            };
+            
+            video.addEventListener('loadedmetadata', handleResize);
             
             // If video is already loaded, trigger the resize
             if (video.readyState >= 1) {

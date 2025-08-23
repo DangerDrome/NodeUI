@@ -51,7 +51,7 @@ window.initializeMarkdown = function() {
                                 const file = await assetDb.getFile(fileId);
                                 const blobUrl = URL.createObjectURL(file);
                                 node.type = 'html';
-                                node.value = `<video controls loop muted autoplay width="100%" data-auto-resize="true"><source src="${blobUrl}"></video>`;
+                                node.value = `<video controls loop muted width="100%" data-auto-resize="true"><source src="${blobUrl}"></video>`;
                             } catch (error) {
                                 console.error(`Failed to load local video ${url}:`, error);
                                 node.type = 'html';
@@ -76,7 +76,7 @@ window.initializeMarkdown = function() {
                                     </div>`;
                             } else {
                                 node.type = 'html';
-                                node.value = `<video controls loop muted autoplay width="100%" data-auto-resize="true"><source src="${url}"></video>`;
+                                node.value = `<video controls loop muted width="100%" data-auto-resize="true"><source src="${url}"></video>`;
                             }
                         }
                     }
