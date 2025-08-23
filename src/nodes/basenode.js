@@ -224,14 +224,93 @@ class BaseNode {
             // Sanitize the HTML to prevent XSS attacks before inserting it.
             contentArea.innerHTML = DOMPurify.sanitize(dirtyHtml, {
                 ADD_TAGS: ['iframe', 'div'],
-                ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'src', 'style'],
+                ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'src', 'style', 'data-auto-resize'],
                 // Allow YouTube and other video sources, including blob URLs
                 ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|ftp|tel|callto|sms|blob):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
             });
+            
+            // Auto-resize node based on video aspect ratio
+            this.setupVideoAutoResize(contentArea);
         } catch (error) {
             console.error('Error processing markdown:', error);
             contentArea.innerText = this.content || '';
         }
+    }
+
+    /**
+     * Sets up auto-resize functionality for videos in the content area.
+     * @param {HTMLElement} contentArea The content area containing videos.
+     */
+    setupVideoAutoResize(contentArea) {
+        const videos = contentArea.querySelectorAll('video[data-auto-resize="true"]');
+        
+        videos.forEach(video => {
+            video.addEventListener('loadedmetadata', () => {
+                const videoWidth = video.videoWidth;
+                const videoHeight = video.videoHeight;
+                
+                if (videoWidth && videoHeight) {
+                    const aspectRatio = videoWidth / videoHeight;
+                    const titleBarHeight = 30; // Approximate height of title bar
+                    const padding = 20; // Some padding
+                    
+                    let targetWidth, targetHeight;
+                    
+                    // Handle different aspect ratios
+                    if (aspectRatio < 0.75) {
+                        // Portrait video (taller than 4:3)
+                        // Set height first, then calculate width
+                        const maxHeight = 600;
+                        targetHeight = Math.min(maxHeight, videoHeight);
+                        targetWidth = targetHeight * aspectRatio;
+                        
+                        // Ensure minimum width
+                        if (targetWidth < 250) {
+                            targetWidth = 250;
+                            targetHeight = targetWidth / aspectRatio;
+                        }
+                    } else if (aspectRatio > 2.5) {
+                        // Ultra-wide video
+                        // Cap the width and adjust height
+                        targetWidth = Math.min(800, videoWidth);
+                        targetHeight = targetWidth / aspectRatio;
+                        
+                        // Ensure minimum height for content
+                        if (targetHeight < 150) {
+                            targetHeight = 150;
+                            targetWidth = targetHeight * aspectRatio;
+                        }
+                    } else {
+                        // Standard landscape video
+                        targetWidth = Math.max(300, Math.min(600, videoWidth));
+                        targetHeight = targetWidth / aspectRatio;
+                    }
+                    
+                    // Add title bar and padding to height
+                    targetHeight += titleBarHeight + padding;
+                    
+                    // Ensure reasonable bounds
+                    targetWidth = Math.max(250, Math.min(800, targetWidth));
+                    targetHeight = Math.max(200, Math.min(800, targetHeight));
+                    
+                    // Update node dimensions
+                    this.update({
+                        width: Math.round(targetWidth),
+                        height: Math.round(targetHeight)
+                    });
+                    
+                    // Trigger a redraw to update edges
+                    if (window.nodeui) {
+                        window.nodeui.canvasRenderer.requestRedraw();
+                    }
+                }
+            });
+            
+            // If video is already loaded, trigger the resize
+            if (video.readyState >= 1) {
+                video.dispatchEvent(new Event('loadedmetadata'));
+            }
+        });
     }
 
     /**
