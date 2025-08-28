@@ -4,6 +4,10 @@
  */
 
 export async function onRequest(context) {
+  // Debug log
+  console.log('Collab function called:', context.request.url);
+  console.log('DO binding exists:', !!context.env.COLLABORATION_ROOMS);
+  
   // Only handle WebSocket upgrade requests
   const upgradeHeader = context.request.headers.get('Upgrade');
   if (upgradeHeader !== 'websocket') {
