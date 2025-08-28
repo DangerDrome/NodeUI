@@ -257,7 +257,15 @@ class Collaboration {
             };
             
             this.ws.onmessage = (event) => {
-                this.handleMessage(JSON.parse(event.data));
+                const message = JSON.parse(event.data);
+                
+                // Handle ping/pong for keep-alive
+                if (message.type === 'ping') {
+                    this.send({ type: 'pong' });
+                    return;
+                }
+                
+                this.handleMessage(message);
             };
             
             this.ws.onerror = (error) => {
