@@ -10,17 +10,72 @@ class Nodes {
     constructor(nodeUI) {
         this.nodeUI = nodeUI;
     }
+    
+    /**
+     * Removes any orphaned edges (edges with missing nodes).
+     */
+    cleanupOrphanedEdges() {
+        const edgesToRemove = [];
+        this.nodeUI.edges.forEach((edge, edgeId) => {
+            if (!this.nodeUI.nodes.has(edge.startNodeId) || !this.nodeUI.nodes.has(edge.endNodeId)) {
+                edgesToRemove.push(edgeId);
+            }
+        });
+        
+        edgesToRemove.forEach(edgeId => {
+            console.warn(`Removing orphaned edge: ${edgeId}`);
+            this.removeEdge(edgeId);
+        });
+    }
 
     /**
      * Adds a node to the canvas and renders it.
      * @param {BaseNode} node - The node instance to add.
+     * @param {boolean} skipBroadcast - Skip broadcasting for collaboration (prevents loops)
      */
-    addNode(node) {
+    addNode(node, skipBroadcast = false) {
+        // Check if node already exists to prevent duplicates
+        if (this.nodeUI.nodes.has(node.id)) {
+            return;
+        }
+        
         this.nodeUI.nodes.set(node.id, node);
         if (node instanceof GroupNode) {
             node.render(this.nodeUI.groupContainer);
         } else {
             node.render(this.nodeUI.nodeContainer);
+        }
+        
+        // Broadcast to collaboration system unless explicitly skipped
+        if (!skipBroadcast && this.nodeUI.collaboration && this.nodeUI.collaboration.isConnected) {
+            const nodeData = {
+                id: node.id,
+                x: node.x,
+                y: node.y,
+                width: node.width,
+                height: node.height,
+                title: node.title,
+                content: node.content,
+                type: node.constructor.name,
+                color: node.color,
+                isPinned: node.isPinned
+            };
+            
+            // Add type-specific properties
+            if (node instanceof GroupNode) {
+                // Convert Set to Array for serialization
+                nodeData.containedNodeIds = Array.from(node.containedNodeIds);
+            }
+            
+            // Use the node's parentGraphId if it exists, otherwise use current context
+            if (node.parentGraphId) {
+                nodeData.parentGraphId = node.parentGraphId;
+            } else if (this.nodeUI.graphContext.currentGraphId !== 'main') {
+                nodeData.parentGraphId = this.nodeUI.graphContext.currentGraphId;
+            }
+            
+            // Directly call the collaboration handler instead of publishing event
+            this.nodeUI.collaboration.handleLocalEvent('node:create', nodeData);
         }
     }
 
@@ -29,6 +84,24 @@ class Nodes {
      * @param {BaseEdge} edge - The edge instance to add.
      */
     addEdge(edge) {
+        // Validate nodes exist before creating edge
+        const startNode = this.nodeUI.nodes.get(edge.startNodeId);
+        const endNode = this.nodeUI.nodes.get(edge.endNodeId);
+        
+        if (!startNode || !endNode) {
+            console.warn(`Cannot create edge ${edge.id}: missing nodes (start: ${edge.startNodeId} exists: ${!!startNode}, end: ${edge.endNodeId} exists: ${!!endNode})`);
+            // Defer edge creation in case nodes are still being created
+            setTimeout(() => {
+                const retryStart = this.nodeUI.nodes.get(edge.startNodeId);
+                const retryEnd = this.nodeUI.nodes.get(edge.endNodeId);
+                if (retryStart && retryEnd) {
+                    console.log(`Retrying edge ${edge.id} creation`);
+                    this.addEdge(edge);
+                }
+            }, 100);
+            return;
+        }
+        
         this.nodeUI.edges.set(edge.id, edge);
         edge.render(this.nodeUI.canvasGroup); // Edges are SVG elements
         
@@ -37,9 +110,6 @@ class Nodes {
         this._addToNodeEdgeMapping(edge.endNodeId, edge.id);
         
         // Calculate initial positions and draw the edge immediately
-        const startNode = this.nodeUI.nodes.get(edge.startNodeId);
-        const endNode = this.nodeUI.nodes.get(edge.endNodeId);
-        
         if (startNode && endNode) {
             edge.startPosition = this.nodeUI.getHandlePosition(edge.startNodeId, edge.startHandleId);
             edge.endPosition = this.nodeUI.getHandlePosition(edge.endNodeId, edge.endHandleId);

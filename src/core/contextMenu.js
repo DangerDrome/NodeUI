@@ -495,6 +495,42 @@ class ContextMenu {
                     action: () => events.publish('snap:object-toggle')
                 }
             );
+            
+            // Collaboration
+            items.push({ isSeparator: true });
+            
+            const isConnected = this.nodeUI.collaboration && this.nodeUI.collaboration.isConnected;
+            
+            if (isConnected) {
+                items.push({
+                    label: 'Leave Session',
+                    iconClass: 'icon-log-out',
+                    action: () => {
+                        if (this.nodeUI.collaboration) {
+                            this.nodeUI.collaboration.leaveSession();
+                        }
+                    }
+                });
+            } else {
+                items.push({
+                    label: 'New Session',
+                    iconClass: 'icon-plus-circle',
+                    action: () => {
+                        if (this.nodeUI.collaboration) {
+                            this.nodeUI.collaboration.startSession();
+                        }
+                    }
+                });
+                items.push({
+                    label: 'Join Session',
+                    iconClass: 'icon-log-in',
+                    action: () => {
+                        if (this.nodeUI.collaboration) {
+                            this.nodeUI.collaboration.showJoinDialog();
+                        }
+                    }
+                });
+            }
 
             // Clipboard actions
             items.push({ isSeparator: true });

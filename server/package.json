@@ -1,0 +1,12 @@
+{
+  "name": "nodeui-collaboration-server",
+  "version": "1.0.0",
+  "description": "Simple WebSocket server for NodeUI shared sessions",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2"
+  }
+}

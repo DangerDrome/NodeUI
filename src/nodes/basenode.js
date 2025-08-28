@@ -29,7 +29,8 @@ class BaseNode {
         content = '',
         type = 'BaseNode',
         color = 'yellow',
-        isPinned = false
+        isPinned = false,
+        parentGraphId = null
     } = {}) {
         this.id = id;
         this.x = x;
@@ -41,6 +42,7 @@ class BaseNode {
         this.type = type;
         this.color = color || 'yellow';
         this.isPinned = isPinned;
+        this.parentGraphId = parentGraphId;
 
         this.element = null; // To hold the DOM element
         this.popoverElement = null; // Container for the popover
