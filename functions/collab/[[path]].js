@@ -4,31 +4,22 @@
  */
 
 export async function onRequest(context) {
-  // Debug log
-  console.log('Collab function called:', context.request.url);
-  console.log('DO binding exists:', !!context.env.COLLABORATION_ROOMS);
-  
-  // Only handle WebSocket upgrade requests
-  const upgradeHeader = context.request.headers.get('Upgrade');
-  if (upgradeHeader !== 'websocket') {
-    return new Response('Expected WebSocket', { status: 426 });
-  }
-
-  // Extract session ID from URL path
-  // URL format: https://nodeui.io/collab/SESSION_ID
   const url = new URL(context.request.url);
-  const pathParts = url.pathname.split('/');
-  const sessionId = pathParts[pathParts.length - 1] || 'default';
-
-  // Check if Durable Objects binding exists
-  if (!context.env.COLLABORATION_ROOMS) {
-    return new Response('Durable Objects binding not configured', { status: 500 });
-  }
-
-  // Get or create a Durable Object instance for this session
-  const id = context.env.COLLABORATION_ROOMS.idFromName(sessionId);
-  const stub = context.env.COLLABORATION_ROOMS.get(id);
   
-  // Forward the WebSocket request to the Durable Object
-  return stub.fetch(context.request);
+  // Extract session ID from URL
+  const pathParts = url.pathname.split('/').filter(p => p);
+  const sessionId = pathParts[pathParts.length - 1] || 'default';
+  
+  // Get the Durable Object namespace
+  const namespace = context.env.COLLABORATION_ROOMS;
+  if (!namespace) {
+    return new Response('Durable Object binding not configured', { status: 500 });
+  }
+  
+  // Get the Durable Object for this session
+  const id = namespace.idFromName(sessionId);
+  const durableObject = namespace.get(id);
+  
+  // Forward the request to the Durable Object
+  return durableObject.fetch(context.request);
 }
