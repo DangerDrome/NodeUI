@@ -304,6 +304,12 @@ class Collaboration {
                 break;
                 
             case 'state-response':
+                // Only load state from users in the same context
+                if (message.graphContext && message.graphContext !== this.nodeUI.graphContext.currentGraphId) {
+                    console.log('Ignoring state from different context:', message.graphContext);
+                    return;
+                }
+                
                 // Only load the first state response to avoid conflicts
                 if (!this.hasLoadedState) {
                     this.hasLoadedState = true;
@@ -352,6 +358,7 @@ class Collaboration {
             return;
         }
         
+        
         // Handle both object and primitive data types
         const isObject = data && typeof data === 'object';
         
@@ -378,14 +385,8 @@ class Collaboration {
         this.localOperations.add(operationId);
         setTimeout(() => this.localOperations.delete(operationId), this.operationTimeout);
         
-        // Add current graph context for edge events
-        let eventData = data;
-        if (eventName === 'edge:create' && isObject && this.nodeUI.graphContext.currentGraphId !== 'main') {
-            eventData = {
-                ...data,
-                parentGraphId: this.nodeUI.graphContext.currentGraphId
-            };
-        }
+        // Handle both object and primitive data types
+        const eventData = data;
         
         const message = {
             type: 'operation',
@@ -394,7 +395,8 @@ class Collaboration {
             operationId: operationId,
             eventName: eventName,
             data: eventData,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            graphContext: this.nodeUI.graphContext.currentGraphId
         };
         
         
@@ -412,6 +414,16 @@ class Collaboration {
         // Skip if this is our own operation (echo prevention)
         if (this.localOperations.has(message.operationId) || message.userId === this.userId) {
             return;
+        }
+        
+        // Skip if the sender is in a different graph context (except for subgraph:update)
+        if (message.graphContext && message.graphContext !== this.nodeUI.graphContext.currentGraphId) {
+            // Special handling for subgraph updates - these should cross contexts
+            if (message.eventName === 'subgraph:update') {
+                // Let it through - the handler will check if we should process it
+            } else {
+                return; // Ignore other operations from users in different contexts
+            }
         }
         
         
@@ -453,7 +465,6 @@ class Collaboration {
                 type: node.type || node.constructor.name,
                 color: node.color,
                 isPinned: node.isPinned,
-                parentGraphId: this.nodeUI.graphContext.currentGraphId,
                 // Add type-specific data
                 ...(node.containedNodeIds && { containedNodeIds: Array.from(node.containedNodeIds) }),
                 ...(node.internalGraph && { internalGraph: node.internalGraph }),
@@ -467,8 +478,7 @@ class Collaboration {
                 endHandleId: edge.endHandleId,
                 type: edge.type,
                 label: edge.label,
-                routingPoints: edge.routingPoints,
-                parentGraphId: this.nodeUI.graphContext.currentGraphId
+                routingPoints: edge.routingPoints
             }))
         };
         
@@ -476,7 +486,8 @@ class Collaboration {
             type: 'state-response',
             sessionId: this.sessionId,
             userId: this.userId,
-            state: state
+            state: state,
+            graphContext: this.nodeUI.graphContext.currentGraphId
         });
     }
     
@@ -495,17 +506,28 @@ class Collaboration {
         // Load nodes
         if (state.nodes) {
             state.nodes.forEach(nodeData => {
-                events.publish('node:create', nodeData);
+                // Mark with _operationId to prevent re-broadcasting
+                const nodeDataWithOperationId = {
+                    ...nodeData,
+                    _operationId: `remote_state_${Date.now()}_${Math.random()}`
+                };
+                events.publish('node:create', nodeDataWithOperationId);
             });
         }
         
         // Load edges (after nodes are created)
         if (state.edges) {
-            setTimeout(() => {
+            // Use requestAnimationFrame to ensure nodes are rendered before edges
+            requestAnimationFrame(() => {
                 state.edges.forEach(edgeData => {
-                    events.publish('edge:create', edgeData);
+                    // Mark with _operationId to prevent re-broadcasting
+                    const edgeDataWithOperationId = {
+                        ...edgeData,
+                        _operationId: `remote_state_${Date.now()}_${Math.random()}`
+                    };
+                    events.publish('edge:create', edgeDataWithOperationId);
                 });
-            }, 50); // Small delay to ensure nodes are created first
+            });
         }
         
         // Re-enable broadcasting

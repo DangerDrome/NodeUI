@@ -67,12 +67,6 @@ class Nodes {
                 nodeData.containedNodeIds = Array.from(node.containedNodeIds);
             }
             
-            // Use the node's parentGraphId if it exists, otherwise use current context
-            if (node.parentGraphId) {
-                nodeData.parentGraphId = node.parentGraphId;
-            } else if (this.nodeUI.graphContext.currentGraphId !== 'main') {
-                nodeData.parentGraphId = this.nodeUI.graphContext.currentGraphId;
-            }
             
             // Directly call the collaboration handler instead of publishing event
             this.nodeUI.collaboration.handleLocalEvent('node:create', nodeData);
@@ -82,23 +76,22 @@ class Nodes {
     /**
      * Adds an edge to the canvas and renders it.
      * @param {BaseEdge} edge - The edge instance to add.
+     * @param {boolean} skipBroadcast - Skip broadcasting for collaboration (prevents loops)
      */
-    addEdge(edge) {
+    addEdge(edge, skipBroadcast = false) {
+        // Check if edge already exists to prevent duplicates
+        if (this.nodeUI.edges.has(edge.id)) {
+            return;
+        }
+        
         // Validate nodes exist before creating edge
         const startNode = this.nodeUI.nodes.get(edge.startNodeId);
         const endNode = this.nodeUI.nodes.get(edge.endNodeId);
         
+        
         if (!startNode || !endNode) {
             console.warn(`Cannot create edge ${edge.id}: missing nodes (start: ${edge.startNodeId} exists: ${!!startNode}, end: ${edge.endNodeId} exists: ${!!endNode})`);
-            // Defer edge creation in case nodes are still being created
-            setTimeout(() => {
-                const retryStart = this.nodeUI.nodes.get(edge.startNodeId);
-                const retryEnd = this.nodeUI.nodes.get(edge.endNodeId);
-                if (retryStart && retryEnd) {
-                    console.log(`Retrying edge ${edge.id} creation`);
-                    this.addEdge(edge);
-                }
-            }, 100);
+            // Don't retry - if nodes don't exist, the edge shouldn't exist
             return;
         }
         
@@ -118,6 +111,23 @@ class Nodes {
             // Update node connection states
             startNode.addConnection(edge.startHandleId, edge.id);
             endNode.addConnection(edge.endHandleId, edge.id);
+        }
+        
+        // Broadcast to collaboration system unless explicitly skipped
+        if (!skipBroadcast && this.nodeUI.collaboration && this.nodeUI.collaboration.isConnected) {
+            const edgeData = {
+                id: edge.id,
+                startNodeId: edge.startNodeId,
+                endNodeId: edge.endNodeId,
+                startHandleId: edge.startHandleId,
+                endHandleId: edge.endHandleId,
+                type: edge.type,
+                label: edge.label,
+                routingPoints: edge.routingPoints
+            };
+            
+            // Directly call the collaboration handler instead of publishing event
+            this.nodeUI.collaboration.handleLocalEvent('edge:create', edgeData);
         }
     }
 

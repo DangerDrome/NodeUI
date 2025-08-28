@@ -24,9 +24,7 @@ class BaseEdge {
         startHandleId = null,
         endHandleId = null,
         type = 'BaseEdge',
-        label = '',
-        routingPoints = [],
-        parentGraphId = null
+        label = ''
     } = {}) {
         this.id = id;
         this.startNodeId = startNodeId;
@@ -35,10 +33,9 @@ class BaseEdge {
         this.endHandleId = endHandleId;
         this.startPosition = null; // Calculated in addEdge
         this.endPosition = null;   // Calculated in addEdge
-        this.routingPoints = routingPoints; // Array of {x, y} points
+        this.routingPoints = []; // Array of {x, y} points
         this.type = type;
         this.label = label;
-        this.parentGraphId = parentGraphId;
 
 
         this.element = null; // To hold the DOM element (e.g., an SVG path)

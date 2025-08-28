@@ -287,32 +287,23 @@ class Main {
             // Skip broadcast only when handling remote events (they're already synced)
             const skipBroadcast = options._operationId ? true : false;
             
-            // Set parentGraphId if not already set (for new nodes created by current user)
-            if (!options.parentGraphId) {
-                options.parentGraphId = this.graphContext.currentGraphId;
-            }
-            
-            // Create node instance
-            let node;
             if (options.type === 'GroupNode') {
-                node = new GroupNode(options);
+                this.nodeManager.addNode(new GroupNode(options), skipBroadcast);
             } else if (options.type === 'RoutingNode') {
-                node = new RoutingNode(options);
+                this.nodeManager.addNode(new RoutingNode(options), skipBroadcast);
             } else if (options.type === 'LogNode') {
-                node = new LogNode(options);
+                this.nodeManager.addNode(new LogNode(options), skipBroadcast);
             } else if (options.type === 'SettingsNode') {
-                node = new SettingsNode(options);
+                this.nodeManager.addNode(new SettingsNode(options), skipBroadcast);
             } else if (options.type === 'SubGraphNode') {
-                node = new SubGraphNode(options);
+                this.nodeManager.addNode(new SubGraphNode(options), skipBroadcast);
             } else if (options.type === 'ThreeJSNode') {
-                node = new ThreeJSNode(options);
+                this.nodeManager.addNode(new ThreeJSNode(options), skipBroadcast);
             } else if (options.type === 'ImageSequenceNode') {
-                node = new ImageSequenceNode(options);
+                this.nodeManager.addNode(new ImageSequenceNode(options), skipBroadcast);
             } else {
-                node = new BaseNode(options);
+                this.nodeManager.addNode(new BaseNode(options), skipBroadcast);
             }
-            
-            this.nodeManager.addNode(node, skipBroadcast);
         });
         events.subscribe('edge:create', (options) => {
             // Ensure edge has an ID for collaboration sync
@@ -320,15 +311,18 @@ class Main {
                 options.id = crypto.randomUUID();
             }
             
-            // Set parentGraphId if not already set (for new edges created by current user)
-            if (!options.parentGraphId) {
-                options.parentGraphId = this.graphContext.currentGraphId;
+            // Only create edge if both nodes exist
+            const startExists = this.nodes.has(options.startNodeId);
+            const endExists = this.nodes.has(options.endNodeId);
+            
+            if (!startExists || !endExists) {
+                console.warn(`Rejecting edge creation: nodes missing (start: ${options.startNodeId} exists: ${startExists}, end: ${options.endNodeId} exists: ${endExists})`);
+                return;
             }
             
-            // Create edge instance
-            const edge = new BaseEdge(options);
-            
-            this.nodeManager.addEdge(edge);
+            // Check if this is from a remote operation (has _operationId) to prevent broadcast loops
+            const skipBroadcast = !!options._operationId;
+            this.nodeManager.addEdge(new BaseEdge(options), skipBroadcast);
             // Use timeout to ensure connections are established before updating
             setTimeout(() => {
                 const startNode = this.nodes.get(options.startNodeId);
@@ -1988,7 +1982,7 @@ class Main {
     /**
      * Clears all nodes and edges from the canvas.
      */
-    clearAll() {
+    clearAll(preserveContext = false) {
         // Create a copy of the IDs to avoid issues while iterating and deleting
         const nodeIds = Array.from(this.nodes.keys());
         const edgeIds = Array.from(this.edges.keys());
@@ -1996,12 +1990,22 @@ class Main {
         edgeIds.forEach(id => this.removeEdge(id));
         nodeIds.forEach(id => this.removeNode(id));
         
+        // Double-check edges are really gone
+        if (this.edges.size > 0) {
+            console.error('WARNING: Edges still exist after clearing!', this.edges.size);
+            this.edges.clear();
+        }
+        
         this.clearSelection();
         this.maxGroupZIndex = 100;
         this.maxNodeZIndex = 10000;
-        this.projectName = 'Untitled Graph';
-        this.thumbnailUrl = '';
-        this.publishSettings();
+        
+        if (!preserveContext) {
+            this.projectName = 'Untitled Graph';
+            this.thumbnailUrl = '';
+            this.publishSettings();
+        }
+        
         console.log("Canvas cleared.");
     }
 
@@ -2288,7 +2292,6 @@ class Main {
                 type: node.type || node.constructor.name,
                 color: node.color,
                 isPinned: node.isPinned,
-                parentGraphId: this.graphContext.currentGraphId,
                 // Add type-specific data
                 ...(node.containedNodeIds && { containedNodeIds: Array.from(node.containedNodeIds) }),
                 ...(node.internalGraph && { internalGraph: node.internalGraph }),
@@ -2302,8 +2305,7 @@ class Main {
                 endHandleId: edge.endHandleId,
                 type: edge.type,
                 label: edge.label,
-                routingPoints: edge.routingPoints,
-                parentGraphId: this.graphContext.currentGraphId
+                routingPoints: edge.routingPoints
             }))
         };
         
@@ -2320,10 +2322,35 @@ class Main {
         // Clear current view and load subgraph data
         this.clearAll(true); // Clear canvas without resetting context stack
         
-        // Load internal graph data if it exists
-        if (nodeToEnter.internalGraph) {
-            this.loadInternalGraph(nodeToEnter.internalGraph);
+        // In collaborative mode, request fresh state from users in this subgraph
+        if (this.collaboration && this.collaboration.isConnected) {
+            // Mark that we're changing contexts and need fresh data
+            this.collaboration.hasLoadedState = false;
+            
+            // Request state from users in this subgraph context
+            this.collaboration.send({
+                type: 'request-state',
+                sessionId: this.collaboration.sessionId,
+                userId: this.collaboration.userId,
+                targetGraphId: this.graphContext.currentGraphId
+            });
+            
+            // Give it a moment, then fall back to node's internal data if no one responds
+            setTimeout(() => {
+                if (!this.collaboration.hasLoadedState) {
+                    console.log('No collaboration state received, using internal graph:', nodeToEnter.internalGraph);
+                    if (nodeToEnter.internalGraph && nodeToEnter.internalGraph.nodes) {
+                        this.loadInternalGraph(nodeToEnter.internalGraph);
+                    }
+                }
+            }, 500);
+        } else {
+            // Not in collaboration, use node's internal data
+            if (nodeToEnter.internalGraph) {
+                this.loadInternalGraph(nodeToEnter.internalGraph);
+            }
         }
+        
     }
     
     /**
@@ -2339,35 +2366,49 @@ class Main {
         const parentGraphInfo = this.graphContext.breadcrumbData.pop();
         const exitedSubgraphId = this.graphContext.currentGraphId;
         
-        // Store current subgraph data before exiting
-        const currentNodes = Array.from(this.nodes.entries()).map(([id, node]) => ({
-            id: id,
-            x: node.x,
-            y: node.y,
-            width: node.width,
-            height: node.height,
-            title: node.title,
-            content: node.content,
-            type: node.type || node.constructor.name,
-            color: node.color,
-            isPinned: node.isPinned,
-            parentGraphId: exitedSubgraphId,
-            // Add type-specific data
-            ...(node.containedNodeIds && { containedNodeIds: Array.from(node.containedNodeIds) }),
-            ...(node.internalGraph && { internalGraph: node.internalGraph }),
-            ...(node.subgraphId && { subgraphId: node.subgraphId })
-        }));
-        const currentEdges = Array.from(this.edges.entries()).map(([id, edge]) => ({
-            id: id,
-            startNodeId: edge.startNodeId,
-            endNodeId: edge.endNodeId,
-            startHandleId: edge.startHandleId,
-            endHandleId: edge.endHandleId,
-            type: edge.type,
-            label: edge.label,
-            routingPoints: edge.routingPoints,
-            parentGraphId: exitedSubgraphId
-        }));
+        // Store current subgraph state
+        const nodeIds = new Set(this.nodes.keys());
+        const subgraphData = {
+                nodes: Array.from(this.nodes.values()).map(node => ({
+                    id: node.id,
+                    x: node.x,
+                    y: node.y,
+                    width: node.width,
+                    height: node.height,
+                    title: node.title,
+                    content: node.content,
+                    type: node.type || node.constructor.name,
+                    color: node.color,
+                    isPinned: node.isPinned,
+                    // Add type-specific data
+                    ...(node.containedNodeIds && { containedNodeIds: Array.from(node.containedNodeIds) }),
+                    ...(node.internalGraph && { internalGraph: node.internalGraph }),
+                    ...(node.subgraphId && { subgraphId: node.subgraphId })
+                })),
+                // Only include edges where both nodes exist
+                edges: Array.from(this.edges.values())
+                    .filter(edge => nodeIds.has(edge.startNodeId) && nodeIds.has(edge.endNodeId))
+                    .map(edge => ({
+                        id: edge.id,
+                        startNodeId: edge.startNodeId,
+                        endNodeId: edge.endNodeId,
+                        startHandleId: edge.startHandleId,
+                        endHandleId: edge.endHandleId,
+                        type: edge.type,
+                        label: edge.label,
+                        routingPoints: edge.routingPoints
+                    }))
+        };
+        
+        // Store this in the parent graph data BEFORE we switch contexts
+        if (parentGraphInfo && parentGraphInfo.parentNodeId && parentGraphInfo.graphData && parentGraphInfo.graphData.nodes) {
+            const parentNode = parentGraphInfo.graphData.nodes.find(n => n.id === parentGraphInfo.parentNodeId);
+            if (parentNode) {
+                parentNode.internalGraph = subgraphData;
+            }
+        }
+        
+        // We've already stored the subgraph data above
         
         this.graphContext.graphStack.pop();
         this.graphContext.currentGraphId = this.graphContext.graphStack[this.graphContext.graphStack.length - 1];
@@ -2375,32 +2416,55 @@ class Main {
         // Clear current view and load parent context
         this.clearAll();
         
-        // Load parent graph if we have saved data
-        if (parentGraphInfo && parentGraphInfo.graphData) {
-            this.loadInternalGraph(parentGraphInfo.graphData);
-        }
-        
-        // Update the SubGraphNode preview with the data we just stored
-        if (parentGraphInfo && parentGraphInfo.parentNodeId) {
-            const parentNode = this.nodes.get(parentGraphInfo.parentNodeId);
-            if (parentNode && parentNode.updateInternalGraph) {
-                const subgraphData = {
-                    nodes: currentNodes,
-                    edges: currentEdges
-                };
-                
-                parentNode.updateInternalGraph(subgraphData);
-                setTimeout(() => parentNode.renderPreview(), 0);
-                
-                // Broadcast subgraph update to collaborators
-                if (this.collaboration && this.collaboration.isConnected) {
-                    events.publish('subgraph:update', {
-                        subgraphId: exitedSubgraphId,
-                        internalGraph: subgraphData
-                    });
+        // In collaborative mode, request fresh state from users in the parent context
+        if (this.collaboration && this.collaboration.isConnected) {
+            // Mark that we're changing contexts and need fresh data
+            this.collaboration.hasLoadedState = false;
+            
+            // Request state from users in the parent context
+            this.collaboration.send({
+                type: 'request-state',
+                sessionId: this.collaboration.sessionId,
+                userId: this.collaboration.userId,
+                targetGraphId: this.graphContext.currentGraphId
+            });
+            
+            // Give it a moment, then fall back to saved data if no one responds
+            setTimeout(() => {
+                if (!this.collaboration.hasLoadedState && parentGraphInfo && parentGraphInfo.graphData) {
+                    this.loadInternalGraph(parentGraphInfo.graphData);
                 }
+            }, 500);
+        } else {
+            // Not in collaboration, use saved data
+            if (parentGraphInfo && parentGraphInfo.graphData) {
+                this.loadInternalGraph(parentGraphInfo.graphData);
             }
         }
+        
+        // Store the subgraph data to update the parent node after context switch
+        const updateParentNode = () => {
+            if (parentGraphInfo && parentGraphInfo.parentNodeId) {
+                const parentNode = this.nodes.get(parentGraphInfo.parentNodeId);
+                if (parentNode && parentNode.updateInternalGraph) {
+                    // We already updated the internal graph in parentGraphInfo.graphData
+                    // Just re-render the preview
+                    setTimeout(() => parentNode.renderPreview(), 0);
+                    
+                    // Broadcast subgraph update to collaborators
+                    if (this.collaboration && this.collaboration.isConnected && subgraphData) {
+                        events.publish('subgraph:update', {
+                            subgraphId: exitedSubgraphId,
+                            internalGraph: subgraphData
+                        });
+                    }
+                }
+            }
+        };
+        
+        // Update after the parent context is loaded
+        setTimeout(updateParentNode, 600); // After state load timeout
+        
     }
     
 
@@ -2416,39 +2480,37 @@ class Main {
                 // Add the current graph context to node data
                 const nodeDataWithContext = {
                     ...nodeData,
-                    parentGraphId: this.graphContext.currentGraphId
-                };
+                    };
                 const node = this.createNodeFromData(nodeDataWithContext);
                 if (node) {
-                    this.nodeManager.addNode(node);
+                    // Skip broadcasting when loading internal graph data
+                    this.nodeManager.addNode(node, true);
                 }
             });
         }
 
         // Load edges after nodes are created and rendered
         if (graphData.edges) {
-            graphData.edges.forEach(edgeData => {
-                // Add the current graph context to edge data
-                const edgeDataWithContext = {
-                    ...edgeData,
-                    parentGraphId: this.graphContext.currentGraphId
-                };
-                const edge = new BaseEdge({
-                    id: edgeData.id,
-                    startNodeId: edgeData.startNodeId,
-                    endNodeId: edgeData.endNodeId,
-                    startHandleId: edgeData.startHandleId,
-                    endHandleId: edgeData.endHandleId,
-                    label: edgeData.label || '',
-                    routingPoints: edgeData.routingPoints || [],
-                    parentGraphId: this.graphContext.currentGraphId
+            // Ensure nodes are fully rendered before creating edges
+            requestAnimationFrame(() => {
+                graphData.edges.forEach(edgeData => {
+                    const edge = new BaseEdge({
+                        id: edgeData.id,
+                        startNodeId: edgeData.startNodeId,
+                        endNodeId: edgeData.endNodeId,
+                        startHandleId: edgeData.startHandleId,
+                        endHandleId: edgeData.endHandleId,
+                        label: edgeData.label || '',
+                        routingPoints: edgeData.routingPoints || []
+                    });
+                    // Skip broadcasting when loading internal graph data
+                    this.nodeManager.addEdge(edge, true);
                 });
-                this.nodeManager.addEdge(edge);
-            });
 
-            // Update all edges to ensure proper rendering
-            this.edges.forEach(edge => {
-                this.updateEdge(edge.id);
+                // Update all edges to ensure proper rendering
+                this.edges.forEach(edge => {
+                    this.updateEdge(edge.id);
+                });
             });
         }
 
@@ -2460,10 +2522,16 @@ class Main {
             this.canvasRenderer.updateCanvasTransform();
         }
         
+        // Clean up any orphaned edges
+        setTimeout(() => {
+            this.nodeManager.cleanupOrphanedEdges();
+        }, 100);
+        
         // Frame all nodes to center them in the viewport
         setTimeout(() => {
             this.frameSelection();
         }, 100);
+        
     }
 
     /**
