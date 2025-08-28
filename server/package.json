@@ -1,12 +1,18 @@
 {
   "name": "nodeui-collaboration-server",
   "version": "1.0.0",
-  "description": "Simple WebSocket server for NodeUI shared sessions",
+  "description": "WebSocket server for NodeUI shared sessions (Node.js & Cloudflare Workers)",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "deploy": "wrangler publish",
+    "dev:worker": "wrangler dev",
+    "dev:node": "node index.js"
   },
   "dependencies": {
     "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
   }
 }

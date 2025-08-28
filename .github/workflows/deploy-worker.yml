@@ -1,0 +1,32 @@
+name: Deploy Collaboration Worker
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'server/**'
+      - '.github/workflows/deploy-worker.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: |
+          cd server
+          npm install
+          npm install -g wrangler
+          
+      - name: Deploy to Cloudflare Workers
+        run: |
+          cd server
+          wrangler publish
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

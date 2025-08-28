@@ -1,0 +1,14 @@
+name = "nodeui"
+compatibility_date = "2023-05-18"
+pages_build_output_dir = "./"
+
+# Durable Objects binding for Pages Functions
+[[durable_objects.bindings]]
+name = "COLLABORATION_SESSIONS"
+class_name = "CollaborationSession"
+script_name = "nodeui"
+
+# The Durable Object class is exported from the Pages Function
+[[migrations]]
+tag = "v1"
+new_classes = ["CollaborationSession"]

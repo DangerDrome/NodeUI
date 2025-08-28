@@ -11,7 +11,8 @@ class Collaboration {
         this.userId = this.generateUserId();
         this.isConnected = false;
         this.connectedUsers = new Set();
-        this.wsUrl = 'ws://localhost:8080'; // Default WebSocket server URL
+        // Determine WebSocket URL based on environment
+        this.wsUrl = this.getWebSocketUrl();
         
         // UI elements
         this.statusIndicator = null;
@@ -129,6 +130,35 @@ class Collaboration {
     }
     
     /**
+     * Determines the WebSocket URL based on environment.
+     * @returns {string} The WebSocket server URL
+     */
+    getWebSocketUrl() {
+        // Check for environment variable or configuration
+        if (window.NODEUI_WS_URL) {
+            return window.NODEUI_WS_URL;
+        }
+        
+        // Check URL parameters for custom server
+        const urlParams = new URLSearchParams(window.location.search);
+        const customWsUrl = urlParams.get('ws');
+        if (customWsUrl) {
+            return customWsUrl;
+        }
+        
+        // For production deployment on nodeui.io
+        if (window.location.hostname === 'nodeui.io') {
+            // You'll need to deploy your WebSocket server somewhere
+            // For example: wss://nodeui-collab.herokuapp.com or your own server
+            console.warn('No production WebSocket server configured. Collaboration will not work.');
+            return null;
+        }
+        
+        // Default to localhost for development
+        return 'ws://localhost:8080';
+    }
+    
+    /**
      * Shows dialog to join an existing session.
      */
     showJoinDialog() {
@@ -156,6 +186,10 @@ class Collaboration {
      * Starts a new shared session.
      */
     startSession() {
+        if (!this.wsUrl) {
+            this.showError('No collaboration server configured. Please run a local server or specify a WebSocket URL.');
+            return null;
+        }
         this.sessionId = this.generateSessionId();
         this.connect();
         return this.sessionId;
@@ -166,6 +200,10 @@ class Collaboration {
      * @param {string} sessionId - The session ID to join
      */
     joinSession(sessionId) {
+        if (!this.wsUrl) {
+            this.showError('No collaboration server configured. Please run a local server or specify a WebSocket URL.');
+            return;
+        }
         this.sessionId = sessionId.toUpperCase();
         this.connect();
     }
@@ -186,7 +224,14 @@ class Collaboration {
         }
         
         try {
-            this.ws = new WebSocket(this.wsUrl);
+            // For Cloudflare Workers/Functions, append session ID to URL path
+            let wsUrl = this.wsUrl;
+            if (this.wsUrl && (this.wsUrl.includes('workers.dev') || this.wsUrl.includes('/collab')) && this.sessionId) {
+                // Remove trailing slash if present
+                wsUrl = this.wsUrl.replace(/\/$/, '') + '/' + this.sessionId;
+            }
+            
+            this.ws = new WebSocket(wsUrl);
             
             this.ws.onopen = () => {
                 this.isConnected = true;
