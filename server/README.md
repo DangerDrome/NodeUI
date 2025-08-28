@@ -142,34 +142,21 @@ Consider implementing:
 
 ## Deployment Options
 
-Since NodeUI can be hosted on static sites (like Cloudflare Pages), the WebSocket server needs to be deployed separately. Here are quick deployment options:
+### For Cloudflare Pages Users
 
-### Heroku (Free Tier)
-```bash
-cd server
-git init
-heroku create your-app-name
-git add .
-git commit -m "Deploy"
-git push heroku main
-```
+See [DEPLOY-DURABLE-OBJECTS.md](../DEPLOY-DURABLE-OBJECTS.md) for using Cloudflare's integrated solution.
 
-### Railway.app
-- Push to GitHub
-- Connect repo on Railway
-- Auto-deploys from `server` directory
+### For Other Hosting
 
-### Render.com
-- Create Web Service
-- Connect GitHub repo
-- Set root directory to `server`
+This Node.js server can be deployed to any platform that supports WebSockets:
 
-### Glitch.com
-- Create new project
-- Upload server files
-- Always-on free hosting
+- **Heroku**: Free tier available
+- **Railway.app**: Simple GitHub integration
+- **Render.com**: Free tier with auto-deploy
+- **Glitch.com**: Always-on free hosting
+- **VPS**: Full control with PM2
 
-See [DEPLOYMENT.md](../DEPLOYMENT.md) for detailed instructions.
+Update your `config.js` with the deployed server URL.
 
 ## Future Enhancements
 

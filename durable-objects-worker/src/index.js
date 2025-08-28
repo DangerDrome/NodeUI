@@ -1,9 +1,10 @@
 /**
- * Durable Object for managing collaboration sessions
- * This is imported by the Pages Function
+ * Worker that exports the CollaborationRoom Durable Object
+ * This needs to be deployed first so Pages can reference it
  */
 
-export class CollaborationSession {
+// Export the Durable Object class
+export class CollaborationRoom {
   constructor(state, env) {
     this.state = state;
     this.env = env;
@@ -16,24 +17,33 @@ export class CollaborationSession {
       return new Response('Expected WebSocket', { status: 426 });
     }
 
-    const webSocketPair = new WebSocketPair();
-    const [client, server] = Object.values(webSocketPair);
-    
-    server.accept();
+    const pair = new WebSocketPair();
+    const [client, server] = Object.values(pair);
+
+    await this.handleSession(server);
+
+    return new Response(null, {
+      status: 101,
+      webSocket: client,
+    });
+  }
+
+  async handleSession(webSocket) {
+    webSocket.accept();
     
     let userId = null;
     
-    server.addEventListener('message', async (event) => {
+    webSocket.addEventListener('message', async (event) => {
       try {
         const message = JSON.parse(event.data);
         
         switch (message.type) {
           case 'join':
             userId = message.userId;
-            this.sessions.set(userId, server);
+            this.sessions.set(userId, webSocket);
             
             // Send current users
-            server.send(JSON.stringify({
+            webSocket.send(JSON.stringify({
               type: 'users-list',
               users: Array.from(this.sessions.keys())
             }));
@@ -46,20 +56,17 @@ export class CollaborationSession {
             break;
             
           case 'operation':
-            // Broadcast to all except sender
             this.broadcast(message, message.userId);
             break;
             
           case 'request-state':
-            // Forward to other users
             this.broadcast(message, message.userId);
             break;
             
           case 'state-response':
-            // Send to specific user or broadcast
             if (message.targetUserId) {
               const targetWs = this.sessions.get(message.targetUserId);
-              if (targetWs) {
+              if (targetWs && targetWs.readyState === 1) {
                 targetWs.send(JSON.stringify(message));
               }
             } else {
@@ -72,7 +79,7 @@ export class CollaborationSession {
       }
     });
     
-    server.addEventListener('close', () => {
+    webSocket.addEventListener('close', () => {
       if (userId) {
         this.sessions.delete(userId);
         this.broadcast({
@@ -81,23 +88,27 @@ export class CollaborationSession {
         });
       }
     });
-    
-    return new Response(null, {
-      status: 101,
-      webSocket: client,
-    });
   }
   
   broadcast(message, excludeUserId = null) {
     const messageStr = JSON.stringify(message);
     this.sessions.forEach((ws, uid) => {
-      if (uid !== excludeUserId) {
+      if (uid !== excludeUserId && ws.readyState === 1) {
         try {
           ws.send(messageStr);
         } catch (err) {
           this.sessions.delete(uid);
         }
       }
+    });
+  }
+}
+
+// Default export for the Worker (required)
+export default {
+  async fetch(request, env) {
+    return new Response('This Worker exports the CollaborationRoom Durable Object', {
+      headers: { 'content-type': 'text/plain' },
     });
   }
 }
