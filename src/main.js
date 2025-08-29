@@ -261,6 +261,19 @@ class Main {
 
         // Add paste event listener for URLs
         document.addEventListener('paste', this.fileHandler.onPaste.bind(this.fileHandler));
+        
+        // Track middle mouse button clicks to prevent auto-join on middle-click paste
+        let recentMiddleClick = false;
+        document.addEventListener('mousedown', (event) => {
+            if (event.button === 1) { // Middle mouse button
+                recentMiddleClick = true;
+                // Clear the flag after a short delay
+                setTimeout(() => { recentMiddleClick = false; }, 100);
+            }
+        });
+        
+        // Pass the middle-click flag to the paste handler
+        this.fileHandler.recentMiddleClick = () => recentMiddleClick;
 
         // Add resize event listener for watermark positioning
         window.addEventListener('resize', () => {

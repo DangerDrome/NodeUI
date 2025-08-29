@@ -917,6 +917,14 @@ class File {
         if (sessionCodePattern.test(pastedText)) {
             event.preventDefault();
             
+            // Check if this was a middle-click paste
+            const isMiddleClick = this.recentMiddleClick && this.recentMiddleClick();
+            
+            // Don't auto-join on middle-click paste or when already connected
+            if (isMiddleClick || (this.nodeUI.collaboration && this.nodeUI.collaboration.isConnected)) {
+                return; // Ignore the paste entirely
+            }
+            
             // Only auto-join if we're not already in a session
             if (this.nodeUI.collaboration && !this.nodeUI.collaboration.isConnected) {
                 // Confirm before joining if we have a session ID (disconnected state)
