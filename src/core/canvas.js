@@ -3,8 +3,7 @@
  * visual updates, physics simulation, and canvas transformations.
  */
 
-// NodeUI Version - dynamically loaded from version.json
-const NODEUI_VERSION = window.NODE_UI_VERSION || '1.1.1';
+// NodeUI Version will be read dynamically from window.NODE_UI_VERSION
 
 class Canvas {
     constructor(nodeUI) {
@@ -108,7 +107,7 @@ class Canvas {
         text.setAttribute('font-size', '11px');
         text.setAttribute('font-weight', '500');
         text.setAttribute('fill', 'rgba(255, 255, 255, 0.7)');
-        text.textContent = `NodeUI v${NODEUI_VERSION}`;
+        text.textContent = `NodeUI v${window.NODE_UI_VERSION || 'unknown'}`;
 
         watermarkGroup.appendChild(background);
         watermarkGroup.appendChild(text);
