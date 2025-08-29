@@ -176,9 +176,38 @@ class BaseNode {
     renderContent(contentArea) {
         // Initial render
         this.renderMarkdown(contentArea);
+        
+        let saveDebounceTimeout;
+        
+        // Debounced save for collaborative editing
+        const debouncedSave = () => {
+            if (!contentArea.isEditing) return;
+            
+            // Clear any existing timeout
+            if (saveDebounceTimeout) {
+                clearTimeout(saveDebounceTimeout);
+            }
+            
+            const currentContent = contentArea.innerText;
+            
+            // Debounce the save - wait for user to stop typing
+            saveDebounceTimeout = setTimeout(() => {
+                if (contentArea.isEditing && this.content !== currentContent) {
+                    // Store the pending content update
+                    this.content = currentContent;
+                    // Only update if still editing and content changed
+                    events.publish('node:update', { nodeId: this.id, content: currentContent });
+                }
+            }, 500); // Wait 500ms after user stops typing
+        };
 
         const saveContent = () => {
             if (!contentArea.isEditing) return;
+            
+            // Clear any pending save
+            if (saveDebounceTimeout) {
+                clearTimeout(saveDebounceTimeout);
+            }
 
             contentArea.isEditing = false;
             contentArea.contentEditable = 'false';
@@ -192,6 +221,9 @@ class BaseNode {
                 this.renderMarkdown(contentArea);
             }
         };
+        
+        // Add input listener for debounced saves during typing
+        contentArea.addEventListener('input', debouncedSave);
 
         // Add blur listener to disable editing and save
         contentArea.addEventListener('blur', saveContent);
