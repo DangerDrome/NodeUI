@@ -20,14 +20,18 @@ function getVersionFromGit() {
     // Get commit count since last tag
     const commitsSinceTag = execSync(`git rev-list ${latestTag}..HEAD --count`, { encoding: 'utf8' }).trim();
     
+    // Check if we're running as a post-commit hook
+    const isPostCommit = process.argv.includes('--post-commit');
+    
     // If there are commits since last tag, increment patch version
-    // Add 1 because pre-commit runs BEFORE the commit exists
     if (commitsSinceTag !== '0') {
       const parts = version.split('.');
-      const patch = parseInt(parts[2] || '0') + parseInt(commitsSinceTag) + 1;
+      const commitCount = parseInt(commitsSinceTag);
+      // Don't add 1 if running post-commit (commit already exists)
+      const patch = parseInt(parts[2] || '0') + commitCount + (isPostCommit ? 0 : 1);
       version = `${parts[0]}.${parts[1]}.${patch}`;
-    } else {
-      // Even if no commits since tag, we're about to make one
+    } else if (!isPostCommit) {
+      // Only increment if pre-commit and no commits since tag
       const parts = version.split('.');
       const patch = parseInt(parts[2] || '0') + 1;
       version = `${parts[0]}.${parts[1]}.${patch}`;
