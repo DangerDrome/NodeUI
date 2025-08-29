@@ -14,25 +14,24 @@ function getVersionFromGit() {
     // Get the latest tag
     const latestTag = execSync('git describe --tags --abbrev=0', { encoding: 'utf8' }).trim();
     
-    // Get commit count since last tag
-    const commitsSinceTag = execSync(`git rev-list ${latestTag}..HEAD --count`, { encoding: 'utf8' }).trim();
-    
-    // Get current commit hash (short)
-    const commitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
-    
     // Clean version (remove 'v' prefix if exists)
     let version = latestTag.replace(/^v/, '');
     
-    // If there are commits since last tag, append dev info
+    // Get commit count since last tag
+    const commitsSinceTag = execSync(`git rev-list ${latestTag}..HEAD --count`, { encoding: 'utf8' }).trim();
+    
+    // If there are commits since last tag, increment patch version
     if (commitsSinceTag !== '0') {
-      version = `${version}-dev.${commitsSinceTag}+${commitHash}`;
+      const parts = version.split('.');
+      const patch = parseInt(parts[2] || '0') + parseInt(commitsSinceTag);
+      version = `${parts[0]}.${parts[1]}.${patch}`;
     }
     
     return version;
   } catch (error) {
     // No tags exist yet
-    console.warn('No git tags found, using 0.0.0');
-    return '0.0.0';
+    console.warn('No git tags found, using 1.0.0');
+    return '1.0.0';
   }
 }
 

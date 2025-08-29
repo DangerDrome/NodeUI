@@ -3,4 +3,4 @@
  * This file is automatically updated by git hooks
  */
 
-window.NODE_UI_VERSION = '1.1.1-dev.2+eff5f09';
+window.NODE_UI_VERSION = '1.1.4';
