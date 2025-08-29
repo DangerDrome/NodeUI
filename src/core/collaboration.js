@@ -334,17 +334,10 @@ class Collaboration {
     }
     
     /**
-     * Leaves the current session temporarily (can reconnect).
+     * Leaves the current session completely.
      */
     leaveSession() {
-        this.disconnect(false); // Keep session ID for reconnection
-    }
-    
-    /**
-     * Permanently exits the session.
-     */
-    exitSession() {
-        this.disconnect(true); // Clear session ID
+        this.disconnect(true); // Full exit - clear everything
     }
     
     /**
