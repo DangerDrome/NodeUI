@@ -86,8 +86,8 @@ class Collaboration {
         
         // Create user count indicator (top-right)
         this.userCountIndicator = document.createElement('div');
-        this.userCountIndicator.style.cssText = 'position: fixed; top: 28px; right: 28px; color: rgba(255, 255, 255, 0.3); font-family: monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; pointer-events: none; z-index: 10000;';
-        this.userCountIndicator.textContent = this.userDisplayName || 'you';
+        this.userCountIndicator.style.cssText = 'position: fixed; top: 28px; right: 28px; color: rgba(255, 255, 255, 0.3); font-family: monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; pointer-events: none; z-index: 10000; text-align: right; line-height: 1.4;';
+        this.userCountIndicator.innerHTML = this.userDisplayName || 'you';
         document.body.appendChild(this.userCountIndicator);
     }
     
@@ -153,9 +153,9 @@ class Collaboration {
                 // Extract display name from userId (format: "word1-word2_timestamp")
                 const displayName = userId.split('_')[0];
                 if (displayName) {
-                    // Mark self with "(you)" suffix
+                    // Mark self with "(you)" suffix with subtle accent color
                     if (userId === this.userId) {
-                        users.push(displayName + ' (you)');
+                        users.push(displayName + ' <span style="color: rgba(62, 207, 142, 0.4)">(you)</span>');
                     } else {
                         users.push(displayName);
                     }
@@ -164,11 +164,11 @@ class Collaboration {
             
             // If we're not in the connected users set (not connected), just show self
             if (users.length === 0) {
-                users.push((this.userDisplayName || 'you') + ' (you)');
+                users.push((this.userDisplayName || 'you') + ' <span style="color: rgba(62, 207, 142, 0.4)">(you)</span>');
             }
             
-            // Update the display
-            this.userCountIndicator.textContent = users.join(', ');
+            // Update the display (one user per line) - use innerHTML for HTML content
+            this.userCountIndicator.innerHTML = users.join('<br>');
         }
     }
     
