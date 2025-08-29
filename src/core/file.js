@@ -714,45 +714,34 @@ class File {
 
             // Handle video embedding
             if (file.type.startsWith('video/')) {
-                // Check if we're in a collaboration session
-                if (this.nodeUI.collaboration && this.nodeUI.collaboration.isConnected) {
-                    // In collaboration: create a placeholder node
+                // Always save to IndexedDB so the uploader can see the video
+                assetDb.saveFile(file).then(fileId => {
                     const nodeWidth = 350;
-                    const nodeHeight = 200;
-                    
-                    
-                    events.publish('node:create', {
+                    const nodeHeight = 300;
+
+                    const nodeData = {
                         x: filePosition.x - nodeWidth / 2,
                         y: filePosition.y - nodeHeight / 2,
                         width: nodeWidth,
                         height: nodeHeight,
                         title: file.name,
-                        content: `![video](${file.name})`,
+                        content: `![video](local-video://${fileId})`,
                         type: 'BaseNode',
-                        color: 'blue'
-                    });
-                    
-                    console.info('Video file dropped during collaboration - created placeholder node');
-                } else {
-                    // Single user mode: use IndexedDB as before
-                    assetDb.saveFile(file).then(fileId => {
-                        const nodeWidth = 350;
-                        const nodeHeight = 300;
+                        color: 'default'
+                    };
 
-                        events.publish('node:create', {
-                            x: filePosition.x - nodeWidth / 2,
-                            y: filePosition.y - nodeHeight / 2,
-                            width: nodeWidth,
-                            height: nodeHeight,
-                            title: file.name,
-                            content: `![video](local-video://${fileId})`,
-                            type: 'BaseNode',
-                            color: 'default'
-                        });
-                    }).catch(error => {
-                        console.error('Failed to save video to asset database:', error);
-                    });
-                }
+                    // In collaboration: add metadata to indicate this is a local video
+                    if (this.nodeUI.collaboration && this.nodeUI.collaboration.isConnected) {
+                        nodeData.metadata = {
+                            isLocalVideo: true,
+                            filename: file.name
+                        };
+                    }
+
+                    events.publish('node:create', nodeData);
+                }).catch(error => {
+                    console.error('Failed to save video to asset database:', error);
+                });
                 return;
             }
 

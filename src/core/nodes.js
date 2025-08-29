@@ -97,6 +97,15 @@ class Nodes {
                 nodeData.containedNodeIds = Array.from(node.containedNodeIds);
             }
             
+            // Handle local video content - replace with placeholder for other users
+            if (nodeData.content && nodeData.content.includes('local-video://')) {
+                // Extract filename from metadata or title
+                const filename = node.metadata?.filename || node.title || 'video';
+                nodeData.content = `![video](${filename})`;
+                // Mark this as a video placeholder for other users
+                nodeData.metadata = { ...nodeData.metadata, isVideoPlaceholder: true };
+            }
+            
             // Directly call the collaboration handler instead of publishing event
             this.nodeUI.collaboration.handleLocalEvent('node:create', nodeData);
         }

@@ -51,7 +51,7 @@ class Collaboration {
         this.statusIndicator.className = 'collaboration-status-indicator';
         this.statusIndicator.innerHTML = `
             <span class="collaboration-status-indicator-dot"></span>
-            <span class="collaboration-status-indicator-text">Offline</span>
+            <span class="collaboration-status-indicator-text">Session: none</span>
         `;
         
         // Add click handler
@@ -115,7 +115,7 @@ class Collaboration {
             this.statusIndicator.title = 'Click to copy session ID';
         } else {
             indicatorDot.classList.remove('connected');
-            indicatorText.textContent = 'Offline';
+            indicatorText.textContent = 'Session: none';
             this.statusIndicator.style.cursor = 'pointer';
             this.statusIndicator.title = 'Click to start a new session';
         }
