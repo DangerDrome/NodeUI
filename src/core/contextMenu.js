@@ -512,24 +512,48 @@ class ContextMenu {
                     }
                 });
             } else {
-                items.push({
-                    label: 'New Session',
-                    iconClass: 'icon-plus-circle',
-                    action: () => {
-                        if (this.nodeUI.collaboration) {
-                            this.nodeUI.collaboration.startSession();
+                // Check if we have a session ID (disconnected but still in session)
+                const hasSession = this.nodeUI.collaboration && this.nodeUI.collaboration.sessionId;
+                
+                if (hasSession) {
+                    items.push({
+                        label: 'Reconnect',
+                        iconClass: 'icon-refresh-cw',
+                        action: () => {
+                            if (this.nodeUI.collaboration) {
+                                this.nodeUI.collaboration.connect();
+                            }
                         }
-                    }
-                });
-                items.push({
-                    label: 'Join Session',
-                    iconClass: 'icon-log-in',
-                    action: () => {
-                        if (this.nodeUI.collaboration) {
-                            this.nodeUI.collaboration.showJoinDialog();
+                    });
+                    items.push({
+                        label: 'Exit Session',
+                        iconClass: 'icon-log-out',
+                        action: () => {
+                            if (this.nodeUI.collaboration) {
+                                this.nodeUI.collaboration.exitSession();
+                            }
                         }
-                    }
-                });
+                    });
+                } else {
+                    items.push({
+                        label: 'New Session',
+                        iconClass: 'icon-plus-circle',
+                        action: () => {
+                            if (this.nodeUI.collaboration) {
+                                this.nodeUI.collaboration.startSession();
+                            }
+                        }
+                    });
+                    items.push({
+                        label: 'Join Session',
+                        iconClass: 'icon-log-in',
+                        action: () => {
+                            if (this.nodeUI.collaboration) {
+                                this.nodeUI.collaboration.showJoinDialog();
+                            }
+                        }
+                    });
+                }
             }
 
             // Clipboard actions
