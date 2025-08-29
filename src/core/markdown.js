@@ -53,7 +53,8 @@ window.initializeMarkdown = function() {
                                 node.type = 'html';
                                 node.value = `<video controls loop muted width="100%" data-auto-resize="true"><source src="${blobUrl}"></video>`;
                             } catch (error) {
-                                console.error(`Failed to load local video ${url}:`, error);
+                                // Expected for remote users - don't log as error
+                                console.info(`Video ${url} not available locally (expected for remote users)`);
                                 // Show a helpful placeholder for missing videos
                                 node.type = 'html';
                                 node.value = `<div style="
