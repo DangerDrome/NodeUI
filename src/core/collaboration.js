@@ -14,6 +14,10 @@ class Collaboration {
         // Determine WebSocket URL based on environment
         this.wsUrl = this.getWebSocketUrl();
         
+        // Keep-alive mechanism
+        this.pingInterval = null;
+        this.pongTimeout = null;
+        
         // UI elements
         this.statusIndicator = null;
         
@@ -267,6 +271,9 @@ class Collaboration {
                 });
                 
                 events.publish('collaboration:connected', { sessionId: this.sessionId });
+                
+                // Start keep-alive mechanism
+                this.startKeepAlive();
             };
             
             this.ws.onmessage = (event) => {
@@ -275,6 +282,15 @@ class Collaboration {
                 // Handle ping/pong for keep-alive
                 if (message.type === 'ping') {
                     this.send({ type: 'pong' });
+                    return;
+                }
+                
+                if (message.type === 'pong') {
+                    // Clear the pong timeout - server is alive
+                    if (this.pongTimeout) {
+                        clearTimeout(this.pongTimeout);
+                        this.pongTimeout = null;
+                    }
                     return;
                 }
                 
@@ -288,12 +304,18 @@ class Collaboration {
             
             this.ws.onclose = () => {
                 this.isConnected = false;
+                this.stopKeepAlive();
                 this.unsubscribeFromEvents();
                 events.publish('collaboration:disconnected');
                 
                 // Attempt to reconnect after 3 seconds if we didn't disconnect intentionally
                 if (this.sessionId) {
-                    setTimeout(() => this.connect(), 3000);
+                    setTimeout(() => {
+                        if (this.sessionId && !this.isConnected) {
+                            console.log('Attempting to reconnect to session...');
+                            this.connect();
+                        }
+                    }, 3000);
                 }
             };
             
@@ -309,6 +331,7 @@ class Collaboration {
     disconnect() {
         this.sessionId = null;
         this.hasLoadedState = false;
+        this.stopKeepAlive();
         if (this.ws) {
             this.ws.close();
             this.ws = null;
@@ -612,6 +635,43 @@ class Collaboration {
             connectedUsers: Array.from(this.connectedUsers),
             userCount: this.connectedUsers.size + 1 // Include self
         };
+    }
+    
+    /**
+     * Starts the keep-alive mechanism to prevent connection timeouts.
+     */
+    startKeepAlive() {
+        this.stopKeepAlive(); // Clear any existing intervals
+        
+        // Send a ping every 25 seconds (server expects activity within 30 seconds)
+        this.pingInterval = setInterval(() => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.send({ type: 'ping' });
+                
+                // Set a timeout to check if we get a pong response
+                this.pongTimeout = setTimeout(() => {
+                    console.warn('No pong received - connection may be lost');
+                    // Force reconnection
+                    if (this.ws) {
+                        this.ws.close();
+                    }
+                }, 5000); // Wait 5 seconds for pong
+            }
+        }, 25000); // Every 25 seconds
+    }
+    
+    /**
+     * Stops the keep-alive mechanism.
+     */
+    stopKeepAlive() {
+        if (this.pingInterval) {
+            clearInterval(this.pingInterval);
+            this.pingInterval = null;
+        }
+        if (this.pongTimeout) {
+            clearTimeout(this.pongTimeout);
+            this.pongTimeout = null;
+        }
     }
 }
 
