@@ -428,9 +428,12 @@ class Collaboration {
     disconnect(clearSession = false) {
         if (clearSession) {
             this.sessionId = null;
+            // Clear all nodes and edges when exiting session
+            this.nodeUI.clearAll();
         }
         this.hasLoadedState = false;
         this.reconnectAttempts = 0;
+        this.isConnected = false;
         
         // Cancel any pending reconnect
         if (this.reconnectTimeout) {
@@ -444,7 +447,15 @@ class Collaboration {
             this.ws = null;
         }
         this.connectedUsers.clear();
+        this.updateUserCount();
         this.unsubscribeFromEvents();
+        
+        // Update UI to reflect disconnected state
+        if (clearSession) {
+            this.updateStatus('disconnected');
+        } else {
+            this.updateStatus('disconnected', this.sessionId);
+        }
     }
     
     /**
