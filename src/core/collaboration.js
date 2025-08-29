@@ -405,28 +405,49 @@ class Collaboration {
             };
             
             this.ws.onmessage = (event) => {
-                const message = JSON.parse(event.data);
-                
-                // Handle ping/pong for keep-alive
-                if (message.type === 'ping') {
-                    this.send({ type: 'pong' });
-                    return;
+                try {
+                    // Log large incoming messages
+                    if (event.data.length > 10 * 1024 * 1024) { // 10MB
+                        console.log(`Receiving large WebSocket message: ${(event.data.length / 1024 / 1024).toFixed(2)}MB`);
+                    }
+                    
+                    const message = JSON.parse(event.data);
+                    
+                    // Handle ping/pong for keep-alive
+                    if (message.type === 'ping') {
+                        this.send({ type: 'pong' });
+                        return;
+                    }
+                    
+                    if (message.type === 'pong') {
+                        // Just ignore pongs now
+                        return;
+                    }
+                    
+                    // Handle session full error
+                    if (message.type === 'error') {
+                        console.error('Session error:', message.message);
+                        this.showError(message.message);
+                        this.disconnect(true); // Full disconnect
+                        return;
+                    }
+                    
+                    // Log if we receive a state-response with ImageSequenceNodes
+                    if (message.type === 'state-response' && message.state && message.state.nodes) {
+                        const imageSeqNodes = message.state.nodes.filter(n => n.type === 'ImageSequenceNode');
+                        if (imageSeqNodes.length > 0) {
+                            console.log(`Received ${imageSeqNodes.length} ImageSequenceNode(s) in state sync`);
+                            imageSeqNodes.forEach(node => {
+                                console.log(`- ${node.id}: ${node.imageSequence ? node.imageSequence.length : 0} images`);
+                            });
+                        }
+                    }
+                    
+                    this.handleMessage(message);
+                } catch (error) {
+                    console.error('Failed to parse WebSocket message:', error);
+                    console.error('Message length:', event.data.length);
                 }
-                
-                if (message.type === 'pong') {
-                    // Just ignore pongs now
-                    return;
-                }
-                
-                // Handle session full error
-                if (message.type === 'error') {
-                    console.error('Session error:', message.message);
-                    this.showError(message.message);
-                    this.disconnect(true); // Full disconnect
-                    return;
-                }
-                
-                this.handleMessage(message);
             };
             
             this.ws.onerror = (error) => {
@@ -498,7 +519,20 @@ class Collaboration {
      */
     send(data) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify(data));
+            try {
+                const message = JSON.stringify(data);
+                // Log very large messages
+                if (message.length > 50 * 1024 * 1024) { // 50MB
+                    console.warn(`Sending large WebSocket message: ${(message.length / 1024 / 1024).toFixed(2)}MB`);
+                }
+                this.ws.send(message);
+            } catch (error) {
+                console.error('Failed to send WebSocket message:', error);
+                // If it's a state response that failed, warn about it
+                if (data.type === 'state-response') {
+                    this.showError('Failed to sync state - data may be too large');
+                }
+            }
         }
     }
     
@@ -726,7 +760,10 @@ class Collaboration {
                 // Add type-specific data
                 ...(node.containedNodeIds && { containedNodeIds: Array.from(node.containedNodeIds) }),
                 ...(node.internalGraph && { internalGraph: node.internalGraph }),
-                ...(node.subgraphId && { subgraphId: node.subgraphId })
+                ...(node.subgraphId && { subgraphId: node.subgraphId }),
+                ...(node.imageSequence && { imageSequence: node.imageSequence }),
+                ...(node.currentFrame !== undefined && { currentFrame: node.currentFrame }),
+                ...(node.fps && { fps: node.fps })
             })),
             edges: Array.from(this.nodeUI.edges.entries()).map(([id, edge]) => ({
                 id: id,
@@ -739,6 +776,13 @@ class Collaboration {
                 routingPoints: edge.routingPoints
             }))
         };
+        
+        // Check size before sending
+        const stateJson = JSON.stringify(state);
+        const sizeInMB = stateJson.length / (1024 * 1024);
+        if (sizeInMB > 10) {
+            console.warn(`Large state size: ${sizeInMB.toFixed(2)}MB - may cause transmission issues`);
+        }
         
         this.send({
             type: 'state-response',
@@ -764,6 +808,11 @@ class Collaboration {
         // Load nodes
         if (state.nodes) {
             state.nodes.forEach(nodeData => {
+                // Check for ImageSequenceNode with missing data
+                if (nodeData.type === 'ImageSequenceNode' && (!nodeData.imageSequence || nodeData.imageSequence.length === 0)) {
+                    console.warn(`ImageSequenceNode ${nodeData.id} received without image data - may have been truncated`);
+                }
+                
                 // Mark with _operationId to prevent re-broadcasting
                 const nodeDataWithOperationId = {
                     ...nodeData,
