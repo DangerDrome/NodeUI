@@ -253,7 +253,7 @@ class Main {
         this.container.addEventListener('drop', this.fileHandler.onDrop.bind(this.fileHandler));
 
         // Add paste event listener for URLs
-        document.removeEventListener('paste', this.fileHandler.onPaste.bind(this.fileHandler));
+        document.addEventListener('paste', this.fileHandler.onPaste.bind(this.fileHandler));
 
         // Add resize event listener for watermark positioning
         window.addEventListener('resize', () => {
