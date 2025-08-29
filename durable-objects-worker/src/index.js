@@ -33,22 +33,27 @@ export class CollaborationRoom {
     
     let userId = null;
     
-    // Keep-alive ping every 30 seconds
+    // Keep-alive ping every 20 seconds (Cloudflare has strict timeouts)
     const pingInterval = setInterval(() => {
       if (webSocket.readyState === 1) {
         webSocket.send(JSON.stringify({ type: 'ping' }));
       } else {
         clearInterval(pingInterval);
       }
-    }, 30000);
+    }, 20000);
     
     webSocket.addEventListener('message', async (event) => {
       try {
         const message = JSON.parse(event.data);
         
-        // Respond to ping with pong
+        // Handle ping/pong
         if (message.type === 'ping') {
           webSocket.send(JSON.stringify({ type: 'pong' }));
+          return;
+        }
+        
+        if (message.type === 'pong') {
+          // Client responded to our ping, connection is alive
           return;
         }
         
