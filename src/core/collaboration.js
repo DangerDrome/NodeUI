@@ -14,9 +14,10 @@ class Collaboration {
         // Determine WebSocket URL based on environment
         this.wsUrl = this.getWebSocketUrl();
         
-        // Keep-alive mechanism
-        this.pingInterval = null;
-        this.pongTimeout = null;
+        // Reconnection handling
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 10;
+        this.reconnectTimeout = null;
         
         // UI elements
         this.statusIndicator = null;
@@ -252,6 +253,7 @@ class Collaboration {
             
             this.ws.onopen = () => {
                 this.isConnected = true;
+                this.reconnectAttempts = 0; // Reset on successful connection
                 
                 // Join the session room
                 this.send({
@@ -286,11 +288,7 @@ class Collaboration {
                 }
                 
                 if (message.type === 'pong') {
-                    // Clear the pong timeout - server is alive
-                    if (this.pongTimeout) {
-                        clearTimeout(this.pongTimeout);
-                        this.pongTimeout = null;
-                    }
+                    // Just ignore pongs now
                     return;
                 }
                 
@@ -308,14 +306,10 @@ class Collaboration {
                 this.unsubscribeFromEvents();
                 events.publish('collaboration:disconnected');
                 
-                // Attempt to reconnect after 3 seconds if we didn't disconnect intentionally
-                if (this.sessionId) {
-                    setTimeout(() => {
-                        if (this.sessionId && !this.isConnected) {
-                            console.log('Attempting to reconnect to session...');
-                            this.connect();
-                        }
-                    }, 3000);
+                // Attempt to reconnect with exponential backoff
+                if (this.sessionId && !this.reconnectAttempts) {
+                    this.reconnectAttempts = 0;
+                    this.attemptReconnect();
                 }
             };
             
@@ -331,6 +325,14 @@ class Collaboration {
     disconnect() {
         this.sessionId = null;
         this.hasLoadedState = false;
+        this.reconnectAttempts = 0;
+        
+        // Cancel any pending reconnect
+        if (this.reconnectTimeout) {
+            clearTimeout(this.reconnectTimeout);
+            this.reconnectTimeout = null;
+        }
+        
         this.stopKeepAlive();
         if (this.ws) {
             this.ws.close();
@@ -641,37 +643,41 @@ class Collaboration {
      * Starts the keep-alive mechanism to prevent connection timeouts.
      */
     startKeepAlive() {
-        this.stopKeepAlive(); // Clear any existing intervals
-        
-        // Send a ping every 25 seconds (server expects activity within 30 seconds)
-        this.pingInterval = setInterval(() => {
-            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                this.send({ type: 'ping' });
-                
-                // Set a timeout to check if we get a pong response
-                this.pongTimeout = setTimeout(() => {
-                    console.warn('No pong received - connection may be lost');
-                    // Force reconnection
-                    if (this.ws) {
-                        this.ws.close();
-                    }
-                }, 5000); // Wait 5 seconds for pong
-            }
-        }, 25000); // Every 25 seconds
+        // Server sends pings every 30s, we just need to respond
+        // No need for client-side pings
     }
     
     /**
      * Stops the keep-alive mechanism.
      */
     stopKeepAlive() {
-        if (this.pingInterval) {
-            clearInterval(this.pingInterval);
-            this.pingInterval = null;
+        // Nothing to stop anymore
+    }
+    
+    /**
+     * Attempts to reconnect with exponential backoff.
+     */
+    attemptReconnect() {
+        if (!this.sessionId || this.isConnected) {
+            this.reconnectAttempts = 0;
+            return;
         }
-        if (this.pongTimeout) {
-            clearTimeout(this.pongTimeout);
-            this.pongTimeout = null;
+        
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.error('Max reconnection attempts reached. Please refresh the page.');
+            this.showError('Connection lost. Please refresh the page to reconnect.');
+            return;
         }
+        
+        // Calculate backoff: 1s, 2s, 4s, 8s... up to 30s
+        const backoffMs = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+        
+        console.log(`Reconnecting in ${backoffMs / 1000}s (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
+        
+        this.reconnectTimeout = setTimeout(() => {
+            this.reconnectAttempts++;
+            this.connect();
+        }, backoffMs);
     }
 }
 
