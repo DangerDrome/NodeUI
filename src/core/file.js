@@ -917,27 +917,14 @@ class File {
         if (sessionCodePattern.test(pastedText)) {
             event.preventDefault();
             
-            // Check if this was a middle-click paste
-            const isMiddleClick = this.recentMiddleClick && this.recentMiddleClick();
-            
-            // Don't auto-join on middle-click paste or when already connected
-            if (isMiddleClick || (this.nodeUI.collaboration && this.nodeUI.collaboration.isConnected)) {
-                return; // Ignore the paste entirely
+            // ONLY auto-join if we have NO session at all (not connected and no session ID)
+            if (this.nodeUI.collaboration && 
+                !this.nodeUI.collaboration.isConnected && 
+                !this.nodeUI.collaboration.sessionId) {
+                // No existing session, join directly
+                this.nodeUI.collaboration.joinSession(pastedText.toUpperCase());
             }
-            
-            // Only auto-join if we're not already in a session
-            if (this.nodeUI.collaboration && !this.nodeUI.collaboration.isConnected) {
-                // Confirm before joining if we have a session ID (disconnected state)
-                if (this.nodeUI.collaboration.sessionId) {
-                    const confirmJoin = confirm(`Join session ${pastedText.toUpperCase()}? This will leave your current session.`);
-                    if (confirmJoin) {
-                        this.nodeUI.collaboration.joinSession(pastedText.toUpperCase());
-                    }
-                } else {
-                    // No existing session, join directly
-                    this.nodeUI.collaboration.joinSession(pastedText.toUpperCase());
-                }
-            }
+            // Otherwise, completely ignore session code pastes
             return;
         }
 
