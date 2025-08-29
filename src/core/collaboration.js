@@ -316,6 +316,7 @@ class Collaboration {
             return null;
         }
         this.sessionId = this.generateSessionId();
+        console.log(`Starting new session: ${this.sessionId}`);
         this.connect();
         return this.sessionId;
     }
@@ -330,6 +331,7 @@ class Collaboration {
             return;
         }
         this.sessionId = sessionId.toUpperCase();
+        console.log(`Joining session: ${this.sessionId}`);
         this.connect();
     }
     
@@ -483,12 +485,16 @@ class Collaboration {
         switch (message.type) {
             case 'user-joined':
                 this.connectedUsers.add(message.userId);
+                const joinedName = message.userId.split('_')[0];
+                console.log(`${joinedName} joined`);
                 events.publish('collaboration:user-joined', { userId: message.userId });
                 this.updateUserCount();
                 break;
                 
             case 'user-left':
                 this.connectedUsers.delete(message.userId);
+                const leftName = message.userId.split('_')[0];
+                console.log(`${leftName} left`);
                 events.publish('collaboration:user-left', { userId: message.userId });
                 this.updateUserCount();
                 break;
@@ -514,7 +520,7 @@ class Collaboration {
                     // Add a small random delay to reduce simultaneous responses
                     const delay = Math.random() * 100;
                     setTimeout(() => {
-                        console.log('Sending state to user after', delay, 'ms delay');
+                        // console.log('Sending state to user after', delay, 'ms delay');
                         this.sendCurrentState();
                     }, delay);
                 }
@@ -523,17 +529,17 @@ class Collaboration {
             case 'state-response':
                 // Only load state from users in the same context
                 if (message.graphContext && message.graphContext !== this.nodeUI.graphContext.currentGraphId) {
-                    console.log('Ignoring state from different context:', message.graphContext);
+                    // console.log('Ignoring state from different context:', message.graphContext);
                     return;
                 }
                 
                 // Only load the first state response to avoid conflicts
                 if (!this.hasLoadedState) {
                     this.hasLoadedState = true;
-                    console.log('Loading state from first responder');
+                    console.log('Synced with existing session');
                     this.loadRemoteState(message.state);
                 } else {
-                    console.log('Ignoring additional state response');
+                    // console.log('Ignoring additional state response');
                 }
                 break;
         }
@@ -798,7 +804,7 @@ class Collaboration {
         // Calculate backoff: 1s, 2s, 4s, 8s... up to 30s
         const backoffMs = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
         
-        console.log(`Reconnecting in ${backoffMs / 1000}s (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
+        console.log(`Reconnecting in ${backoffMs / 1000}s...`);
         
         this.reconnectTimeout = setTimeout(() => {
             this.reconnectAttempts++;
