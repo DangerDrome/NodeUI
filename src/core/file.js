@@ -727,16 +727,11 @@ class File {
                         title: file.name,
                         content: `![video](local-video://${fileId})`,
                         type: 'BaseNode',
-                        color: 'default'
-                    };
-
-                    // In collaboration: add metadata to indicate this is a local video
-                    if (this.nodeUI.collaboration && this.nodeUI.collaboration.isConnected) {
-                        nodeData.metadata = {
-                            isLocalVideo: true,
+                        color: 'default',
+                        metadata: {
                             filename: file.name
-                        };
-                    }
+                        }
+                    };
 
                     events.publish('node:create', nodeData);
                 }).catch(error => {

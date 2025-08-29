@@ -97,22 +97,9 @@ class Nodes {
                 nodeData.containedNodeIds = Array.from(node.containedNodeIds);
             }
             
-            // Handle local video content - replace with placeholder for other users
-            if (nodeData.content && nodeData.content.includes('local-video://')) {
-                // Create a copy of nodeData for collaboration to avoid modifying the original
-                const collabNodeData = { ...nodeData };
-                // Extract filename from metadata or title
-                const filename = node.metadata?.filename || node.title || 'video';
-                collabNodeData.content = `![video](${filename})`;
-                // Mark this as a video placeholder for other users
-                collabNodeData.metadata = { ...nodeData.metadata, isVideoPlaceholder: true };
-                
-                // Send the modified version to collaboration
-                this.nodeUI.collaboration.handleLocalEvent('node:create', collabNodeData);
-            } else {
-                // Directly call the collaboration handler instead of publishing event
-                this.nodeUI.collaboration.handleLocalEvent('node:create', nodeData);
-            }
+            // Directly call the collaboration handler instead of publishing event
+            // Videos with local-video:// URLs won't work for other users anyway
+            this.nodeUI.collaboration.handleLocalEvent('node:create', nodeData);
         }
     }
 
