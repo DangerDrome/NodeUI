@@ -4,7 +4,7 @@ A serverless, node-based visual programming interface for creating interactive g
 
 ## Overview
 
-NodeUI is a powerful web application that runs entirely in the browser, allowing users to create complex node graphs, 3D scenes, and interactive visualizations. Simply open `index.html` in any modern browser to get started.
+NodeUI is a powerful web application that runs entirely in the browser, allowing users to create complex node graphs, 3D scenes, and interactive visualizations. Simply open `index.html` in any modern browser to get started. No installation or build process required.
 
 ### Key Highlights
 
