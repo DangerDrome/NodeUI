@@ -2092,7 +2092,8 @@ class Main {
             graphData.nodes.forEach(nodeData => {
                 const node = this.createNodeFromData(nodeData);
                 if (node) {
-                    this.nodeManager.addNode(node);
+                    // Skip broadcast when loading from internal graph
+                    this.nodeManager.addNode(node, true);
                 }
             });
         }
@@ -2109,7 +2110,8 @@ class Main {
                     label: edgeData.label || '',
                     routingPoints: edgeData.routingPoints || []
                 });
-                this.nodeManager.addEdge(edge);
+                // Skip broadcast when loading from internal graph
+                this.nodeManager.addEdge(edge, true);
             });
 
             // Update all edges to ensure proper rendering
