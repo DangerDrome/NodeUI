@@ -292,4 +292,4 @@ Built with vanilla JavaScript and leveraging:
 
 ---
 
-**NodeUI v1.1.12** - Modern visual programming for the web
+**NodeUI v1.1.22** - Modern visual programming for the web
