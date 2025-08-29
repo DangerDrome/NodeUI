@@ -72,6 +72,9 @@ class Collaboration {
                         textEl.textContent = originalText;
                     }, 1500);
                 });
+            } else if (this.sessionId) {
+                // Reconnect to existing session
+                this.connect();
             } else {
                 // Start a new session when offline
                 this.startSession();
@@ -80,6 +83,12 @@ class Collaboration {
         
         // Add to the body for fixed positioning
         document.body.appendChild(this.statusIndicator);
+        
+        // Create user count indicator (top-right)
+        this.userCountIndicator = document.createElement('div');
+        this.userCountIndicator.style.cssText = 'position: fixed; top: 28px; right: 28px; color: rgba(255, 255, 255, 0.3); font-family: monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; pointer-events: none; z-index: 10000;';
+        this.userCountIndicator.textContent = '1 user';
+        document.body.appendChild(this.userCountIndicator);
     }
     
     /**
@@ -96,7 +105,7 @@ class Collaboration {
         });
         
         events.subscribe('collaboration:users-updated', (data) => {
-            // Could add user count to status if desired
+            this.updateUserCount();
         });
         
         events.subscribe('collaboration:error', (data) => {
@@ -120,9 +129,24 @@ class Collaboration {
             this.statusIndicator.title = 'Click to copy session ID';
         } else {
             indicatorDot.classList.remove('connected');
-            indicatorText.textContent = 'Session: none';
+            if (this.sessionId) {
+                indicatorText.textContent = `Session: ${this.sessionId} (offline)`;
+                this.statusIndicator.title = 'Click to reconnect';
+            } else {
+                indicatorText.textContent = 'Session: none';
+                this.statusIndicator.title = 'Click to start a new session';
+            }
             this.statusIndicator.style.cursor = 'pointer';
-            this.statusIndicator.title = 'Click to start a new session';
+        }
+    }
+    
+    /**
+     * Updates the user count display.
+     */
+    updateUserCount() {
+        if (this.userCountIndicator) {
+            const count = this.connectedUsers.size + 1; // +1 for self
+            this.userCountIndicator.textContent = count === 1 ? '1 user' : `${count} users`;
         }
     }
     
@@ -190,7 +214,39 @@ class Collaboration {
      * Generates a unique user ID for this session.
      */
     generateUserId() {
-        return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        // Reuse the same word list from session IDs for consistency
+        const words = [
+            // Cosmic
+            'nova', 'void', 'flux', 'warp', 'rift', 'apex', 'core', 'pulse', 'spark', 'glow',
+            // Nature/Elements
+            'fire', 'ice', 'storm', 'wave', 'bolt', 'mist', 'dune', 'reef', 'peak', 'vale',
+            // Mythical creatures
+            'wolf', 'hawk', 'crow', 'lynx', 'bear', 'stag', 'pike', 'moth', 'wasp', 'viper',
+            // Actions/Power
+            'rush', 'dash', 'leap', 'dive', 'soar', 'drift', 'hack', 'sync', 'ping', 'zap',
+            // Tech/Cyber
+            'node', 'mesh', 'grid', 'link', 'byte', 'port', 'chip', 'code', 'loop', 'cache',
+            // Cool descriptors
+            'dark', 'neon', 'twin', 'swift', 'steel', 'silk', 'chrome', 'frost', 'ember', 'echo',
+            // Abstract
+            'zen', 'flux', 'edge', 'blur', 'fold', 'shift', 'phase', 'nexus', 'helix', 'prism',
+            // Energy/Light
+            'glow', 'beam', 'ray', 'arc', 'flare', 'blaze', 'shine', 'flash', 'gleam', 'halo',
+            // Materials
+            'jade', 'onyx', 'ruby', 'opal', 'zinc', 'iron', 'gold', 'cobalt', 'quartz', 'amber',
+            // Time/Space
+            'dawn', 'dusk', 'time', 'space', 'zone', 'era', 'age', 'now', 'neo', 'retro'
+        ];
+        
+        // Generate two random words for username
+        const word1 = words[Math.floor(Math.random() * words.length)];
+        const word2 = words[Math.floor(Math.random() * words.length)];
+        
+        // Store the display name
+        this.userDisplayName = `${word1}-${word2}`;
+        
+        // Return a unique ID that includes the display name
+        return `${word1}-${word2}_${Date.now().toString(36)}`;
     }
     
     /**
@@ -256,10 +312,17 @@ class Collaboration {
     }
     
     /**
-     * Leaves the current session.
+     * Leaves the current session temporarily (can reconnect).
      */
     leaveSession() {
-        this.disconnect();
+        this.disconnect(false); // Keep session ID for reconnection
+    }
+    
+    /**
+     * Permanently exits the session.
+     */
+    exitSession() {
+        this.disconnect(true); // Clear session ID
     }
     
     /**
@@ -333,6 +396,8 @@ class Collaboration {
                 this.isConnected = false;
                 this.stopKeepAlive();
                 this.unsubscribeFromEvents();
+                this.connectedUsers.clear();
+                this.updateUserCount();
                 events.publish('collaboration:disconnected');
                 
                 // Attempt to reconnect with exponential backoff
@@ -350,9 +415,12 @@ class Collaboration {
     
     /**
      * Disconnects from the WebSocket server.
+     * @param {boolean} clearSession - Whether to clear the session ID (default: false)
      */
-    disconnect() {
-        this.sessionId = null;
+    disconnect(clearSession = false) {
+        if (clearSession) {
+            this.sessionId = null;
+        }
         this.hasLoadedState = false;
         this.reconnectAttempts = 0;
         
@@ -390,16 +458,19 @@ class Collaboration {
             case 'user-joined':
                 this.connectedUsers.add(message.userId);
                 events.publish('collaboration:user-joined', { userId: message.userId });
+                this.updateUserCount();
                 break;
                 
             case 'user-left':
                 this.connectedUsers.delete(message.userId);
                 events.publish('collaboration:user-left', { userId: message.userId });
+                this.updateUserCount();
                 break;
                 
             case 'users-list':
                 this.connectedUsers = new Set(message.users);
                 events.publish('collaboration:users-updated', { users: Array.from(this.connectedUsers) });
+                this.updateUserCount();
                 break;
                 
             case 'operation':
