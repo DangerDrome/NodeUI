@@ -146,12 +146,26 @@ class Collaboration {
     updateUserCount() {
         if (this.userCountIndicator) {
             // Create list of users
-            const users = [this.userDisplayName || 'you']; // Start with self
+            const users = [];
+            
+            // Add all connected users (including self if in the set)
             this.connectedUsers.forEach(userId => {
                 // Extract display name from userId (format: "word1-word2_timestamp")
                 const displayName = userId.split('_')[0];
-                if (displayName) users.push(displayName);
+                if (displayName) {
+                    // Mark self with "(you)" suffix
+                    if (userId === this.userId) {
+                        users.push(displayName + ' (you)');
+                    } else {
+                        users.push(displayName);
+                    }
+                }
             });
+            
+            // If we're not in the connected users set (not connected), just show self
+            if (users.length === 0) {
+                users.push((this.userDisplayName || 'you') + ' (you)');
+            }
             
             // Update the display
             this.userCountIndicator.textContent = users.join(', ');
