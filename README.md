@@ -1,199 +1,277 @@
 # NodeUI
 
-A powerful, serverless node-based interface for creating interactive graphs and 3D visualizations. Built with vanilla JavaScript, HTML, and CSS - no build tools or servers required.
+A serverless, node-based visual programming interface for creating interactive graphs and 3D visualizations. Built with vanilla JavaScript - no build tools, dependencies, or installation required.
+
+## Overview
+
+NodeUI is a powerful web application that runs entirely in the browser, allowing users to create complex node graphs, 3D scenes, and interactive visualizations. Simply open `index.html` in any modern browser to get started.
+
+### Key Highlights
+
+- **Zero Installation**: Works directly from the file system - just open and use
+- **No Dependencies**: Pure vanilla JavaScript with CDN-loaded libraries
+- **Real-time Collaboration**: Optional WebSocket support for multi-user editing
+- **Professional Features**: Timeline animation, 3D viewport, nested graphs
+- **High Performance**: GPU acceleration and intelligent rendering optimizations
 
 ## Features
 
-### Core Node System
-- **Multiple Node Types**: Base, Group, Log, Routing, Settings, SubGraph, ThreeJS
-- **Interactive Edges**: Create connections between nodes with visual feedback
-- **Context Menus**: Right-click operations for all node types
-- **Drag & Drop**: Intuitive node manipulation and file import
-- **Properties Panel**: Configure node attributes and settings
+### Node System
+
+NodeUI provides a comprehensive set of node types for different use cases:
+
+- **BaseNode**: Standard nodes with markdown content support
+- **GroupNode**: Container nodes for organizing and managing node collections
+- **RoutingNode**: Minimalist nodes for edge path management
+- **LogNode**: Real-time event logging and debugging interface
+- **SettingsNode**: Application configuration and preferences
+- **SubGraphNode**: Nested graph containers with independent state
+- **ThreeJSNode**: Full 3D viewport with integrated Three.js scene
+- **ImageSequenceNode**: Frame-by-frame image animation support
+
+### Graph Capabilities
+
+- **Interactive Edges**: Bezier curve connections with visual feedback
+- **Smart Routing**: Automatic and manual edge path optimization
+- **Selection System**: Multi-select with keyboard modifiers
+- **Drag & Drop**: File import and node manipulation
+- **Context Menus**: Right-click operations for all elements
+- **Undo/Redo**: Full operation history (when implemented)
 
 ### Advanced Features
-- **SubGraph System**: Create nested, self-contained graphs with navigation
-- **3D Viewport**: Integrated Three.js scene with timeline and animation
-- **Timeline System**: Advanced keyframe management and animation playback
-- **Performance Optimized**: GPU-accelerated rendering with intelligent updates
 
-### Serverless Operation
-- **Zero Server Required**: Works completely offline from file system
-- **CORS-Free**: No browser security issues when running locally
-- **Embedded Data**: Demo graph included for immediate testing
-- **Double-Click Launch**: Open index.html directly in any browser
-- **Image Compression**: Automatic compression prevents collaboration crashes
+- **SubGraph Navigation**: Hierarchical graph organization with breadcrumb navigation
+- **Timeline System**: Professional keyframe animation at 24fps
+- **3D Integration**: Full Three.js support with camera controls
+- **Real-time Collaboration**: WebSocket-based multi-user sessions
+- **Auto-save**: Continuous local storage persistence
+- **Export Options**: JSON graphs and PNG screenshots
+
+## Getting Started
+
+### Quick Start
+
+1. Clone or download the repository
+2. Open `index.html` in any modern browser
+3. Start creating nodes and connections
+
+No installation, build process, or server required.
+
+### Basic Operations
+
+| Action | Method |
+|--------|--------|
+| Create Node | Right-click canvas → Add Node |
+| Connect Nodes | Drag from node handle to another |
+| Move Node | Click and drag |
+| Multi-select | Shift+click or drag selection box |
+| Delete | Select and press Delete key |
+| Pan Canvas | Click and drag on empty space |
+| Zoom | Mouse wheel or trackpad gesture |
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Delete` | Remove selected elements |
+| `R` + Drag | Create routing node |
+| `Shift` + Click | Add to selection |
+| `I` | Insert timeline keyframe |
+| `Ctrl/Cmd + S` | Save graph |
+| `Ctrl/Cmd + O` | Open graph file |
 
 ## Architecture
 
-### Modular Design
+### Project Structure
+
 ```
-src/
-├── main.js              # Application entry point
-├── core/
-│   ├── canvas.js        # Canvas rendering and SVG operations
-│   ├── contextMenu.js   # Context menu system
-│   ├── edges.js         # Edge drawing and routing
-│   ├── events.js        # Event handling system
-│   ├── file.js          # File operations and persistence
-│   ├── interactions.js  # Mouse/touch/keyboard interactions
-│   ├── libs.js          # External library loading
-│   ├── main.js          # Core application logic
-│   └── markdown.js      # Markdown processing
-├── nodes/
-│   ├── basenode.js      # Base node class
-│   ├── baseedge.js      # Base edge class
-│   ├── groupnode.js     # Group node implementation
-│   ├── imagesequencenode.js
-│   ├── lognode.js       # Logging node
-│   ├── routingnode.js   # Routing node
-│   ├── settingsnode.js  # Settings node
-│   ├── subgraphnode.js  # SubGraph node
-│   └── threejsnode.js   # 3D viewport node
-└── styles/
-    ├── styles.css       # Main stylesheet (imports all others)
-    ├── variables.css    # CSS custom properties
-    ├── icons.css        # Icon definitions
-    ├── layout.css       # Layout and positioning
-    ├── nodes.css        # Node-specific styles
-    └── timeline.css     # Timeline UI styles
+NodeUI/
+├── index.html           # Application entry point
+├── config.js            # Configuration (WebSocket URL)
+├── src/
+│   ├── main.js          # Module loader and initialization
+│   ├── core/            # Core system modules
+│   │   ├── main.js      # Application orchestrator
+│   │   ├── canvas.js    # SVG rendering system
+│   │   ├── interactions.js  # User input handling
+│   │   ├── file.js      # File operations and persistence
+│   │   ├── nodes.js     # Node lifecycle management
+│   │   ├── edges.js     # Edge drawing and routing
+│   │   ├── events.js    # Event bus system
+│   │   ├── contextMenu.js   # Context menu implementation
+│   │   ├── collaboration.js # WebSocket collaboration
+│   │   ├── markdown.js  # Markdown processing
+│   │   └── libs.js      # External library management
+│   ├── nodes/           # Node type implementations
+│   └── styles/          # Modular CSS architecture
 ```
 
-### Key Components
-- **NodeUI**: Core orchestration and state management
-- **CanvasRenderer**: Visual rendering and SVG operations
-- **FileHandler**: File operations, save/load, drag & drop
-- **ContextMenuHandler**: Context menu display and edge editing
-- **NodeManager**: Node/edge lifecycle and grouping
-- **InteractionHandler**: Mouse/touch/keyboard interactions
-- **EdgeHandler**: Edge drawing and routing logic
+### Core Architecture
 
-## Quick Start
+NodeUI follows a modular, event-driven architecture:
 
-### Option 1: Double-Click Launch (Recommended)
-1. Download or clone the repository
-2. Double-click `index.html` to open in your browser
-3. Start creating nodes and connections immediately
-
-### Option 2: Local Server (Optional)
-If you prefer using a local server:
-```bash
-# Python 3
-python3 -m http.server 8000
-
-# Python 2
-python -m SimpleHTTPServer 8000
-
-# Node.js
-npx http-server
-
-# PHP
-php -S localhost:8000
-```
-
-Then visit `http://localhost:8000`
-
-## Quick Start
-
-Simply open `index.html` in your browser - no installation required!
-
-## Usage
-
-### Basic Operations
-- **Create Nodes**: Right-click canvas → Add Node
-- **Connect Nodes**: Drag from node output to input
-- **Move Nodes**: Click and drag nodes around
-- **Select Multiple**: Shift+click or drag selection box
-- **Delete**: Select nodes/edges and press Delete
-
-### Advanced Features
-- **SubGraphs**: Create nested graphs for complex workflows
-- **3D Viewport**: Add ThreeJS nodes for 3D visualization
-- **Timeline**: Use timeline nodes for animation and keyframes
-- **Routing**: Press 'R' + drag to create routing nodes
-
-### Keyboard Shortcuts
-- `Delete`: Remove selected nodes/edges
-- `R + Drag`: Create routing node
-- `I`: Insert keyframe (in timeline)
-- `Ctrl/Cmd + C/V`: Copy/paste nodes
-- `Ctrl/Cmd + Z`: Undo (when implemented)
+1. **Event System**: Central pub/sub bus for all inter-module communication
+2. **Module Pattern**: Self-contained modules with clear interfaces
+3. **State Management**: Centralized state in Main class with reactive updates
+4. **Rendering Pipeline**: Layered SVG/HTML rendering with optimizations
+5. **Asset Management**: IndexedDB for file storage with lazy loading
 
 ## Development
 
-### Project Structure
-The application follows a modular architecture with clear separation of concerns:
+### Creating Custom Nodes
 
-- **Core Modules**: Handle specific functionality (canvas, events, file operations)
-- **Node Classes**: Individual node type implementations
-- **Style Modules**: Organized CSS for different UI components
-- **External Libraries**: Centralized dependency management
+Extend the `BaseNode` class to create custom node types:
 
-### Adding New Node Types
-1. Create a new file in `src/nodes/`
-2. Extend the `BaseNode` class
-3. Implement required methods and properties
-4. Register the node type in the main application
+```javascript
+class CustomNode extends BaseNode {
+    constructor(options) {
+        super(options);
+        this.type = 'custom';
+        // Initialize custom properties
+    }
+    
+    render() {
+        super.render();
+        // Add custom rendering logic
+    }
+    
+    // Override methods as needed
+}
+```
+
+### Module System
+
+Each module follows a consistent pattern:
+
+```javascript
+export class ModuleName {
+    constructor(main) {
+        this.main = main;
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        this.main.events.on('event:name', this.handleEvent.bind(this));
+    }
+}
+```
 
 ### Styling
-CSS is organized into focused files:
-- `layout.css`: Main layout and positioning
-- `nodes.css`: Node-specific styles and animations
-- `timeline.css`: Timeline UI components
-- `variables.css`: CSS custom properties and theming
 
-## Technical Details
+CSS is organized into focused modules:
+
+- `variables.css` - Design tokens and theme variables
+- `layout.css` - Application structure and layout
+- `nodes.css` - Node styling and states
+- `timeline.css` - Timeline interface styles
+- `icons.css` - Icon definitions and sprites
+
+## Collaboration
+
+### WebSocket Setup (Optional)
+
+For real-time collaboration features:
+
+1. Deploy the Durable Object worker to Cloudflare
+2. Update `config.js` with your WebSocket URL
+3. Share session IDs with collaborators
+
+### Features
+
+- Real-time cursor positions
+- Synchronized node operations
+- Automatic image compression (1200x1200 max)
+- Presence indicators
+- Session management
+
+## Performance
+
+### Optimizations
+
+- **Lazy Loading**: Libraries load on-demand
+- **Render Batching**: Edge updates during drag operations
+- **Event Throttling**: Optimized update frequencies
+- **GPU Acceleration**: Hardware-accelerated 3D rendering
+- **Memory Management**: Automatic cleanup and GC optimization
+
+### Browser Requirements
+
+- Modern browser with ES6+ support
+- WebGL for 3D features
+- IndexedDB for file storage
+- WebSocket support for collaboration (optional)
+
+## File Format
+
+NodeUI uses a JSON-based file format for graphs:
+
+```json
+{
+  "nodes": [
+    {
+      "id": "unique-id",
+      "type": "base",
+      "x": 100,
+      "y": 200,
+      "width": 200,
+      "height": 150,
+      "content": "Node content"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-id",
+      "sourceId": "node1-id",
+      "targetId": "node2-id"
+    }
+  ]
+}
+```
+
+## Deployment
+
+### Static Hosting
+
+NodeUI can be deployed to any static file host:
+
+- GitHub Pages
+- Netlify
+- Vercel
+- Amazon S3
+- Any web server
+
+Simply upload all files and ensure `index.html` is accessible.
+
+### Collaboration Server
+
+For WebSocket features, deploy the Durable Object:
+
+```bash
+cd durable-objects-worker
+wrangler deploy
+```
+
+## Troubleshooting
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| Blank screen | Check browser console for errors |
+| Can't create nodes | Ensure right-clicking on canvas, not nodes |
+| Lost work | Check browser local storage |
+| WebSocket errors | Verify config.js URL and CORS settings |
 
 ### Browser Compatibility
-- Modern browsers with ES6+ support
-- WebGL support for 3D viewport
-- Local storage for data persistence
 
-### Performance Features
-- Conditional animation loops
-- Intelligent render state tracking
-- GPU acceleration for 3D rendering
-- Optimized event handling
-
-### Data Persistence
-- Local storage for graph data
-- JSON export/import functionality
-- Screenshot capture capability
-
-## File Structure
-
-```
-NodeUI2/
-├── index.html              # Main application entry point
-├── launch.html             # Launch page with instructions
-├── graph.json              # Default graph data
-├── test-graph.json         # Test graph data
-├── README.md               # This file
-├── memory-bank/            # Project documentation
-│   ├── activeContext.md    # Current development context
-│   ├── progress.md         # Progress tracking
-│   ├── projectbrief.md     # Project overview
-│   ├── systemPatterns.md   # System architecture patterns
-│   └── techContext.md      # Technical context
-└── src/                    # Source code
-    ├── main.js             # Application entry point
-    ├── core/               # Core application modules
-    ├── nodes/              # Node type implementations
-    └── styles/             # CSS stylesheets
-```
-
-## Customization
-
-### Theming
-Modify `src/styles/variables.css` to customize colors, fonts, and spacing.
-
-### Node Styling
-Edit `src/styles/nodes.css` to customize node appearance and animations.
-
-### Layout
-Adjust `src/styles/layout.css` to modify the overall application layout.
+Tested and supported on:
+- Chrome/Edge 90+
+- Firefox 88+
+- Safari 14+
 
 ## Contributing
+
+Contributions are welcome. Please:
 
 1. Fork the repository
 2. Create a feature branch
@@ -203,15 +281,15 @@ Adjust `src/styles/layout.css` to modify the overall application layout.
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE).
+MIT License - see LICENSE file for details.
 
-## Support
+## Credits
 
-For issues, questions, or contributions:
-1. Check the memory bank documentation in `/memory-bank/`
-2. Review the technical context and system patterns
-3. Open an issue on GitHub
+Built with vanilla JavaScript and leveraging:
+- Three.js for 3D graphics
+- Marked.js for markdown processing
+- Cloudflare Durable Objects for collaboration
 
 ---
 
-**NodeUI** - Powerful node-based interface for interactive graphs and 3D visualizations. Serverless, modern, and ready to use. 
+**NodeUI v1.1.12** - Modern visual programming for the web
