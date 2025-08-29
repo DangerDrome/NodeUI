@@ -63,9 +63,13 @@ class Canvas {
         // --- Node Layers (Top) ---
         this.nodeUI.groupContainer = document.createElement('div');
         this.nodeUI.groupContainer.classList.add('group-container');
+        // Add will-change for better performance during transforms
+        this.nodeUI.groupContainer.style.willChange = 'transform';
 
         this.nodeUI.nodeContainer = document.createElement('div');
         this.nodeUI.nodeContainer.classList.add('node-container');
+        // Add will-change for better performance during transforms
+        this.nodeUI.nodeContainer.style.willChange = 'transform';
 
         this.nodeUI.selectionState.selectionBox = document.createElement('div');
         this.nodeUI.selectionState.selectionBox.classList.add('selection-box');
@@ -360,7 +364,8 @@ class Canvas {
      */
     updateCanvasTransform() {
         // Create the transform strings for CSS (for HTML nodes) and SVG (for edges)
-        const transformCss = `translate(${this.nodeUI.panZoom.offsetX}px, ${this.nodeUI.panZoom.offsetY}px) scale(${this.nodeUI.panZoom.scale})`;
+        // Use translate3d for hardware acceleration
+        const transformCss = `translate3d(${this.nodeUI.panZoom.offsetX}px, ${this.nodeUI.panZoom.offsetY}px, 0) scale(${this.nodeUI.panZoom.scale})`;
         const transformSvg = `translate(${this.nodeUI.panZoom.offsetX}, ${this.nodeUI.panZoom.offsetY}) scale(${this.nodeUI.panZoom.scale})`;
 
         // Apply transform to the HTML containers for nodes

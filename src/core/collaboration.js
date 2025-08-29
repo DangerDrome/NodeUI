@@ -118,35 +118,51 @@ class Collaboration {
      * Updates the connection status display.
      */
     updateStatus(status, sessionId = null) {
-        
-        const indicatorDot = this.statusIndicator.querySelector('.collaboration-status-indicator-dot');
-        const indicatorText = this.statusIndicator.querySelector('.collaboration-status-indicator-text');
-        
-        if (status === 'connected' && sessionId) {
-            indicatorDot.classList.add('connected');
-            indicatorText.textContent = `Session: ${sessionId}`;
-            this.statusIndicator.style.cursor = 'pointer';
-            this.statusIndicator.title = 'Click to copy session ID';
-        } else {
-            indicatorDot.classList.remove('connected');
-            if (this.sessionId) {
-                indicatorText.textContent = `Session: ${this.sessionId} (offline)`;
-                this.statusIndicator.title = 'Click to reconnect';
-            } else {
-                indicatorText.textContent = 'Session: none';
-                this.statusIndicator.title = 'Click to start a new session';
-            }
-            this.statusIndicator.style.cursor = 'pointer';
+        // Clear any pending status update
+        if (this.statusUpdateTimeout) {
+            clearTimeout(this.statusUpdateTimeout);
         }
+        
+        // If disconnecting, add a small delay to prevent flicker during reconnects
+        const delay = status === 'disconnected' ? 1000 : 0;
+        
+        this.statusUpdateTimeout = setTimeout(() => {
+            const indicatorDot = this.statusIndicator.querySelector('.collaboration-status-indicator-dot');
+            const indicatorText = this.statusIndicator.querySelector('.collaboration-status-indicator-text');
+            
+            if (status === 'connected' && sessionId) {
+                indicatorDot.classList.add('connected');
+                indicatorText.textContent = `Session: ${sessionId}`;
+                this.statusIndicator.style.cursor = 'pointer';
+                this.statusIndicator.title = 'Click to copy session ID';
+            } else {
+                indicatorDot.classList.remove('connected');
+                if (this.sessionId) {
+                    indicatorText.textContent = `Session: ${this.sessionId} (offline)`;
+                    this.statusIndicator.title = 'Click to reconnect';
+                } else {
+                    indicatorText.textContent = 'Session: none';
+                    this.statusIndicator.title = 'Click to start a new session';
+                }
+                this.statusIndicator.style.cursor = 'pointer';
+            }
+        }, delay);
     }
     
     /**
      * Updates the user count display.
      */
     updateUserCount() {
-        if (this.userCountIndicator) {
-            // Create list of users
-            const users = [];
+        // Clear any pending user count update
+        if (this.userCountUpdateTimeout) {
+            clearTimeout(this.userCountUpdateTimeout);
+        }
+        
+        // Small delay to batch rapid user join/leave events
+        this.userCountUpdateTimeout = setTimeout(() => {
+            if (this.userCountIndicator) {
+                // Create list of users
+                const users = [];
             
             // Add all connected users (including self if in the set)
             this.connectedUsers.forEach(userId => {
@@ -169,7 +185,8 @@ class Collaboration {
             
             // Update the display (one user per line) - use innerHTML for HTML content
             this.userCountIndicator.innerHTML = users.join('<br>');
-        }
+            }
+        }, 200); // 200ms delay to batch updates
     }
     
     /**

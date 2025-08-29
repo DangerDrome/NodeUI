@@ -323,8 +323,6 @@ class Interactions {
 
             this.nodeUI.draggingState.startX = event.clientX;
             this.nodeUI.draggingState.startY = event.clientY;
-
-            this.nodeUI.clearGuides();
         } else if (this.nodeUI.edgeHandler.isDrawing()) {
             const mousePos = this.nodeUI.getMousePosition(event);
             this.nodeUI.updateDrawingEdge(mousePos.x, mousePos.y);
