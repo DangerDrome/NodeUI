@@ -401,6 +401,14 @@ class Collaboration {
                     return;
                 }
                 
+                // Handle session full error
+                if (message.type === 'error') {
+                    console.error('Session error:', message.message);
+                    this.showError(message.message);
+                    this.disconnect(true); // Full disconnect
+                    return;
+                }
+                
                 this.handleMessage(message);
             };
             

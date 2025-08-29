@@ -9,6 +9,9 @@ export class CollaborationRoom {
     this.state = state;
     this.env = env;
     this.sessions = new Map(); // userId -> WebSocket
+    this.operationCounts = new Map(); // userId -> { count, resetTime }
+    this.MAX_USERS = 50; // Max concurrent users per session
+    this.MAX_OPS_PER_SECOND = 20; // Max operations per second per user
   }
 
   async fetch(request) {
@@ -59,6 +62,16 @@ export class CollaborationRoom {
         
         switch (message.type) {
           case 'join':
+            // Check user limit
+            if (this.sessions.size >= this.MAX_USERS) {
+              webSocket.send(JSON.stringify({
+                type: 'error',
+                message: 'Session full - maximum 50 users reached'
+              }));
+              webSocket.close();
+              return;
+            }
+            
             userId = message.userId;
             this.sessions.set(userId, webSocket);
             
@@ -76,6 +89,25 @@ export class CollaborationRoom {
             break;
             
           case 'operation':
+            // Check rate limit
+            const now = Date.now();
+            const userOps = this.operationCounts.get(message.userId) || { count: 0, resetTime: now + 1000 };
+            
+            // Reset counter if second has passed
+            if (now > userOps.resetTime) {
+              userOps.count = 0;
+              userOps.resetTime = now + 1000;
+            }
+            
+            // Check if over limit
+            if (userOps.count >= this.MAX_OPS_PER_SECOND) {
+              // Silently drop the message - no error to avoid spam
+              return;
+            }
+            
+            // Increment counter and broadcast
+            userOps.count++;
+            this.operationCounts.set(message.userId, userOps);
             this.broadcast(message, message.userId);
             break;
             
@@ -103,6 +135,7 @@ export class CollaborationRoom {
       clearInterval(pingInterval);
       if (userId) {
         this.sessions.delete(userId);
+        this.operationCounts.delete(userId); // Clean up rate limit tracking
         this.broadcast({
           type: 'user-left',
           userId: userId
