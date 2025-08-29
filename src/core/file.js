@@ -917,14 +917,24 @@ class File {
         if (sessionCodePattern.test(pastedText)) {
             event.preventDefault();
             
-            // ONLY auto-join if we have NO session at all (not connected and no session ID)
-            if (this.nodeUI.collaboration && 
-                !this.nodeUI.collaboration.isConnected && 
-                !this.nodeUI.collaboration.sessionId) {
-                // No existing session, join directly
+            if (!this.nodeUI.collaboration) return;
+            
+            // If connected to a session, don't auto-switch
+            if (this.nodeUI.collaboration.isConnected) {
+                console.log('Already in a session. Use the Join Session button to switch.');
+                return;
+            }
+            
+            // If not connected but have a session ID, ask for confirmation
+            if (this.nodeUI.collaboration.sessionId) {
+                const confirmJoin = confirm(`Join session ${pastedText.toUpperCase()}?\nThis will leave your current session: ${this.nodeUI.collaboration.sessionId}`);
+                if (confirmJoin) {
+                    this.nodeUI.collaboration.joinSession(pastedText.toUpperCase());
+                }
+            } else {
+                // No session at all, join directly
                 this.nodeUI.collaboration.joinSession(pastedText.toUpperCase());
             }
-            // Otherwise, completely ignore session code pastes
             return;
         }
 
