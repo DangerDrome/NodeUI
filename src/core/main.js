@@ -1916,7 +1916,8 @@ class Main {
                     content: node.content,
                     type: node.type,
                     color: node.color,
-                    isPinned: node.isPinned
+                    isPinned: node.isPinned,
+                    metadata: node.metadata // Preserve metadata including video info
                 };
 
                 // Add type-specific properties
