@@ -714,23 +714,45 @@ class File {
 
             // Handle video embedding
             if (file.type.startsWith('video/')) {
-                assetDb.saveFile(file).then(fileId => {
+                // Check if we're in a collaboration session
+                if (this.nodeUI.collaboration && this.nodeUI.collaboration.isConnected) {
+                    // In collaboration: create a placeholder node
                     const nodeWidth = 350;
-                    const nodeHeight = 300;
-
+                    const nodeHeight = 200;
+                    
+                    
                     events.publish('node:create', {
                         x: filePosition.x - nodeWidth / 2,
                         y: filePosition.y - nodeHeight / 2,
                         width: nodeWidth,
                         height: nodeHeight,
                         title: file.name,
-                        content: `![video](local-video://${fileId})`,
+                        content: `![video](${file.name})`,
                         type: 'BaseNode',
-                        color: 'default'
+                        color: 'blue'
                     });
-                }).catch(error => {
-                    console.error('Failed to save video to asset database:', error);
-                });
+                    
+                    console.info('Video file dropped during collaboration - created placeholder node');
+                } else {
+                    // Single user mode: use IndexedDB as before
+                    assetDb.saveFile(file).then(fileId => {
+                        const nodeWidth = 350;
+                        const nodeHeight = 300;
+
+                        events.publish('node:create', {
+                            x: filePosition.x - nodeWidth / 2,
+                            y: filePosition.y - nodeHeight / 2,
+                            width: nodeWidth,
+                            height: nodeHeight,
+                            title: file.name,
+                            content: `![video](local-video://${fileId})`,
+                            type: 'BaseNode',
+                            color: 'default'
+                        });
+                    }).catch(error => {
+                        console.error('Failed to save video to asset database:', error);
+                    });
+                }
                 return;
             }
 
@@ -906,25 +928,57 @@ class File {
         const pastedText = event.clipboardData.getData('text/plain').trim();
         if (!pastedText) return;
 
-        // Regex to specifically check for video links (YouTube, .mp4, etc.)
-        const videoUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+|(\.mp4|\.webm|\.ogg)$/i;
+        // Enhanced regex to check for various video platforms and direct video files
+        const videoPatterns = [
+            /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/i,  // YouTube
+            /^(https?:\/\/)?(www\.)?vimeo\.com\/.+/i,                // Vimeo
+            /^(https?:\/\/)?(www\.)?dailymotion\.com\/.+/i,          // Dailymotion
+            /^(https?:\/\/)?(www\.)?twitch\.tv\/.+/i,                // Twitch
+            /\.(mp4|webm|ogg|mov|avi|mkv|m4v)(\?.*)?$/i             // Direct video files
+        ];
+        
+        const isVideoUrl = videoPatterns.some(pattern => pattern.test(pastedText));
 
-        if (videoUrlRegex.test(pastedText)) {
+        if (isVideoUrl) {
             event.preventDefault(); // We're handling it, so prevent default paste.
             
             const position = this.nodeUI.getMousePosition(this.nodeUI.lastMousePosition);
             const nodeWidth = 350;
             const nodeHeight = 300; // Give it a bit more height for video controls
+            
+            // Extract a better title from the URL
+            let title = 'Pasted Video';
+            try {
+                const url = new URL(pastedText);
+                const hostname = url.hostname.replace('www.', '');
+                const pathname = url.pathname;
+                
+                if (hostname.includes('youtube') || hostname.includes('youtu.be')) {
+                    title = '📹 YouTube Video';
+                } else if (hostname.includes('vimeo')) {
+                    title = '📹 Vimeo Video';
+                } else if (hostname.includes('dailymotion')) {
+                    title = '📹 Dailymotion Video';
+                } else if (hostname.includes('twitch')) {
+                    title = '📹 Twitch Video';
+                } else if (pathname.match(/\.(mp4|webm|ogg|mov|avi|mkv|m4v)/i)) {
+                    // Extract filename from path
+                    const filename = pathname.split('/').pop().split('?')[0];
+                    title = `📹 ${filename}`;
+                }
+            } catch (e) {
+                // If URL parsing fails, keep the default title
+            }
 
             events.publish('node:create', {
                 x: position.x - nodeWidth / 2,
                 y: position.y - nodeHeight / 2,
                 width: nodeWidth,
                 height: nodeHeight,
-                title: 'Pasted Video',
+                title: title,
                 content: `![video](${pastedText})`,
                 type: 'BaseNode',
-                color: 'default' // Or a specific color for videos
+                color: 'blue'
             });
         }
     }

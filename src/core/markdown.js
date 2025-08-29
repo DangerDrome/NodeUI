@@ -54,10 +54,24 @@ window.initializeMarkdown = function() {
                                 node.value = `<video controls loop muted width="100%" data-auto-resize="true"><source src="${blobUrl}"></video>`;
                             } catch (error) {
                                 console.error(`Failed to load local video ${url}:`, error);
+                                // Show a helpful placeholder for missing videos
                                 node.type = 'html';
-                                node.value = `<p>Error loading video: ${url}</p>`;
+                                node.value = `<div style="
+                                    background: #f0f0f0; 
+                                    border: 2px dashed #ccc; 
+                                    border-radius: 8px; 
+                                    padding: 20px; 
+                                    text-align: center; 
+                                    color: #666;
+                                    font-family: sans-serif;
+                                ">
+                                    <div style="font-size: 24px; margin-bottom: 10px;">🎬</div>
+                                    <div style="font-weight: bold; margin-bottom: 5px;">Video not available</div>
+                                    <div style="font-size: 12px;">This video was added by another user and is not synced.</div>
+                                </div>`;
                             }
                         } else {
+                            // YouTube support
                             const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/;
                             const youtubeMatch = url.match(youtubeRegex);
 
@@ -74,7 +88,39 @@ window.initializeMarkdown = function() {
                                             allowfullscreen>
                                         </iframe>
                                     </div>`;
+                                return;
+                            }
+                            
+                            // Vimeo support
+                            const vimeoRegex = /(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(\d+)/;
+                            const vimeoMatch = url.match(vimeoRegex);
+                            
+                            if (vimeoMatch) {
+                                const videoId = vimeoMatch[1];
+                                node.type = 'html';
+                                node.value = `
+                                    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;">
+                                        <iframe 
+                                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                                            src="https://player.vimeo.com/video/${videoId}" 
+                                            frameborder="0" 
+                                            allow="autoplay; fullscreen; picture-in-picture" 
+                                            allowfullscreen>
+                                        </iframe>
+                                    </div>`;
+                                return;
+                            }
+                            
+                            // Direct video files (mp4, webm, etc.)
+                            const directVideoRegex = /\.(mp4|webm|ogg|mov|avi|mkv|m4v)(\?.*)?$/i;
+                            if (directVideoRegex.test(url)) {
+                                node.type = 'html';
+                                node.value = `<video controls loop muted width="100%" data-auto-resize="true">
+                                    <source src="${url}" type="video/${url.match(directVideoRegex)[1].toLowerCase()}">
+                                    Your browser does not support the video tag.
+                                </video>`;
                             } else {
+                                // Fallback for unknown video URLs - try to embed as generic video
                                 node.type = 'html';
                                 node.value = `<video controls loop muted width="100%" data-auto-resize="true"><source src="${url}"></video>`;
                             }

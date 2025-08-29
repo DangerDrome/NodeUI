@@ -48,25 +48,54 @@ class Nodes {
         
         // Broadcast to collaboration system unless explicitly skipped
         if (!skipBroadcast && this.nodeUI.collaboration && this.nodeUI.collaboration.isConnected) {
-            const nodeData = {
-                id: node.id,
-                x: node.x,
-                y: node.y,
-                width: node.width,
-                height: node.height,
-                title: node.title,
-                content: node.content,
-                type: node.constructor.name,
-                color: node.color,
-                isPinned: node.isPinned
-            };
+            let nodeData;
             
-            // Add type-specific properties
-            if (node instanceof GroupNode) {
+            // Use the node's serialize method if available to get all properties
+            if (typeof node.serialize === 'function') {
+                try {
+                    nodeData = node.serialize();
+                } catch (error) {
+                    console.warn('Error serializing node:', error);
+                    // Fallback to basic properties
+                    nodeData = {
+                        id: node.id,
+                        x: node.x,
+                        y: node.y,
+                        width: node.width,
+                        height: node.height,
+                        title: node.title,
+                        content: node.content,
+                        type: node.constructor.name,
+                        color: node.color,
+                        isPinned: node.isPinned
+                    };
+                }
+            } else {
+                // Fallback for nodes without serialize method
+                nodeData = {
+                    id: node.id,
+                    x: node.x,
+                    y: node.y,
+                    width: node.width,
+                    height: node.height,
+                    title: node.title,
+                    content: node.content,
+                    type: node.constructor.name,
+                    color: node.color,
+                    isPinned: node.isPinned
+                };
+            }
+            
+            // Ensure type is set correctly (serialize might return type differently)
+            if (!nodeData.type) {
+                nodeData.type = node.constructor.name;
+            }
+            
+            // Add type-specific properties for GroupNode if not already included
+            if (node instanceof GroupNode && !nodeData.containedNodeIds) {
                 // Convert Set to Array for serialization
                 nodeData.containedNodeIds = Array.from(node.containedNodeIds);
             }
-            
             
             // Directly call the collaboration handler instead of publishing event
             this.nodeUI.collaboration.handleLocalEvent('node:create', nodeData);
