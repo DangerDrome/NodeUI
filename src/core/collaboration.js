@@ -153,9 +153,9 @@ class Collaboration {
                 // Extract display name from userId (format: "word1-word2_timestamp")
                 const displayName = userId.split('_')[0];
                 if (displayName) {
-                    // Mark self with "(you)" suffix with subtle accent color
+                    // Mark self with "(you)" prefix with subtle accent color
                     if (userId === this.userId) {
-                        users.push(displayName + ' <span style="color: rgba(62, 207, 142, 0.4)">(you)</span>');
+                        users.push('<span style="color: rgba(62, 207, 142, 0.4)">(you)</span> ' + displayName);
                     } else {
                         users.push(displayName);
                     }
@@ -164,7 +164,7 @@ class Collaboration {
             
             // If we're not in the connected users set (not connected), just show self
             if (users.length === 0) {
-                users.push((this.userDisplayName || 'you') + ' <span style="color: rgba(62, 207, 142, 0.4)">(you)</span>');
+                users.push('<span style="color: rgba(62, 207, 142, 0.4)">(you)</span> ' + (this.userDisplayName || 'you'));
             }
             
             // Update the display (one user per line) - use innerHTML for HTML content
