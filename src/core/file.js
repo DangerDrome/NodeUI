@@ -916,9 +916,19 @@ class File {
         const sessionCodePattern = /^[A-Z]+-[A-Z]+-[A-Z]+$/i;
         if (sessionCodePattern.test(pastedText)) {
             event.preventDefault();
-            // Join the session
-            if (this.nodeUI.collaboration) {
-                this.nodeUI.collaboration.joinSession(pastedText.toUpperCase());
+            
+            // Only auto-join if we're not already in a session
+            if (this.nodeUI.collaboration && !this.nodeUI.collaboration.isConnected) {
+                // Confirm before joining if we have a session ID (disconnected state)
+                if (this.nodeUI.collaboration.sessionId) {
+                    const confirmJoin = confirm(`Join session ${pastedText.toUpperCase()}? This will leave your current session.`);
+                    if (confirmJoin) {
+                        this.nodeUI.collaboration.joinSession(pastedText.toUpperCase());
+                    }
+                } else {
+                    // No existing session, join directly
+                    this.nodeUI.collaboration.joinSession(pastedText.toUpperCase());
+                }
             }
             return;
         }
