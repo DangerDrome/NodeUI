@@ -494,7 +494,12 @@ class Collaboration {
             case 'user-joined':
                 this.connectedUsers.add(message.userId);
                 const joinedName = message.userId.split('_')[0];
-                console.log(`${joinedName} joined`);
+                // Suppress log if user recently left (within 5 seconds)
+                const now = Date.now();
+                const lastLeft = this.recentlyLeft?.get(message.userId) || 0;
+                if (now - lastLeft > 5000) {
+                    console.log(`${joinedName} joined`);
+                }
                 events.publish('collaboration:user-joined', { userId: message.userId });
                 this.updateUserCount();
                 break;
@@ -503,6 +508,11 @@ class Collaboration {
                 this.connectedUsers.delete(message.userId);
                 const leftName = message.userId.split('_')[0];
                 console.log(`${leftName} left`);
+                // Track when user left for debouncing rejoin messages
+                if (!this.recentlyLeft) this.recentlyLeft = new Map();
+                this.recentlyLeft.set(message.userId, Date.now());
+                // Clean up old entries after 10 seconds
+                setTimeout(() => this.recentlyLeft.delete(message.userId), 10000);
                 events.publish('collaboration:user-left', { userId: message.userId });
                 this.updateUserCount();
                 break;
