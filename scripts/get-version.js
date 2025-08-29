@@ -39,29 +39,16 @@ function getVersionFromGit() {
 // Get version
 const version = getVersionFromGit();
 
-// Update index.html with the version
-const indexPath = path.join(__dirname, '..', 'index.html');
-let indexContent = fs.readFileSync(indexPath, 'utf8');
+// Update version.js with the version
+const versionPath = path.join(__dirname, '..', 'src', 'core', 'version.js');
+const versionContent = `/**
+ * Version information for NodeUI
+ * This file is automatically updated by git hooks
+ */
 
-// Check if version script exists, if not add it
-if (!indexContent.includes('window.NODE_UI_VERSION')) {
-  // Add version script before </head>
-  const versionScript = `    <!-- Auto-generated version -->
-    <script>
-        window.NODE_UI_VERSION = '${version}';
-    </script>
-</head>`;
-  
-  indexContent = indexContent.replace('</head>', versionScript);
-} else {
-  // Update existing version
-  indexContent = indexContent.replace(
-    /window\.NODE_UI_VERSION = '[^']*'/,
-    `window.NODE_UI_VERSION = '${version}'`
-  );
-}
+window.NODE_UI_VERSION = '${version}';`;
 
-fs.writeFileSync(indexPath, indexContent);
+fs.writeFileSync(versionPath, versionContent);
 console.log(`Version updated to: ${version}`);
 
 module.exports = { getVersionFromGit };

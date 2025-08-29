@@ -15,8 +15,8 @@ cat > .git/hooks/pre-commit << 'EOF'
 echo "Updating version..."
 node scripts/get-version.js
 
-# Stage the updated index.html
-git add index.html
+# Stage the updated version.js
+git add src/core/version.js
 
 exit 0
 EOF
