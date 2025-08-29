@@ -912,6 +912,17 @@ class File {
         const pastedText = event.clipboardData.getData('text/plain').trim();
         if (!pastedText) return;
 
+        // Check if pasted text is a session code (3 words separated by hyphens)
+        const sessionCodePattern = /^[A-Z]+-[A-Z]+-[A-Z]+$/i;
+        if (sessionCodePattern.test(pastedText)) {
+            event.preventDefault();
+            // Join the session
+            if (this.nodeUI.collaboration) {
+                this.nodeUI.collaboration.joinSession(pastedText.toUpperCase());
+            }
+            return;
+        }
+
         // Enhanced regex to check for various video platforms and direct video files
         const videoPatterns = [
             /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/i,  // YouTube

@@ -226,7 +226,7 @@ class Collaboration {
      * Shows dialog to join an existing session.
      */
     showJoinDialog() {
-        const sessionId = prompt('Enter the session code:');
+        const sessionId = prompt('Enter or paste the session code:');
         if (sessionId && sessionId.trim()) {
             this.joinSession(sessionId.trim());
         }
