@@ -87,7 +87,7 @@ class Collaboration {
         // Create user count indicator (top-right)
         this.userCountIndicator = document.createElement('div');
         this.userCountIndicator.style.cssText = 'position: fixed; top: 28px; right: 28px; color: rgba(255, 255, 255, 0.3); font-family: monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; pointer-events: none; z-index: 10000;';
-        this.userCountIndicator.textContent = '1 user';
+        this.userCountIndicator.textContent = this.userDisplayName || 'you';
         document.body.appendChild(this.userCountIndicator);
     }
     
@@ -145,8 +145,16 @@ class Collaboration {
      */
     updateUserCount() {
         if (this.userCountIndicator) {
-            const count = this.connectedUsers.size + 1; // +1 for self
-            this.userCountIndicator.textContent = count === 1 ? '1 user' : `${count} users`;
+            // Create list of users
+            const users = [this.userDisplayName || 'you']; // Start with self
+            this.connectedUsers.forEach(userId => {
+                // Extract display name from userId (format: "word1-word2_timestamp")
+                const displayName = userId.split('_')[0];
+                if (displayName) users.push(displayName);
+            });
+            
+            // Update the display
+            this.userCountIndicator.textContent = users.join(', ');
         }
     }
     
