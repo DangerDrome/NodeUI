@@ -146,6 +146,19 @@ class Collaboration {
             return customWsUrl;
         }
         
+        // Check if running on Cloudflare Pages (production)
+        if (window.location.hostname === 'nodeui.pages.dev' || window.location.hostname.includes('pages.dev')) {
+            // For Cloudflare Workers/Functions, append session ID to URL path
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            return `${protocol}//${window.location.host}/collab/`;
+        }
+        
+        // Check if running from file:// protocol
+        if (window.location.protocol === 'file:') {
+            console.warn('Collaboration requires running from a web server, not file:// protocol');
+            return null;
+        }
+        
         // For production deployment on nodeui.io
         if (window.location.hostname === 'nodeui.io') {
             // You'll need to deploy your WebSocket server somewhere
@@ -154,8 +167,8 @@ class Collaboration {
             return null;
         }
         
-        // Default to localhost for development
-        return 'ws://localhost:8080';
+        // For other deployments, return null (no collaboration)
+        return null;
     }
     
     /**

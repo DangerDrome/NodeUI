@@ -22,6 +22,7 @@ A powerful, serverless node-based interface for creating interactive graphs and 
 - **CORS-Free**: No browser security issues when running locally
 - **Embedded Data**: Demo graph included for immediate testing
 - **Double-Click Launch**: Open index.html directly in any browser
+- **Image Compression**: Automatic compression prevents collaboration crashes
 
 ## Architecture
 
@@ -91,6 +92,10 @@ php -S localhost:8000
 ```
 
 Then visit `http://localhost:8000`
+
+## Quick Start
+
+Simply open `index.html` in your browser - no installation required!
 
 ## Usage
 

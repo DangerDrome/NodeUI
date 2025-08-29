@@ -445,6 +445,236 @@ class File {
     }
 
     /**
+     * Compresses an image and creates a node with the compressed base64 data
+     * @param {File} file - The image file to compress
+     * @param {{x: number, y: number}} position - The position to create the node
+     */
+    async compressAndCreateImageNode(file, position) {
+        const reader = new FileReader();
+        
+        reader.onload = async (e) => {
+            const originalDataUrl = e.target.result;
+            const img = new Image();
+            
+            img.onload = async () => {
+                // Set maximum dimensions (like Excalidraw)
+                const MAX_WIDTH = 1200;
+                const MAX_HEIGHT = 1200;
+                
+                // Calculate new dimensions while maintaining aspect ratio
+                let width = img.width;
+                let height = img.height;
+                
+                if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                    const aspectRatio = width / height;
+                    
+                    if (width > height) {
+                        width = MAX_WIDTH;
+                        height = width / aspectRatio;
+                    } else {
+                        height = MAX_HEIGHT;
+                        width = height * aspectRatio;
+                    }
+                }
+                
+                // Create canvas for compression
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Draw and compress the image
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Convert to JPEG with compression (unless it's a PNG with transparency)
+                const hasTransparency = file.type === 'image/png' && this.checkImageTransparency(ctx, width, height);
+                const compressedDataUrl = canvas.toDataURL(
+                    hasTransparency ? 'image/png' : 'image/jpeg',
+                    0.8 // 80% quality
+                );
+                
+                // Log compression results
+                const originalSize = originalDataUrl.length;
+                const compressedSize = compressedDataUrl.length;
+                const reduction = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
+                console.log(`Image compression: ${file.name} - ${originalSize} → ${compressedSize} bytes (${reduction}% reduction)`);
+                
+                // Calculate node dimensions
+                const nodeWidth = 200;
+                const contentPadding = 16;
+                const titleBarHeight = 48;
+                const imageMarginTop = 8;
+                
+                // Calculate image display size in node
+                const imageAspectRatio = height / width;
+                const imageWidthInNode = nodeWidth - (contentPadding * 2);
+                const imageHeightInNode = imageWidthInNode * imageAspectRatio;
+                
+                // Calculate total node height
+                const totalContentHeight = contentPadding + imageMarginTop + imageHeightInNode + contentPadding;
+                const nodeHeight = titleBarHeight + totalContentHeight;
+                
+                // Create the node with compressed image
+                events.publish('node:create', {
+                    x: position.x - nodeWidth / 2,
+                    y: position.y - nodeHeight / 2,
+                    width: nodeWidth,
+                    height: nodeHeight,
+                    title: file.name,
+                    content: `![${file.name}](${compressedDataUrl})`,
+                    type: 'BaseNode',
+                    color: 'default'
+                });
+            };
+            
+            img.onerror = () => {
+                console.error(`Failed to load image: ${file.name}`);
+                // Fall back to original if compression fails
+                this.createImageNodeWithDataUrl(file, position, originalDataUrl);
+            };
+            
+            img.src = originalDataUrl;
+        };
+        
+        reader.onerror = () => {
+            console.error(`Failed to read file: ${file.name}`);
+        };
+        
+        reader.readAsDataURL(file);
+    }
+    
+    /**
+     * Compresses a single image file and returns the compressed data URL
+     * @param {File} file - The image file to compress
+     * @returns {Promise<string>} Promise that resolves to compressed data URL
+     */
+    compressImageFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                const originalDataUrl = e.target.result;
+                const img = new Image();
+                
+                img.onload = () => {
+                    // Set maximum dimensions for sequence images (smaller than single images)
+                    const MAX_WIDTH = 800;
+                    const MAX_HEIGHT = 800;
+                    
+                    // Calculate new dimensions while maintaining aspect ratio
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                        const aspectRatio = width / height;
+                        
+                        if (width > height) {
+                            width = MAX_WIDTH;
+                            height = width / aspectRatio;
+                        } else {
+                            height = MAX_HEIGHT;
+                            width = height * aspectRatio;
+                        }
+                    }
+                    
+                    // Create canvas for compression
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // Draw and compress the image
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Always use JPEG for sequences to save space
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality for sequences
+                    
+                    // Log compression results
+                    const originalSize = originalDataUrl.length;
+                    const compressedSize = compressedDataUrl.length;
+                    const reduction = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
+                    console.log(`Sequence image: ${file.name} - ${originalSize} → ${compressedSize} bytes (${reduction}% reduction)`);
+                    
+                    resolve(compressedDataUrl);
+                };
+                
+                img.onerror = () => {
+                    console.error(`Failed to load image: ${file.name}`);
+                    // Fall back to original if compression fails
+                    resolve(originalDataUrl);
+                };
+                
+                img.src = originalDataUrl;
+            };
+            
+            reader.onerror = () => {
+                reject(new Error(`Failed to read file: ${file.name}`));
+            };
+            
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    /**
+     * Check if an image has transparency
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} width - Image width
+     * @param {number} height - Image height
+     * @returns {boolean} True if image has transparency
+     */
+    checkImageTransparency(ctx, width, height) {
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const data = imageData.data;
+        
+        // Check every 100th pixel for transparency (for performance)
+        for (let i = 3; i < data.length; i += 400) { // Every 100th pixel (4 bytes per pixel)
+            if (data[i] < 255) {
+                return true; // Found transparency
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Creates an image node with the given data URL (fallback method)
+     * @param {File} file - The image file
+     * @param {{x: number, y: number}} position - The position to create the node
+     * @param {string} dataUrl - The data URL of the image
+     */
+    createImageNodeWithDataUrl(file, position, dataUrl) {
+        const img = new Image();
+        img.onload = () => {
+            const nodeWidth = 200;
+            const contentPadding = 16;
+            const titleBarHeight = 48;
+            const imageMarginTop = 8;
+            
+            // Calculate image aspect ratio
+            const aspectRatio = img.height / img.width;
+            const imageWidthInNode = nodeWidth - (contentPadding * 2);
+            const imageHeightInNode = imageWidthInNode * aspectRatio;
+            
+            // Calculate total node height
+            const totalContentHeight = contentPadding + imageMarginTop + imageHeightInNode + contentPadding;
+            const nodeHeight = titleBarHeight + totalContentHeight;
+            
+            events.publish('node:create', {
+                x: position.x - nodeWidth / 2,
+                y: position.y - nodeHeight / 2,
+                width: nodeWidth,
+                height: nodeHeight,
+                title: file.name,
+                content: `![${file.name}](${dataUrl})`,
+                type: 'BaseNode',
+                color: 'default'
+            });
+        };
+        img.src = dataUrl;
+    }
+
+
+    /**
      * Handles the drop event for files, supporting graph loading and image embedding.
      * @param {DragEvent} event
      */
@@ -506,41 +736,8 @@ class File {
 
             // Handle single image embedding (always as BaseNode, never as ImageSequenceNode)
             if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const dataUrl = e.target.result;
-                    
-                    // Create an in-memory image to get its dimensions
-                    const img = new Image();
-                    img.onload = () => {
-                        const nodeWidth = 200;
-                        const contentPadding = 16;
-                        const titleBarHeight = 48; 
-                        const imageMarginTop = 8;
-                        
-                        // Calculate image aspect ratio
-                        const aspectRatio = img.height / img.width;
-                        const imageWidthInNode = nodeWidth - (contentPadding * 2);
-                        const imageHeightInNode = imageWidthInNode * aspectRatio;
-
-                        // Calculate total node height
-                        const totalContentHeight = contentPadding + imageMarginTop + imageHeightInNode + contentPadding;
-                        const nodeHeight = titleBarHeight + totalContentHeight;
-
-                        events.publish('node:create', {
-                            x: filePosition.x - nodeWidth / 2,
-                            y: filePosition.y - nodeHeight / 2,
-                            width: nodeWidth,
-                            height: nodeHeight,
-                            title: file.name,
-                            content: `![${file.name}](${dataUrl})`,
-                            type: 'BaseNode',
-                            color: 'default'
-                        });
-                    };
-                    img.src = dataUrl;
-                };
-                reader.readAsDataURL(file);
+                // Always use compressed base64 for simplicity and reliability
+                this.compressAndCreateImageNode(file, filePosition);
                 return;
             }
 
@@ -908,13 +1105,11 @@ class File {
         // Sort files by name to ensure consistent ordering
         const sortedFiles = imageFiles.sort((a, b) => a.name.localeCompare(b.name));
         
-        // Convert files to data URLs
+        // Always use compressed base64 for image sequences
+        console.log(`Creating image sequence with ${sortedFiles.length} compressed images`);
+        
         const imagePromises = sortedFiles.map(file => {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.readAsDataURL(file);
-            });
+            return this.compressImageFile(file);
         });
 
         Promise.all(imagePromises).then(imageUrls => {
