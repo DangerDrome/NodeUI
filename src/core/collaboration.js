@@ -197,7 +197,36 @@ class Collaboration {
      * Generates a session ID for a new room.
      */
     generateSessionId() {
-        return Math.random().toString(36).substr(2, 9).toUpperCase();
+        // Curated list of cool, memorable words for session IDs
+        const words = [
+            // Cosmic
+            'nova', 'void', 'flux', 'warp', 'rift', 'apex', 'core', 'pulse', 'spark', 'glow',
+            // Nature/Elements
+            'fire', 'ice', 'storm', 'wave', 'bolt', 'mist', 'dune', 'reef', 'peak', 'vale',
+            // Mythical creatures
+            'wolf', 'hawk', 'crow', 'lynx', 'bear', 'stag', 'pike', 'moth', 'wasp', 'viper',
+            // Actions/Power
+            'rush', 'dash', 'leap', 'dive', 'soar', 'drift', 'hack', 'sync', 'ping', 'zap',
+            // Tech/Cyber
+            'node', 'mesh', 'grid', 'link', 'byte', 'port', 'chip', 'code', 'loop', 'cache',
+            // Cool descriptors
+            'dark', 'neon', 'twin', 'swift', 'steel', 'silk', 'chrome', 'frost', 'ember', 'echo',
+            // Abstract
+            'zen', 'flux', 'edge', 'blur', 'fold', 'shift', 'phase', 'nexus', 'helix', 'prism',
+            // Energy/Light
+            'glow', 'beam', 'ray', 'arc', 'flare', 'blaze', 'shine', 'flash', 'gleam', 'halo',
+            // Materials
+            'jade', 'onyx', 'ruby', 'opal', 'zinc', 'iron', 'gold', 'cobalt', 'quartz', 'amber',
+            // Time/Space
+            'dawn', 'dusk', 'time', 'space', 'zone', 'era', 'age', 'now', 'neo', 'retro'
+        ];
+        
+        // Select three random words
+        const word1 = words[Math.floor(Math.random() * words.length)];
+        const word2 = words[Math.floor(Math.random() * words.length)];
+        const word3 = words[Math.floor(Math.random() * words.length)];
+        
+        return `${word1}-${word2}-${word3}`.toUpperCase();
     }
     
     /**
