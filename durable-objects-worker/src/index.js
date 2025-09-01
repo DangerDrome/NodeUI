@@ -3,13 +3,11 @@
  * This needs to be deployed first so Pages can reference it
  */
 
-// Export the Durable Object class
+// Export the Durable Object class with WebSocket hibernation support
 export class CollaborationRoom {
   constructor(state, env) {
     this.state = state;
     this.env = env;
-    this.sessions = new Map(); // userId -> WebSocket
-    this.operationCounts = new Map(); // userId -> { count, resetTime }
     this.MAX_USERS = 50; // Max concurrent users per session
     this.MAX_OPS_PER_SECOND = 20; // Max operations per second per user
   }
@@ -23,7 +21,8 @@ export class CollaborationRoom {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
 
-    await this.handleSession(server);
+    // Accept the WebSocket connection with hibernation
+    this.state.acceptWebSocket(server);
 
     return new Response(null, {
       status: 101,
@@ -31,135 +30,181 @@ export class CollaborationRoom {
     });
   }
 
-  async handleSession(webSocket) {
-    webSocket.accept();
-    
+  // Called when a WebSocket message is received (wakes from hibernation if needed)
+  async webSocketMessage(webSocket, message) {
+    try {
+      const data = JSON.parse(message);
+      
+      // Handle ping/pong (though auto-response should handle most)
+      if (data.type === 'ping') {
+        webSocket.send(JSON.stringify({ type: 'pong' }));
+        return;
+      }
+      
+      if (data.type === 'pong') {
+        return;
+      }
+      
+      switch (data.type) {
+        case 'join':
+          await this.handleJoin(webSocket, data);
+          break;
+          
+        case 'operation':
+          await this.handleOperation(webSocket, data);
+          break;
+          
+        case 'request-state':
+          await this.broadcast(data, data.userId);
+          break;
+          
+        case 'state-response':
+          await this.handleStateResponse(data);
+          break;
+      }
+    } catch (err) {
+      console.error('Message error:', err);
+    }
+  }
+
+  // Called when a WebSocket is closed
+  async webSocketClose(webSocket, code, reason, wasClean) {
+    // Get all websockets to find which user disconnected
+    const websockets = this.state.getWebSockets();
     let userId = null;
     
-    // Keep-alive ping every 20 seconds (Cloudflare has strict timeouts)
-    const pingInterval = setInterval(() => {
-      if (webSocket.readyState === 1) {
-        webSocket.send(JSON.stringify({ type: 'ping' }));
-      } else {
-        clearInterval(pingInterval);
+    // Find the userId for this websocket
+    for (const ws of websockets) {
+      const metadata = ws.getUserData();
+      if (metadata && ws === webSocket) {
+        userId = metadata.userId;
+        break;
       }
-    }, 20000);
+    }
     
-    webSocket.addEventListener('message', async (event) => {
+    if (userId) {
+      // Notify others
+      await this.broadcast({
+        type: 'user-left',
+        userId: userId
+      });
+    }
+  }
+
+  // Called when the Durable Object may be evicted
+  async webSocketError(webSocket, error) {
+    console.error('WebSocket error:', error);
+    // Close the websocket on error
+    webSocket.close(1011, 'Server error');
+  }
+
+  async handleJoin(webSocket, data) {
+    const websockets = this.state.getWebSockets();
+    
+    // Count current users
+    let userCount = 0;
+    for (const ws of websockets) {
+      if (ws.readyState === 1) userCount++;
+    }
+    
+    // Check user limit
+    if (userCount >= this.MAX_USERS) {
+      webSocket.send(JSON.stringify({
+        type: 'error',
+        message: 'Session full - maximum 50 users reached'
+      }));
+      webSocket.close();
+      return;
+    }
+    
+    // Store userId as websocket metadata
+    webSocket.setUserData({ 
+      userId: data.userId,
+      joinTime: Date.now(),
+      operationCount: 0,
+      operationResetTime: Date.now() + 1000
+    });
+    
+    // Get all user IDs
+    const users = [];
+    for (const ws of websockets) {
+      const metadata = ws.getUserData();
+      if (metadata && metadata.userId && ws.readyState === 1) {
+        users.push(metadata.userId);
+      }
+    }
+    
+    // Send current users list
+    webSocket.send(JSON.stringify({
+      type: 'users-list',
+      users: users
+    }));
+    
+    // Notify others
+    await this.broadcast({
+      type: 'user-joined',
+      userId: data.userId
+    }, data.userId);
+  }
+
+  async handleOperation(webSocket, data) {
+    const metadata = webSocket.getUserData();
+    if (!metadata) return;
+    
+    // Rate limiting
+    const now = Date.now();
+    
+    // Reset counter if second has passed
+    if (now > metadata.operationResetTime) {
+      metadata.operationCount = 0;
+      metadata.operationResetTime = now + 1000;
+    }
+    
+    // Check if over limit
+    if (metadata.operationCount >= this.MAX_OPS_PER_SECOND) {
+      // Silently drop the message
+      return;
+    }
+    
+    // Increment counter
+    metadata.operationCount++;
+    webSocket.setUserData(metadata);
+    
+    // Broadcast the operation
+    await this.broadcast(data, data.userId);
+  }
+
+  async handleStateResponse(data) {
+    if (data.targetUserId) {
+      // Send to specific user
+      const websockets = this.state.getWebSockets();
+      for (const ws of websockets) {
+        const metadata = ws.getUserData();
+        if (metadata && metadata.userId === data.targetUserId && ws.readyState === 1) {
+          ws.send(JSON.stringify(data));
+          break;
+        }
+      }
+    } else {
+      // Broadcast to all
+      await this.broadcast(data, data.userId);
+    }
+  }
+
+  async broadcast(message, excludeUserId = null) {
+    const messageStr = JSON.stringify(message);
+    const websockets = this.state.getWebSockets();
+    
+    for (const ws of websockets) {
       try {
-        const message = JSON.parse(event.data);
-        
-        // Handle ping/pong
-        if (message.type === 'ping') {
-          webSocket.send(JSON.stringify({ type: 'pong' }));
-          return;
-        }
-        
-        if (message.type === 'pong') {
-          // Client responded to our ping, connection is alive
-          return;
-        }
-        
-        switch (message.type) {
-          case 'join':
-            // Check user limit
-            if (this.sessions.size >= this.MAX_USERS) {
-              webSocket.send(JSON.stringify({
-                type: 'error',
-                message: 'Session full - maximum 50 users reached'
-              }));
-              webSocket.close();
-              return;
-            }
-            
-            userId = message.userId;
-            this.sessions.set(userId, webSocket);
-            
-            // Send current users
-            webSocket.send(JSON.stringify({
-              type: 'users-list',
-              users: Array.from(this.sessions.keys())
-            }));
-            
-            // Notify others
-            this.broadcast({
-              type: 'user-joined',
-              userId: userId
-            }, userId);
-            break;
-            
-          case 'operation':
-            // Check rate limit
-            const now = Date.now();
-            const userOps = this.operationCounts.get(message.userId) || { count: 0, resetTime: now + 1000 };
-            
-            // Reset counter if second has passed
-            if (now > userOps.resetTime) {
-              userOps.count = 0;
-              userOps.resetTime = now + 1000;
-            }
-            
-            // Check if over limit
-            if (userOps.count >= this.MAX_OPS_PER_SECOND) {
-              // Silently drop the message - no error to avoid spam
-              return;
-            }
-            
-            // Increment counter and broadcast
-            userOps.count++;
-            this.operationCounts.set(message.userId, userOps);
-            this.broadcast(message, message.userId);
-            break;
-            
-          case 'request-state':
-            this.broadcast(message, message.userId);
-            break;
-            
-          case 'state-response':
-            if (message.targetUserId) {
-              const targetWs = this.sessions.get(message.targetUserId);
-              if (targetWs && targetWs.readyState === 1) {
-                targetWs.send(JSON.stringify(message));
-              }
-            } else {
-              this.broadcast(message, message.userId);
-            }
-            break;
+        const metadata = ws.getUserData();
+        if (ws.readyState === 1 && (!excludeUserId || metadata?.userId !== excludeUserId)) {
+          ws.send(messageStr);
         }
       } catch (err) {
-        console.error('Message error:', err);
+        // Connection error, it will be cleaned up by webSocketClose
       }
-    });
-    
-    webSocket.addEventListener('close', () => {
-      clearInterval(pingInterval);
-      if (userId) {
-        this.sessions.delete(userId);
-        this.operationCounts.delete(userId); // Clean up rate limit tracking
-        this.broadcast({
-          type: 'user-left',
-          userId: userId
-        });
-      }
-    });
-    
-    webSocket.addEventListener('error', (err) => {
-      console.error('WebSocket error:', err);
-      clearInterval(pingInterval);
-    });
-  }
-  
-  broadcast(message, excludeUserId = null) {
-    const messageStr = JSON.stringify(message);
-    this.sessions.forEach((ws, uid) => {
-      if (uid !== excludeUserId && ws.readyState === 1) {
-        try {
-          ws.send(messageStr);
-        } catch (err) {
-          this.sessions.delete(uid);
-        }
-      }
-    });
+    }
   }
 }
 

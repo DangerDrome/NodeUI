@@ -859,15 +859,22 @@ class Collaboration {
      * Starts the keep-alive mechanism to prevent connection timeouts.
      */
     startKeepAlive() {
-        // Server sends pings every 30s, we just need to respond
-        // No need for client-side pings
+        // Send ping every 30 seconds to keep connection alive
+        this.keepAliveInterval = setInterval(() => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.send({ type: 'ping' });
+            }
+        }, 30000);
     }
     
     /**
      * Stops the keep-alive mechanism.
      */
     stopKeepAlive() {
-        // Nothing to stop anymore
+        if (this.keepAliveInterval) {
+            clearInterval(this.keepAliveInterval);
+            this.keepAliveInterval = null;
+        }
     }
     
     /**
