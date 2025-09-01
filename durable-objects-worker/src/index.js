@@ -3,13 +3,19 @@
  * This needs to be deployed first so Pages can reference it
  */
 
-// Export the Durable Object class with WebSocket hibernation support
+// Export the Durable Object class with hibernation support
 export class CollaborationRoom {
   constructor(state, env) {
     this.state = state;
     this.env = env;
-    this.MAX_USERS = 50; // Max concurrent users per session
-    this.MAX_OPS_PER_SECOND = 20; // Max operations per second per user
+    this.MAX_USERS = 50;
+    this.MAX_OPS_PER_SECOND = 20;
+    
+    // Initialize hibernation WebSocket handler
+    this.state.getWebSockets().forEach(ws => {
+      // Re-establish any websockets that survived hibernation
+      this.handleSocket(ws);
+    });
   }
 
   async fetch(request) {
@@ -21,8 +27,8 @@ export class CollaborationRoom {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
 
-    // Accept the WebSocket connection with hibernation
-    this.state.acceptWebSocket(server);
+    // Accept the WebSocket with hibernation capability
+    await this.handleSocket(server);
 
     return new Response(null, {
       status: 101,
@@ -30,14 +36,28 @@ export class CollaborationRoom {
     });
   }
 
-  // Called when a WebSocket message is received (wakes from hibernation if needed)
-  async webSocketMessage(webSocket, message) {
+  async handleSocket(webSocket) {
+    // Accept the WebSocket connection
+    this.state.acceptWebSocket(webSocket);
+    
+    // Attach user data placeholder
+    const tags = ['pending'];
+    webSocket.serializeAttachment({
+      userId: null,
+      joinTime: Date.now(),
+      operationCount: 0,
+      operationResetTime: Date.now() + 1000
+    });
+  }
+
+  // Called when a WebSocket message is received (wakes from hibernation)
+  async webSocketMessage(ws, message) {
     try {
       const data = JSON.parse(message);
       
-      // Handle ping/pong (though auto-response should handle most)
+      // Handle ping/pong
       if (data.type === 'ping') {
-        webSocket.send(JSON.stringify({ type: 'pong' }));
+        ws.send(JSON.stringify({ type: 'pong' }));
         return;
       }
       
@@ -45,13 +65,24 @@ export class CollaborationRoom {
         return;
       }
       
+      // Get attachment data
+      let attachment = ws.deserializeAttachment();
+      if (!attachment) {
+        attachment = {
+          userId: null,
+          joinTime: Date.now(),
+          operationCount: 0,
+          operationResetTime: Date.now() + 1000
+        };
+      }
+      
       switch (data.type) {
         case 'join':
-          await this.handleJoin(webSocket, data);
+          await this.handleJoin(ws, data, attachment);
           break;
           
         case 'operation':
-          await this.handleOperation(webSocket, data);
+          await this.handleOperation(ws, data, attachment);
           break;
           
         case 'request-state':
@@ -68,74 +99,58 @@ export class CollaborationRoom {
   }
 
   // Called when a WebSocket is closed
-  async webSocketClose(webSocket, code, reason, wasClean) {
-    // Get all websockets to find which user disconnected
-    const websockets = this.state.getWebSockets();
-    let userId = null;
-    
-    // Find the userId for this websocket
-    for (const ws of websockets) {
-      const metadata = ws.getUserData();
-      if (metadata && ws === webSocket) {
-        userId = metadata.userId;
-        break;
-      }
-    }
-    
-    if (userId) {
+  async webSocketClose(ws, code, reason, wasClean) {
+    const attachment = ws.deserializeAttachment();
+    if (attachment && attachment.userId) {
       // Notify others
       await this.broadcast({
         type: 'user-left',
-        userId: userId
+        userId: attachment.userId
       });
     }
   }
-
-  // Called when the Durable Object may be evicted
-  async webSocketError(webSocket, error) {
+  
+  // Called when an error occurs on the WebSocket
+  async webSocketError(ws, error) {
     console.error('WebSocket error:', error);
-    // Close the websocket on error
-    webSocket.close(1011, 'Server error');
+    ws.close(1011, 'Server error');
   }
 
-  async handleJoin(webSocket, data) {
+  async handleJoin(ws, data, attachment) {
     const websockets = this.state.getWebSockets();
     
-    // Count current users
+    // Count current active users
     let userCount = 0;
-    for (const ws of websockets) {
-      if (ws.readyState === 1) userCount++;
+    for (const socket of websockets) {
+      const att = socket.deserializeAttachment();
+      if (att && att.userId) userCount++;
     }
     
     // Check user limit
     if (userCount >= this.MAX_USERS) {
-      webSocket.send(JSON.stringify({
+      ws.send(JSON.stringify({
         type: 'error',
         message: 'Session full - maximum 50 users reached'
       }));
-      webSocket.close();
+      ws.close();
       return;
     }
     
-    // Store userId as websocket metadata
-    webSocket.setUserData({ 
-      userId: data.userId,
-      joinTime: Date.now(),
-      operationCount: 0,
-      operationResetTime: Date.now() + 1000
-    });
+    // Update attachment with userId
+    attachment.userId = data.userId;
+    ws.serializeAttachment(attachment);
     
     // Get all user IDs
     const users = [];
-    for (const ws of websockets) {
-      const metadata = ws.getUserData();
-      if (metadata && metadata.userId && ws.readyState === 1) {
-        users.push(metadata.userId);
+    for (const socket of websockets) {
+      const att = socket.deserializeAttachment();
+      if (att && att.userId) {
+        users.push(att.userId);
       }
     }
     
     // Send current users list
-    webSocket.send(JSON.stringify({
+    ws.send(JSON.stringify({
       type: 'users-list',
       users: users
     }));
@@ -147,28 +162,27 @@ export class CollaborationRoom {
     }, data.userId);
   }
 
-  async handleOperation(webSocket, data) {
-    const metadata = webSocket.getUserData();
-    if (!metadata) return;
+  async handleOperation(ws, data, attachment) {
+    if (!attachment || !attachment.userId) return;
     
     // Rate limiting
     const now = Date.now();
     
     // Reset counter if second has passed
-    if (now > metadata.operationResetTime) {
-      metadata.operationCount = 0;
-      metadata.operationResetTime = now + 1000;
+    if (now > attachment.operationResetTime) {
+      attachment.operationCount = 0;
+      attachment.operationResetTime = now + 1000;
     }
     
     // Check if over limit
-    if (metadata.operationCount >= this.MAX_OPS_PER_SECOND) {
-      // Silently drop the message
+    if (attachment.operationCount >= this.MAX_OPS_PER_SECOND) {
+      // Silently drop
       return;
     }
     
     // Increment counter
-    metadata.operationCount++;
-    webSocket.setUserData(metadata);
+    attachment.operationCount++;
+    ws.serializeAttachment(attachment);
     
     // Broadcast the operation
     await this.broadcast(data, data.userId);
@@ -178,10 +192,10 @@ export class CollaborationRoom {
     if (data.targetUserId) {
       // Send to specific user
       const websockets = this.state.getWebSockets();
-      for (const ws of websockets) {
-        const metadata = ws.getUserData();
-        if (metadata && metadata.userId === data.targetUserId && ws.readyState === 1) {
-          ws.send(JSON.stringify(data));
+      for (const socket of websockets) {
+        const att = socket.deserializeAttachment();
+        if (att && att.userId === data.targetUserId) {
+          socket.send(JSON.stringify(data));
           break;
         }
       }
@@ -197,21 +211,21 @@ export class CollaborationRoom {
     
     for (const ws of websockets) {
       try {
-        const metadata = ws.getUserData();
-        if (ws.readyState === 1 && (!excludeUserId || metadata?.userId !== excludeUserId)) {
+        const attachment = ws.deserializeAttachment();
+        if (!excludeUserId || (attachment && attachment.userId !== excludeUserId)) {
           ws.send(messageStr);
         }
       } catch (err) {
-        // Connection error, it will be cleaned up by webSocketClose
+        // Socket error, will be cleaned up
       }
     }
   }
 }
 
-// Default export for the Worker (required)
+// Export default required for worker
 export default {
   async fetch(request, env) {
-    return new Response('This Worker exports the CollaborationRoom Durable Object', {
+    return new Response('CollaborationRoom Durable Object Worker', {
       headers: { 'content-type': 'text/plain' },
     });
   }
