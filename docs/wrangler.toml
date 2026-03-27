@@ -1,0 +1,7 @@
+# Cloudflare Pages deployment configuration for NodeUI Docs
+# Deploy with: npx wrangler pages deploy docs/.vitepress/dist --project-name=nodeui-docs
+#
+# Or connect via Git integration in the Cloudflare dashboard:
+#   Build command: npm run docs:build
+#   Build output directory: docs/.vitepress/dist
+#   Root directory: /
