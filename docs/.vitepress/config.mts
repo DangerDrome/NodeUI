@@ -33,7 +33,8 @@ export default defineConfig({
           { text: 'Changelog', link: '/changelog' },
           { text: 'GitHub Releases', link: 'https://github.com/megasupersoft/nodeui/releases' }
         ]
-      }
+      },
+      { text: 'Launch App', link: 'https://app.nodeui.io', target: '_blank', rel: 'noopener' }
     ],
 
     sidebar: {

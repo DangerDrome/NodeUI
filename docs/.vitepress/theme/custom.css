@@ -49,6 +49,26 @@
 }
 
 /* ============================================
+   "Launch App" Nav Button
+   ============================================ */
+
+.VPNavBarMenu .VPLink[href="https://app.nodeui.io"] {
+  background: #3ecf8e;
+  color: #1c1c1c !important;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  margin-left: 4px;
+}
+
+.VPNavBarMenu .VPLink[href="https://app.nodeui.io"]:hover {
+  background: #48d998;
+  box-shadow: 0 2px 12px rgba(62, 207, 142, 0.3);
+}
+
+/* ============================================
    Nav / Sidebar Glassmorphism
    ============================================ */
 

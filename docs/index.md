@@ -13,7 +13,10 @@ hero:
       text: Get Started
       link: /guide/
     - theme: alt
-      text: View on GitHub
+      text: Launch App
+      link: https://app.nodeui.io
+    - theme: alt
+      text: GitHub
       link: https://github.com/megasupersoft/nodeui
 
 features:

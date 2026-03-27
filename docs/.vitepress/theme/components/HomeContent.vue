@@ -65,7 +65,8 @@ const archItems = [
     <h2>Ready to build?</h2>
     <p>Get started with NodeUI in seconds. No installation required.</p>
     <div class="nodeui-cta-buttons">
-      <a href="/guide/quick-start" class="nodeui-btn nodeui-btn-primary">Quick Start Guide</a>
+      <a href="https://app.nodeui.io" class="nodeui-btn nodeui-btn-primary" target="_blank">Launch App</a>
+      <a href="/guide/quick-start" class="nodeui-btn nodeui-btn-secondary">Quick Start Guide</a>
       <a href="https://github.com/megasupersoft/nodeui" class="nodeui-btn nodeui-btn-secondary" target="_blank">View Source</a>
     </div>
   </div>
