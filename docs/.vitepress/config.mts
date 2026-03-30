@@ -167,8 +167,8 @@ export default defineConfig({
     },
 
     footer: {
-      message: 'Released under the MIT License.',
-      copyright: 'Copyright &copy; 2024-present NodeUI'
+      message: 'All rights reserved.',
+      copyright: 'Copyright &copy; 2024-present Megasupersoft'
     }
   }
 })
