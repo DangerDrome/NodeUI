@@ -2727,7 +2727,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         // Load graph from ?graph= URL param if specified (skip if embed.html handles it)
-        const searchParams = new URLSearchParams(window.location.search);
         const graphParam = searchParams.get('graph');
         const zoomParam = parseFloat(searchParams.get('zoom'));
         if (graphParam && !window.NODEUI_EMBED_MODE) {
