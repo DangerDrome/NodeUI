@@ -28,127 +28,16 @@
   "nodes": [
     {
       "id": "node-md-1",
-      "x": 60,
-      "y": 60,
-      "width": 340,
-      "height": 280,
-      "title": "Project Brief",
-      "content": "# Project Brief\n\n**Goal:** Ship v2.0 by end of quarter.\n\n## Key Milestones\n- Design review\n- Backend API\n- Frontend integration\n- QA & release",
+      "x": 120,
+      "y": 80,
+      "width": 600,
+      "height": 720,
+      "title": "Markdown",
+      "content": "# Heading 1\n## Heading 2\n### Heading 3\n\n**Bold text** and *italic text* and ~~strikethrough~~\n\n`inline code` and **bold with `code` inside**\n\n---\n\n## Lists\n\n- Item one\n- Item two\n  - Nested item\n  - Another nested\n- Item three\n\n1. First\n2. Second\n3. Third\n\n## Checklist\n\n- [x] Completed task\n- [x] Also done\n- [ ] Still to do\n- [ ] Not yet\n\n## Code Block\n\n```js\nfunction greet(name) {\n  return `Hello, ${name}!`\n}\n```\n\n## Blockquote\n\n> Every node is a markdown editor.\n> Write anything, connect everything.\n\n## Links\n\n[NodeUI App](https://app.nodeui.io)",
       "type": "BaseNode",
       "color": "purple",
       "isPinned": false
-    },
-    {
-      "id": "node-md-2",
-      "x": 460,
-      "y": 60,
-      "width": 320,
-      "height": 260,
-      "title": "Tech Stack",
-      "content": "# Tech Stack\n\n## Frontend\n- React 18\n- TypeScript\n- Tailwind CSS\n\n## Backend\n- Node.js\n- PostgreSQL\n- Redis",
-      "type": "BaseNode",
-      "color": "blue",
-      "isPinned": false
-    },
-    {
-      "id": "node-md-3",
-      "x": 840,
-      "y": 60,
-      "width": 300,
-      "height": 240,
-      "title": "API Endpoint",
-      "content": "# Auth Endpoint\n\n`POST /api/v2/auth`\n\n```json\n{\n  \"email\": \"user@example.com\",\n  \"password\": \"••••••\"\n}\n```",
-      "type": "BaseNode",
-      "color": "default",
-      "isPinned": false
-    },
-    {
-      "id": "node-md-4",
-      "x": 60,
-      "y": 400,
-      "width": 340,
-      "height": 220,
-      "title": "Meeting Notes",
-      "content": "# Standup — Mon\n\n**Blockers**\n- Waiting on design sign-off\n- DB migration pending\n\n**Done yesterday**\n- Auth flow wired up\n- Tests passing ✓",
-      "type": "BaseNode",
-      "color": "yellow",
-      "isPinned": false
-    },
-    {
-      "id": "node-md-5",
-      "x": 460,
-      "y": 380,
-      "width": 320,
-      "height": 240,
-      "title": "Risks",
-      "content": "# Risks\n\n🔴 **High**\n- Third-party API rate limits\n\n🟡 **Medium**\n- Timeline slippage on mobile\n\n🟢 **Low**\n- Design consistency",
-      "type": "BaseNode",
-      "color": "red",
-      "isPinned": false
-    },
-    {
-      "id": "node-md-6",
-      "x": 840,
-      "y": 360,
-      "width": 300,
-      "height": 260,
-      "title": "Definition of Done",
-      "content": "# Done When...\n\n- [ ] Unit tests > 80%\n- [ ] Accessibility audit\n- [ ] Perf budget met\n- [ ] Docs updated\n- [ ] Staging sign-off",
-      "type": "BaseNode",
-      "color": "green",
-      "isPinned": false
     }
   ],
-  "edges": [
-    {
-      "id": "e-brief-tech",
-      "startNodeId": "node-md-1",
-      "endNodeId": "node-md-2",
-      "startHandleId": "right",
-      "endHandleId": "left",
-      "routingPoints": [],
-      "type": "BaseEdge",
-      "label": ""
-    },
-    {
-      "id": "e-tech-api",
-      "startNodeId": "node-md-2",
-      "endNodeId": "node-md-3",
-      "startHandleId": "right",
-      "endHandleId": "left",
-      "routingPoints": [],
-      "type": "BaseEdge",
-      "label": ""
-    },
-    {
-      "id": "e-brief-notes",
-      "startNodeId": "node-md-1",
-      "endNodeId": "node-md-4",
-      "startHandleId": "bottom",
-      "endHandleId": "top",
-      "routingPoints": [],
-      "type": "BaseEdge",
-      "label": ""
-    },
-    {
-      "id": "e-notes-risks",
-      "startNodeId": "node-md-4",
-      "endNodeId": "node-md-5",
-      "startHandleId": "right",
-      "endHandleId": "left",
-      "routingPoints": [],
-      "type": "BaseEdge",
-      "label": ""
-    },
-    {
-      "id": "e-risks-dod",
-      "startNodeId": "node-md-5",
-      "endNodeId": "node-md-6",
-      "startHandleId": "right",
-      "endHandleId": "left",
-      "routingPoints": [],
-      "type": "BaseEdge",
-      "label": ""
-    }
-  ]
+  "edges": []
 }
