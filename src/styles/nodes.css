@@ -17,7 +17,7 @@
     flex-direction: column;
     user-select: none;
     cursor: move;
-    backdrop-filter: blur(10px);
+    backdrop-filter: none;
     min-width: var(--panel-width);
     min-height: var(--panel-height);
 }
