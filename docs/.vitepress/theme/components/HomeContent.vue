@@ -1,12 +1,13 @@
 <script setup>
+const mediaShowcase = {
+  id: 'media',
+  label: 'Rich Media',
+  title: 'Images, video, YouTube',
+  subtitle: 'Embed images, YouTube videos, Vimeo, and direct video files in any node. Just paste a URL or drag and drop.',
+  graph: 'examples/media.json',
+}
+
 const showcases = [
-  {
-    id: 'media',
-    label: 'Rich Media',
-    title: 'Images, video, YouTube',
-    subtitle: 'Embed images, YouTube videos, Vimeo, and direct video files in any node. Just paste a URL or drag and drop.',
-    graph: 'examples/media.json',
-  },
   {
     id: 'brainstorm',
     label: 'Whiteboarding',
@@ -56,23 +57,19 @@ const nodeTypes = [
 </script>
 
 <template>
-  <!-- Showcase Sections — one embedded canvas per feature -->
-  <div
-    v-for="(item, index) in showcases"
-    :key="item.id"
-    :class="['showcase-section', index % 2 === 1 ? 'showcase-reversed' : '']"
-  >
+  <!-- Media showcase first -->
+  <div class="showcase-section">
     <div class="showcase-text">
-      <p class="nodeui-section-label">{{ item.label }}</p>
-      <h2 class="showcase-title">{{ item.title }}</h2>
-      <p class="showcase-subtitle">{{ item.subtitle }}</p>
+      <p class="nodeui-section-label">{{ mediaShowcase.label }}</p>
+      <h2 class="showcase-title">{{ mediaShowcase.title }}</h2>
+      <p class="showcase-subtitle">{{ mediaShowcase.subtitle }}</p>
     </div>
     <div class="showcase-embed">
       <div class="nodeui-embed-wrapper">
         <iframe
-          :src="`/embed.html?graph=${item.graph}`"
+          :src="`/embed.html?graph=${mediaShowcase.graph}`"
           class="nodeui-embed-iframe"
-          :title="`NodeUI ${item.label} example`"
+          :title="`NodeUI ${mediaShowcase.label} example`"
           loading="lazy"
           allow="clipboard-read; clipboard-write"
         ></iframe>
@@ -92,7 +89,7 @@ const nodeTypes = [
         <div class="collab-embed-label">User A</div>
         <div class="nodeui-embed-wrapper">
           <iframe
-            src="/embed.html?graph=examples/connections.json&ws=wss://nodeui.io/collab&session=NODEUI-DEMO"
+            src="/embed.html?graph=examples/connections.json&ws=wss://app.nodeui.io/collab&session=NODEUI-DEMO"
             class="nodeui-embed-iframe"
             title="Collaboration — User A"
             loading="lazy"
@@ -104,13 +101,37 @@ const nodeTypes = [
         <div class="collab-embed-label">User B</div>
         <div class="nodeui-embed-wrapper">
           <iframe
-            src="/embed.html?graph=examples/connections.json&ws=wss://nodeui.io/collab&session=NODEUI-DEMO"
+            src="/embed.html?graph=examples/connections.json&ws=wss://app.nodeui.io/collab&session=NODEUI-DEMO"
             class="nodeui-embed-iframe"
             title="Collaboration — User B"
             loading="lazy"
             allow="clipboard-read; clipboard-write"
           ></iframe>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Remaining showcase sections -->
+  <div
+    v-for="(item, index) in showcases"
+    :key="item.id"
+    :class="['showcase-section', index % 2 === 1 ? 'showcase-reversed' : '']"
+  >
+    <div class="showcase-text">
+      <p class="nodeui-section-label">{{ item.label }}</p>
+      <h2 class="showcase-title">{{ item.title }}</h2>
+      <p class="showcase-subtitle">{{ item.subtitle }}</p>
+    </div>
+    <div class="showcase-embed">
+      <div class="nodeui-embed-wrapper">
+        <iframe
+          :src="`/embed.html?graph=${item.graph}`"
+          class="nodeui-embed-iframe"
+          :title="`NodeUI ${item.label} example`"
+          loading="lazy"
+          allow="clipboard-read; clipboard-write"
+        ></iframe>
       </div>
     </div>
   </div>

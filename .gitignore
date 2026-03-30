@@ -42,8 +42,9 @@ server.log
 *.tmp
 *.temp
 
-# Claude Code / AI tooling
+# Claude Code / AI tooling (keep commands for slash commands)
 .claude
+!.claude/commands/
 
 # Serena
 .serena/project.local.yml
