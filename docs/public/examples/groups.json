@@ -33,7 +33,7 @@
       "width": 280,
       "height": 160,
       "title": "Auth redesign",
-      "content": "Migrate to OAuth2 + PKCE\n**Priority:** High",
+      "content": "# Auth redesign",
       "type": "BaseNode",
       "color": "red",
       "isPinned": false
@@ -45,7 +45,7 @@
       "width": 280,
       "height": 160,
       "title": "Mobile nav",
-      "content": "Bottom tab bar for iOS/Android\n**Priority:** Medium",
+      "content": "# Mobile nav",
       "type": "BaseNode",
       "color": "yellow",
       "isPinned": false
@@ -57,7 +57,7 @@
       "width": 280,
       "height": 160,
       "title": "Rate limiter",
-      "content": "Sliding window algorithm\n**Priority:** Medium",
+      "content": "# Rate limiter",
       "type": "BaseNode",
       "color": "yellow",
       "isPinned": false
@@ -82,7 +82,7 @@
       "width": 280,
       "height": 160,
       "title": "Search API",
-      "content": "Elasticsearch integration\n**Assignee:** Sarah",
+      "content": "# Search API",
       "type": "BaseNode",
       "color": "blue",
       "isPinned": false
@@ -94,7 +94,7 @@
       "width": 280,
       "height": 160,
       "title": "Dashboard charts",
-      "content": "D3.js visualizations\n**Assignee:** Marcus",
+      "content": "# Dashboard",
       "type": "BaseNode",
       "color": "blue",
       "isPinned": false
@@ -119,7 +119,7 @@
       "width": 280,
       "height": 160,
       "title": "File uploads",
-      "content": "S3 presigned URLs\n**Reviewer:** Jake",
+      "content": "# File uploads",
       "type": "BaseNode",
       "color": "green",
       "isPinned": false
@@ -131,7 +131,7 @@
       "width": 280,
       "height": 160,
       "title": "Email templates",
-      "content": "Responsive HTML emails\n**Reviewer:** Sarah",
+      "content": "# Email templates",
       "type": "BaseNode",
       "color": "green",
       "isPinned": false
@@ -156,7 +156,7 @@
       "width": 280,
       "height": 160,
       "title": "CI pipeline",
-      "content": "GitHub Actions + Docker\n**Shipped:** v2.3.1",
+      "content": "# CI pipeline",
       "type": "BaseNode",
       "color": "purple",
       "isPinned": false
@@ -168,7 +168,7 @@
       "width": 280,
       "height": 160,
       "title": "Dark mode",
-      "content": "CSS custom properties\n**Shipped:** v2.3.0",
+      "content": "# Dark mode",
       "type": "BaseNode",
       "color": "purple",
       "isPinned": false
@@ -180,7 +180,7 @@
       "width": 280,
       "height": 160,
       "title": "Onboarding flow",
-      "content": "3-step wizard + tooltips\n**Shipped:** v2.2.8",
+      "content": "# Onboarding",
       "type": "BaseNode",
       "color": "purple",
       "isPinned": false
@@ -205,7 +205,7 @@
       "width": 280,
       "height": 160,
       "title": "Payments v2",
-      "content": "**BLOCKED** — waiting on Stripe\nAPI access approval",
+      "content": "# Payments v2",
       "type": "BaseNode",
       "color": "red",
       "isPinned": false
@@ -217,7 +217,7 @@
       "width": 280,
       "height": 160,
       "title": "Sprint notes",
-      "content": "**Velocity:** 34 pts\n**Goal:** Ship search + uploads",
+      "content": "# Sprint notes",
       "type": "BaseNode",
       "color": "default",
       "isPinned": false
