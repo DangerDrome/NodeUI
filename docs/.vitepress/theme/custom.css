@@ -322,7 +322,7 @@
 
 .nodeui-section-label {
   font-family: 'Space Grotesk', monospace;
-  font-size: 11px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.4em;
   color: var(--nui-primary);
@@ -331,7 +331,7 @@
 }
 
 .nodeui-section-title {
-  font-size: 40px;
+  font-size: 48px;
   font-weight: 800;
   color: var(--nui-on-surface);
   text-align: center;
@@ -532,7 +532,7 @@
 }
 
 .showcase-title {
-  font-size: 32px;
+  font-size: 48px;
   font-weight: 800;
   color: var(--nui-on-surface);
   margin: 0 0 12px 0;
@@ -743,11 +743,11 @@
   }
 
   .nodeui-section-title {
-    font-size: 28px;
+    font-size: 32px;
   }
 
   .showcase-title {
-    font-size: 24px;
+    font-size: 32px;
   }
 
   .nodeui-cta h2 {
