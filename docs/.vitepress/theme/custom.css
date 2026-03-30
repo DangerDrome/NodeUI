@@ -64,6 +64,18 @@
 }
 
 
+/* Hero name size */
+.VPHero .name {
+  font-size: 96px !important;
+  line-height: 1 !important;
+}
+
+@media (max-width: 768px) {
+  .VPHero .name {
+    font-size: 56px !important;
+  }
+}
+
 /* --- Typography --- */
 :root {
   --vp-font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
