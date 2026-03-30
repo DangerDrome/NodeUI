@@ -33,7 +33,7 @@
       "width": 260,
       "height": 120,
       "title": "API Gateway",
-      "content": "## Entry Point\nAuth, rate limiting, routing\nCloudflare Workers",
+      "content": "# Entry Point",
       "type": "BaseNode",
       "color": "purple",
       "isPinned": false
@@ -286,7 +286,7 @@
       "width": 400,
       "height": 100,
       "title": "Event Bus",
-      "content": "## Async Messaging\nKafka topics for inter-service communication",
+      "content": "# Async Messaging",
       "type": "BaseNode",
       "color": "red",
       "isPinned": false

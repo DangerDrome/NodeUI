@@ -33,7 +33,7 @@
       "width": 260,
       "height": 140,
       "title": "Central Idea",
-      "content": "## Product Launch\nQ3 release — mobile-first strategy",
+      "content": "# Product Launch",
       "type": "BaseNode",
       "color": "purple",
       "isPinned": false
@@ -45,7 +45,7 @@
       "width": 240,
       "height": 130,
       "title": "Marketing",
-      "content": "### Channels\n- Social media blitz\n- Email drip campaign\n- Influencer partnerships",
+      "content": "# Channels",
       "type": "BaseNode",
       "color": "blue",
       "isPinned": false
@@ -57,7 +57,7 @@
       "width": 240,
       "height": 130,
       "title": "Engineering",
-      "content": "### Milestones\n- API freeze: Week 6\n- Beta build: Week 8\n- RC: Week 10",
+      "content": "# Milestones",
       "type": "BaseNode",
       "color": "green",
       "isPinned": false
@@ -69,7 +69,7 @@
       "width": 240,
       "height": 120,
       "title": "Design",
-      "content": "### Deliverables\n- Brand refresh\n- Landing page\n- App store assets",
+      "content": "# Deliverables",
       "type": "BaseNode",
       "color": "yellow",
       "isPinned": false
@@ -81,7 +81,7 @@
       "width": 240,
       "height": 120,
       "title": "Operations",
-      "content": "### Logistics\n- Support team scaling\n- Infrastructure load testing\n- Rollback plan",
+      "content": "# Logistics",
       "type": "BaseNode",
       "color": "red",
       "isPinned": false
@@ -93,7 +93,7 @@
       "width": 200,
       "height": 100,
       "title": "Budget",
-      "content": "**$45k** allocated\nSplit: 60% digital, 40% events",
+      "content": "# $45k Budget",
       "type": "BaseNode",
       "color": "blue",
       "isPinned": false
@@ -105,7 +105,7 @@
       "width": 200,
       "height": 100,
       "title": "Tech Stack",
-      "content": "React Native + Node.js\nCloudflare Workers edge",
+      "content": "# Tech Stack",
       "type": "BaseNode",
       "color": "green",
       "isPinned": false
@@ -117,7 +117,7 @@
       "width": 200,
       "height": 100,
       "title": "Timeline",
-      "content": "Mockups due **Week 3**\nFinal assets **Week 7**",
+      "content": "# Timeline",
       "type": "BaseNode",
       "color": "yellow",
       "isPinned": false
@@ -129,7 +129,7 @@
       "width": 200,
       "height": 100,
       "title": "Risk",
-      "content": "**High:** API rate limits\n**Med:** Third-party deps",
+      "content": "# Risk",
       "type": "BaseNode",
       "color": "red",
       "isPinned": false

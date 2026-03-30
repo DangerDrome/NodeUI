@@ -33,7 +33,7 @@
       "width": 240,
       "height": 140,
       "title": "Idea",
-      "content": "## Start here\nEvery graph begins with a single node",
+      "content": "# Start here",
       "type": "BaseNode",
       "color": "blue",
       "isPinned": false
@@ -45,7 +45,7 @@
       "width": 240,
       "height": 140,
       "title": "Connection",
-      "content": "## Then connect\nDrag from any handle to link nodes",
+      "content": "# Then connect",
       "type": "BaseNode",
       "color": "green",
       "isPinned": false
