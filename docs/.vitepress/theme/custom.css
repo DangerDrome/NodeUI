@@ -749,18 +749,25 @@
 }
 
 /* Launch nav button */
-.VPNav .VPNavBar .VPNavBarMenu a[href="https://app.nodeui.io"] {
-  background: var(--nui-primary);
+.VPNavBarMenuLink a[href="https://app.nodeui.io"],
+.VPNavBarMenu a[href="https://app.nodeui.io"] {
+  background: var(--nui-primary) !important;
   color: #1a1a0e !important;
-  border-radius: 999px;
+  border-radius: 999px !important;
   padding: 2px 10px !important;
+  margin: 0 !important;
   font-size: 12px !important;
-  font-weight: 600;
-  line-height: 1.5;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  height: auto !important;
+  min-height: unset !important;
+  display: inline-block !important;
 }
 
-.VPNav .VPNavBar .VPNavBarMenu a[href="https://app.nodeui.io"]:hover {
-  opacity: 0.85;
+.VPNavBarMenuLink a[href="https://app.nodeui.io"]:hover,
+.VPNavBarMenu a[href="https://app.nodeui.io"]:hover {
+  opacity: 0.85 !important;
+  color: #1a1a0e !important;
 }
 
 @media (max-width: 768px) {
