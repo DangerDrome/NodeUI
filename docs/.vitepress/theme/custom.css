@@ -74,8 +74,8 @@
    ============================================ */
 
 .VPNavBar .VPImage.logo {
-  width: 36px;
-  height: 36px;
+  width: 24px;
+  height: 24px;
 }
 
 .VPNavBarMenu .VPLink[href="https://app.nodeui.io"] {

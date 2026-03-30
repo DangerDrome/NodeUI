@@ -7,8 +7,8 @@
       '--icon-color-bg': 'var(--color-node-yellow-bg)',
       '--node-accent-color': 'var(--color-node-yellow-border)',
       position: 'relative',
-      width: '280px',
-      height: '160px',
+      width: '380px',
+      height: '200px',
     }"
   >
     <div class="node-title-bar" style="border-bottom: none;">
