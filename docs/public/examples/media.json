@@ -4,104 +4,152 @@
     "thumbnailUrl": "",
     "contextMenuSettings": {
       "canvas": {
-        "cut": { "label": "Cut", "iconClass": "icon-scissors" },
-        "copy": { "label": "Copy", "iconClass": "icon-copy" },
-        "paste": { "label": "Paste", "iconClass": "icon-clipboard" },
-        "delete": { "label": "Delete", "iconClass": "icon-trash-2" },
-        "note": { "label": "Note", "iconClass": "icon-file-text" },
-        "routingNode": { "label": "Router", "iconClass": "icon-network" },
-        "group": { "label": "Group", "iconClass": "icon-group" },
-        "log": { "label": "Log", "iconClass": "icon-terminal" },
-        "subgraph": { "label": "Subgraph", "iconClass": "icon-box" },
-        "saveGraph": { "label": "Save Graph", "iconClass": "icon-download" },
-        "loadGraph": { "label": "Load Graph", "iconClass": "icon-upload" },
-        "snapGrid": { "label": "Grid Snap", "iconClass": "icon-grid-2x2" },
-        "snapObject": { "label": "Obj Snap", "iconClass": "icon-layout-panel-left" }
+        "cut": {
+          "label": "Cut",
+          "iconClass": "icon-scissors"
+        },
+        "copy": {
+          "label": "Copy",
+          "iconClass": "icon-copy"
+        },
+        "paste": {
+          "label": "Paste",
+          "iconClass": "icon-clipboard"
+        },
+        "delete": {
+          "label": "Delete",
+          "iconClass": "icon-trash-2"
+        },
+        "note": {
+          "label": "Note",
+          "iconClass": "icon-file-text"
+        },
+        "routingNode": {
+          "label": "Router",
+          "iconClass": "icon-network"
+        },
+        "group": {
+          "label": "Group",
+          "iconClass": "icon-group"
+        },
+        "log": {
+          "label": "Log",
+          "iconClass": "icon-terminal"
+        },
+        "subgraph": {
+          "label": "Subgraph",
+          "iconClass": "icon-box"
+        },
+        "saveGraph": {
+          "label": "Save Graph",
+          "iconClass": "icon-download"
+        },
+        "loadGraph": {
+          "label": "Load Graph",
+          "iconClass": "icon-upload"
+        },
+        "snapGrid": {
+          "label": "Grid Snap",
+          "iconClass": "icon-grid-2x2"
+        },
+        "snapObject": {
+          "label": "Obj Snap",
+          "iconClass": "icon-layout-panel-left"
+        }
       },
       "edge": {
-        "edit": { "label": "Edit Label", "iconClass": "icon-edit" },
-        "addRoutingNode": { "label": "Add Routing Node", "iconClass": "icon-network" },
-        "delete": { "label": "Delete", "iconClass": "icon-trash-2" }
+        "edit": {
+          "label": "Edit Label",
+          "iconClass": "icon-edit"
+        },
+        "addRoutingNode": {
+          "label": "Add Routing Node",
+          "iconClass": "icon-network"
+        },
+        "delete": {
+          "label": "Delete",
+          "iconClass": "icon-trash-2"
+        }
       }
     }
   },
   "nodes": [
     {
-      "id": "img-1",
-      "x": 100,
-      "y": 100,
-      "width": 400,
-      "height": 360,
+      "id": "0f5d7ddd-e501-4b83-beec-d430a9aa3a2f",
+      "x": -1.2789444262374303,
+      "y": 181.24731386745063,
+      "width": 442.7450976155234,
+      "height": 402.48365871841133,
       "title": "Image",
       "content": "![Misty mountain landscape](https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80)\n\n*Just use `![alt](url)` markdown*",
       "type": "BaseNode",
-      "color": "blue",
+      "color": "yellow",
       "isPinned": false
     },
     {
-      "id": "yt-1",
-      "x": 580,
-      "y": 100,
+      "id": "fd1dbb98-301c-43d7-a03f-5bf7b56afff7",
+      "x": 1035.9388212829012,
+      "y": 578.4918746766257,
       "width": 400,
       "height": 360,
       "title": "YouTube",
       "content": "![video](https://www.youtube.com/watch?v=dQw4w9WgXcQ)\n\n*Use `![video](youtube-url)` to embed*",
       "type": "BaseNode",
-      "color": "red",
+      "color": "yellow",
       "isPinned": false
     },
     {
-      "id": "vid-1",
-      "x": 1060,
-      "y": 100,
-      "width": 400,
-      "height": 360,
+      "id": "fc9ebdf9-fb98-4491-915b-d3fab58a09d0",
+      "x": 616.0719908732916,
+      "y": 102.8399892918838,
+      "width": 400.3268040234666,
+      "height": 328.5228777942241,
       "title": "Video File",
       "content": "![video](https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm)\n\n*Use `![video](file.mp4)` for direct files*",
       "type": "BaseNode",
-      "color": "green",
+      "color": "yellow",
       "isPinned": false
     },
     {
-      "id": "howto",
-      "x": 530,
-      "y": 540,
-      "width": 500,
-      "height": 180,
+      "id": "9973f6f5-b027-4f63-92c9-042624962d87",
+      "x": 569.0805731631913,
+      "y": 578.4918746766257,
+      "width": 272.75591878227567,
+      "height": 254.3464027572199,
       "title": "Rich Media Nodes",
-      "content": "# Embed anything",
+      "content": "# Embed Stuff",
       "type": "BaseNode",
-      "color": "purple",
+      "color": "green",
       "isPinned": false
     }
   ],
   "edges": [
     {
-      "id": "e-img-howto",
-      "startNodeId": "img-1",
-      "endNodeId": "howto",
-      "startHandleId": "bottom",
+      "id": "67b3eacb-5f9d-4b33-aecf-d07c76048df9",
+      "startNodeId": "fd1dbb98-301c-43d7-a03f-5bf7b56afff7",
+      "endNodeId": "9973f6f5-b027-4f63-92c9-042624962d87",
+      "startHandleId": "left",
+      "endHandleId": "right",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "8bae215a-8358-4bcd-a3c4-447d2c89a929",
+      "startNodeId": "0f5d7ddd-e501-4b83-beec-d430a9aa3a2f",
+      "endNodeId": "9973f6f5-b027-4f63-92c9-042624962d87",
+      "startHandleId": "right",
       "endHandleId": "left",
       "routingPoints": [],
       "type": "BaseEdge",
       "label": ""
     },
     {
-      "id": "e-yt-howto",
-      "startNodeId": "yt-1",
-      "endNodeId": "howto",
+      "id": "3979569a-81a8-4b28-ad7d-e804606bd830",
+      "startNodeId": "fc9ebdf9-fb98-4491-915b-d3fab58a09d0",
+      "endNodeId": "9973f6f5-b027-4f63-92c9-042624962d87",
       "startHandleId": "bottom",
       "endHandleId": "top",
-      "routingPoints": [],
-      "type": "BaseEdge",
-      "label": ""
-    },
-    {
-      "id": "e-vid-howto",
-      "startNodeId": "vid-1",
-      "endNodeId": "howto",
-      "startHandleId": "bottom",
-      "endHandleId": "right",
       "routingPoints": [],
       "type": "BaseEdge",
       "label": ""
