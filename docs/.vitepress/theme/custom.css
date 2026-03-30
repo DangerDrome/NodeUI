@@ -41,7 +41,7 @@
 
 /* Force dark mode — matches app.nodeui.io canvas */
 :root {
-  --vp-c-bg: #1c1c1c;
+  --vp-c-bg: transparent;
   --vp-c-bg-alt: #1C1B1B;
   --vp-c-bg-elv: #201F1F;
   --vp-c-bg-soft: #1C1B1B;
@@ -63,6 +63,10 @@
   --vp-code-tab-active-bar-color: #ffe57f;
 }
 
+body {
+  background: linear-gradient(160deg, #252523 0%, #131313 100%);
+  min-height: 100vh;
+}
 
 /* Hero name size */
 .VPHero .name {
