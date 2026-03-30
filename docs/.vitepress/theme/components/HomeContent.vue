@@ -1,4 +1,7 @@
 <script setup>
+// Unique session ID per page load so each visitor gets their own collab demo
+const collabSession = 'DEMO-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+
 const mediaShowcase = {
   id: 'media',
   label: 'Rich Media',
@@ -89,7 +92,7 @@ const nodeTypes = [
         <div class="collab-embed-label">User A</div>
         <div class="nodeui-embed-wrapper">
           <iframe
-            src="https://app.nodeui.io/?session=NODEUI-DEMO&graph=examples/collab-demo.json"
+            :src="`https://app.nodeui.io/?session=${collabSession}&graph=examples/collab-demo.json`"
             class="nodeui-embed-iframe"
             title="Collaboration — User A"
             loading="lazy"
@@ -101,7 +104,7 @@ const nodeTypes = [
         <div class="collab-embed-label">User B</div>
         <div class="nodeui-embed-wrapper">
           <iframe
-            src="https://app.nodeui.io/?session=NODEUI-DEMO&graph=examples/collab-demo.json"
+            :src="`https://app.nodeui.io/?session=${collabSession}&graph=examples/collab-demo.json`"
             class="nodeui-embed-iframe"
             title="Collaboration — User B"
             loading="lazy"
