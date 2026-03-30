@@ -80,17 +80,6 @@
     padding-top: 0 !important;
   }
 
-  .VPHero .image .node {
-    transform: scale(0.7);
-    transform-origin: center top;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .VPHero .image-container {
-    display: flex;
-    justify-content: center;
-  }
 }
 
 /* --- Typography --- */
@@ -778,11 +767,23 @@
   }
 }
 
-/* Hide embeds on phones, keep on tablets (768px+) */
+/* Phone-only styles (≤640px) */
 @media (max-width: 640px) {
   .showcase-embed,
   .collab-embeds {
     display: none;
+  }
+
+  .VPHero .image .node {
+    transform: scale(0.7);
+    transform-origin: center top;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .VPHero .image-container {
+    display: flex;
+    justify-content: center;
   }
 }
 
