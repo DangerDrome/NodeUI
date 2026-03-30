@@ -45,6 +45,13 @@ class Collaboration {
         // Initialize UI
         this.createUI();
         this.bindUIEvents();
+
+        // Auto-join session if specified in URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoSession = urlParams.get('session');
+        if (autoSession && this.wsUrl) {
+            this.joinSession(autoSession);
+        }
     }
     
     /**

@@ -25,10 +25,13 @@
             height: 100%;
         }
 
-        /* Minimal mode: hide grid, version watermark, and collaboration HUD */
+        /* Embed mode: hide collab HUD — session managed externally */
+        .collaboration-status-indicator { display: none !important; }
+        [style*="position: fixed"][style*="top: 28px"] { display: none !important; }
+
+        /* Minimal mode: hide grid, version watermark */
         body.minimal .grid-canvas { display: none !important; }
         body.minimal .version-watermark { display: none !important; }
-        body.minimal .collaboration-status-indicator { display: none !important; }
         body.minimal { background: transparent; }
         body.minimal #nodeui-canvas-container { background: transparent; }
     </style>
@@ -66,29 +69,15 @@
     <script src="src/core/collaboration.js"></script>
     <script src="src/main.js"></script>
     <script>
-        // After NodeUI initializes, load the graph and optionally join a collab session
+        // After NodeUI initializes, load the embedded graph
+        // Session auto-join is handled by the Collaboration class via ?session= URL param
         window.addEventListener('load', () => {
-            const embedParams = new URLSearchParams(window.location.search);
-            const sessionId = embedParams.get('session');
-
             const waitForEvents = setInterval(() => {
                 if (typeof events !== 'undefined' && window.embeddedGraphData) {
                     clearInterval(waitForEvents);
                     events.publish('graph:load-content', JSON.stringify(window.embeddedGraphData));
-
-                    // Auto-join a collaboration session if specified
-                    if (sessionId) {
-                        const waitForCollab = setInterval(() => {
-                            if (window.nodeUI && window.nodeUI.collaboration) {
-                                clearInterval(waitForCollab);
-                                window.nodeUI.collaboration.joinSession(sessionId);
-                            }
-                        }, 100);
-                        setTimeout(() => clearInterval(waitForCollab), 5000);
-                    }
                 }
             }, 100);
-            // Safety timeout - stop trying after 5s
             setTimeout(() => clearInterval(waitForEvents), 5000);
         });
     </script>
