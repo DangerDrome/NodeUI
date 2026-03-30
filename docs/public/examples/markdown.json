@@ -1,0 +1,154 @@
+{
+  "metadata": {
+    "projectName": "Markdown Example",
+    "thumbnailUrl": "",
+    "contextMenuSettings": {
+      "canvas": {
+        "cut": { "label": "Cut", "iconClass": "icon-scissors" },
+        "copy": { "label": "Copy", "iconClass": "icon-copy" },
+        "paste": { "label": "Paste", "iconClass": "icon-clipboard" },
+        "delete": { "label": "Delete", "iconClass": "icon-trash-2" },
+        "note": { "label": "Note", "iconClass": "icon-file-text" },
+        "routingNode": { "label": "Router", "iconClass": "icon-network" },
+        "group": { "label": "Group", "iconClass": "icon-group" },
+        "log": { "label": "Log", "iconClass": "icon-terminal" },
+        "subgraph": { "label": "Subgraph", "iconClass": "icon-box" },
+        "saveGraph": { "label": "Save Graph", "iconClass": "icon-download" },
+        "loadGraph": { "label": "Load Graph", "iconClass": "icon-upload" },
+        "snapGrid": { "label": "Grid Snap", "iconClass": "icon-grid-2x2" },
+        "snapObject": { "label": "Obj Snap", "iconClass": "icon-layout-panel-left" }
+      },
+      "edge": {
+        "edit": { "label": "Edit Label", "iconClass": "icon-edit" },
+        "addRoutingNode": { "label": "Add Routing Node", "iconClass": "icon-network" },
+        "delete": { "label": "Delete", "iconClass": "icon-trash-2" }
+      }
+    }
+  },
+  "nodes": [
+    {
+      "id": "node-md-1",
+      "x": 60,
+      "y": 60,
+      "width": 340,
+      "height": 280,
+      "title": "Project Brief",
+      "content": "# Project Brief\n\n**Goal:** Ship v2.0 by end of quarter.\n\n## Key Milestones\n- Design review\n- Backend API\n- Frontend integration\n- QA & release",
+      "type": "BaseNode",
+      "color": "purple",
+      "isPinned": false
+    },
+    {
+      "id": "node-md-2",
+      "x": 460,
+      "y": 60,
+      "width": 320,
+      "height": 260,
+      "title": "Tech Stack",
+      "content": "# Tech Stack\n\n## Frontend\n- React 18\n- TypeScript\n- Tailwind CSS\n\n## Backend\n- Node.js\n- PostgreSQL\n- Redis",
+      "type": "BaseNode",
+      "color": "blue",
+      "isPinned": false
+    },
+    {
+      "id": "node-md-3",
+      "x": 840,
+      "y": 60,
+      "width": 300,
+      "height": 240,
+      "title": "API Endpoint",
+      "content": "# Auth Endpoint\n\n`POST /api/v2/auth`\n\n```json\n{\n  \"email\": \"user@example.com\",\n  \"password\": \"••••••\"\n}\n```",
+      "type": "BaseNode",
+      "color": "default",
+      "isPinned": false
+    },
+    {
+      "id": "node-md-4",
+      "x": 60,
+      "y": 400,
+      "width": 340,
+      "height": 220,
+      "title": "Meeting Notes",
+      "content": "# Standup — Mon\n\n**Blockers**\n- Waiting on design sign-off\n- DB migration pending\n\n**Done yesterday**\n- Auth flow wired up\n- Tests passing ✓",
+      "type": "BaseNode",
+      "color": "yellow",
+      "isPinned": false
+    },
+    {
+      "id": "node-md-5",
+      "x": 460,
+      "y": 380,
+      "width": 320,
+      "height": 240,
+      "title": "Risks",
+      "content": "# Risks\n\n🔴 **High**\n- Third-party API rate limits\n\n🟡 **Medium**\n- Timeline slippage on mobile\n\n🟢 **Low**\n- Design consistency",
+      "type": "BaseNode",
+      "color": "red",
+      "isPinned": false
+    },
+    {
+      "id": "node-md-6",
+      "x": 840,
+      "y": 360,
+      "width": 300,
+      "height": 260,
+      "title": "Definition of Done",
+      "content": "# Done When...\n\n- [ ] Unit tests > 80%\n- [ ] Accessibility audit\n- [ ] Perf budget met\n- [ ] Docs updated\n- [ ] Staging sign-off",
+      "type": "BaseNode",
+      "color": "green",
+      "isPinned": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-brief-tech",
+      "startNodeId": "node-md-1",
+      "endNodeId": "node-md-2",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-tech-api",
+      "startNodeId": "node-md-2",
+      "endNodeId": "node-md-3",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-brief-notes",
+      "startNodeId": "node-md-1",
+      "endNodeId": "node-md-4",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-notes-risks",
+      "startNodeId": "node-md-4",
+      "endNodeId": "node-md-5",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-risks-dod",
+      "startNodeId": "node-md-5",
+      "endNodeId": "node-md-6",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    }
+  ]
+}

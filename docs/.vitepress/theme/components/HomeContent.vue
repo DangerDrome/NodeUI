@@ -39,6 +39,13 @@ const showcases = [
     subtitle: 'Embed entire graphs inside a single node. Double-click to go deeper, use the breadcrumb to come back. No limit on nesting.',
     graph: 'examples/subgraphs.json',
   },
+  {
+    id: 'markdown',
+    label: 'Markdown',
+    title: 'Write, don\'t just draw.',
+    subtitle: 'Every node is a markdown editor. Headings, lists, code blocks, bold, inline code — full formatting inside any node on the canvas.',
+    graph: 'examples/markdown.json',
+  },
 ]
 
 const features = [
