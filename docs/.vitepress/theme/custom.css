@@ -98,6 +98,10 @@
   border-color: transparent !important;
 }
 
+.VPHero .actions .VPButton.brand:hover {
+  color: #1a1a0e !important;
+}
+
 /* --- Typography --- */
 :root {
   --vp-font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
