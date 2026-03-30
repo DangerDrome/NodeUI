@@ -529,6 +529,9 @@ class Collaboration {
      * @param {object} data - The data to send
      */
     send(data) {
+        if (data.type === 'operation' && window.embedLog) {
+            window.embedLog('SEND: ' + data.eventName + ' ' + JSON.stringify(data.data).substring(0, 60));
+        }
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             try {
                 const message = JSON.stringify(data);
@@ -658,8 +661,8 @@ class Collaboration {
      * @param {object} data - The event data
      */
     handleLocalEvent(eventName, data) {
-        
         if (!this.isConnected) {
+            if (window.embedLog) window.embedLog('LOCAL SKIP: not connected, event=' + eventName);
             return;
         }
         
@@ -715,19 +718,23 @@ class Collaboration {
      * @param {object} message - The operation message
      */
     handleRemoteOperation(message) {
-        
+        if (window.embedLog) {
+            window.embedLog('RECV: ' + message.eventName + ' from=' + message.userId);
+        }
+
         // Skip if this is our own operation (echo prevention)
         if (this.localOperations.has(message.operationId) || message.userId === this.userId) {
+            if (window.embedLog) window.embedLog('SKIP: own op or already processed');
             return;
         }
         
         // Skip if the sender is in a different graph context (except for subgraph:update)
         if (message.graphContext && message.graphContext !== this.nodeUI.graphContext.currentGraphId) {
-            // Special handling for subgraph updates - these should cross contexts
             if (message.eventName === 'subgraph:update') {
-                // Let it through - the handler will check if we should process it
+                // Let it through
             } else {
-                return; // Ignore other operations from users in different contexts
+                if (window.embedLog) window.embedLog('SKIP: context mismatch remote=' + message.graphContext + ' local=' + this.nodeUI.graphContext.currentGraphId);
+                return;
             }
         }
         
