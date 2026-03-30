@@ -493,6 +493,8 @@
 
 /* App design tokens needed for the hero node */
 .VPHero .node {
+  border: none !important;
+  box-shadow: none !important;
   --color-bg-panel: #242424;
   --color-bg-hover: #2d2d2d;
   --color-border-default: #3a3a3a;
