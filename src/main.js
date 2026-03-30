@@ -2658,8 +2658,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const app = new Main(canvasContainer);
         window.nodeUI = app;
 
-        // Hide chrome when embedded (loaded with ?session= param, e.g. in an iframe)
-        if (new URLSearchParams(window.location.search).get('session')) {
+        // Hide chrome when embedded (loaded with ?session= or ?graph= param)
+        const searchParams = new URLSearchParams(window.location.search);
+        if (searchParams.get('session') || searchParams.get('graph')) {
             const style = document.createElement('style');
             style.textContent = '.version-watermark{display:none!important}[style*="position: fixed"][style*="top: 28px"]{display:none!important}.collaboration-status-indicator-text{max-width:0;overflow:hidden;opacity:0}.collaboration-status-indicator:hover .collaboration-status-indicator-text{max-width:300px;opacity:1}';
             document.head.appendChild(style);
