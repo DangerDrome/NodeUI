@@ -70,16 +70,17 @@
   line-height: 1 !important;
 }
 
-@media (max-width: 768px) {
-  .VPHero .name {
-    font-size: 56px !important;
-  }
-
+@media (max-width: 960px) {
   .VPHero .image {
     margin-top: 40px !important;
     padding-top: 0 !important;
   }
+}
 
+@media (max-width: 768px) {
+  .VPHero .name {
+    font-size: 56px !important;
+  }
 }
 
 /* --- Typography --- */
