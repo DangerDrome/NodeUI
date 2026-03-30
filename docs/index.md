@@ -35,8 +35,6 @@ onMounted(() => {
     observer.observe(frame)
   })
 
-  // Single scroll reset after everything is set up
-  requestAnimationFrame(() => window.scrollTo(0, 0))
 })
 </script>
 
