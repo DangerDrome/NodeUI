@@ -748,6 +748,22 @@
   }
 }
 
+/* Launch nav button */
+.VPNav .VPNavBar .VPNavBarMenu a[href="https://app.nodeui.io"] {
+  background: var(--nui-primary);
+  color: var(--nui-on-primary) !important;
+  border-radius: 999px;
+  padding: 4px 14px !important;
+  font-size: 12px !important;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.VPNav .VPNavBar .VPNavBarMenu a[href="https://app.nodeui.io"]:hover {
+  background: var(--nui-primary-hover);
+  opacity: 0.9;
+}
+
 @media (max-width: 768px) {
   .nodeui-section {
     padding: 48px 16px;
