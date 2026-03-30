@@ -3,21 +3,18 @@ layout: home
 
 hero:
   name: NodeUI
-  text: Visual Programming Interface
-  tagline: A serverless, node-based editor for creating interactive graphs and 3D visualizations. Zero installation. Pure JavaScript.
+  text: "UI for Node, simplified."
+  tagline: A collaborative canvas for engineering complex node-based architectures. Precision meets atmospheric depth.
   image:
     src: /logo.svg
     alt: NodeUI Logo
   actions:
     - theme: brand
-      text: Get Started
-      link: /guide/
-    - theme: alt
-      text: Launch App
+      text: Start Building
       link: https://app.nodeui.io
     - theme: alt
-      text: GitHub
-      link: https://github.com/megasupersoft/nodeui
+      text: View Docs
+      link: /guide/
 
 features:
   - icon: ⚡

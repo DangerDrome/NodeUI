@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NodeUI | UI for Node, simplified.</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=Space+Grotesk:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-secondary-fixed": "#00201c",
+                        "on-background": "#e5e2e1",
+                        "surface-tint": "#d0bcff",
+                        "primary-fixed-dim": "#d0bcff",
+                        "outline-variant": "#494454",
+                        "secondary": "#4fdbc8",
+                        "primary-fixed": "#e9ddff",
+                        "on-primary-container": "#340080",
+                        "on-secondary": "#003731",
+                        "outline": "#958ea0",
+                        "tertiary": "#ffb95f",
+                        "inverse-on-surface": "#313030",
+                        "background": "#131313",
+                        "on-secondary-container": "#003f38",
+                        "on-tertiary": "#472a00",
+                        "on-secondary-fixed-variant": "#005048",
+                        "inverse-surface": "#e5e2e1",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "on-primary": "#3c0091",
+                        "on-error-container": "#ffdad6",
+                        "error-container": "#93000a",
+                        "on-error": "#690005",
+                        "tertiary-container": "#ca8100",
+                        "error": "#ffb4ab",
+                        "on-primary-fixed-variant": "#5516be",
+                        "surface-variant": "#353534",
+                        "primary-container": "#a078ff",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "on-primary-fixed": "#23005c",
+                        "surface-container-lowest": "#0e0e0e",
+                        "on-tertiary-container": "#3e2400",
+                        "surface": "#131313",
+                        "surface-container-high": "#2a2a2a",
+                        "inverse-primary": "#6d3bd7",
+                        "secondary-fixed-dim": "#4fdbc8",
+                        "secondary-fixed": "#71f8e4",
+                        "on-surface-variant": "#cbc3d7",
+                        "surface-bright": "#393939",
+                        "tertiary-fixed": "#ffddb8",
+                        "surface-container-low": "#1c1b1b",
+                        "surface-container-highest": "#353534",
+                        "on-surface": "#e5e2e1",
+                        "secondary-container": "#04b4a2",
+                        "surface-dim": "#131313",
+                        "surface-container": "#201f1f",
+                        "primary": "#d0bcff",
+                        "on-tertiary-fixed": "#2a1700"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Space Grotesk"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .dot-grid {
+            background-image: radial-gradient(circle, #353534 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary/30">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#131313]/80 backdrop-blur-xl border-b border-[#353534]/30 shadow-[0_4px_20px_rgba(208,188,255,0.06)]">
+<div class="flex justify-between items-center w-full px-6 py-4 max-w-screen-2xl mx-auto">
+<div class="text-xl font-bold tracking-tighter text-[#D0BCFF] font-headline">NodeUI</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-[#D0BCFF] font-semibold border-b-2 border-[#D0BCFF] pb-1 font-headline" href="#">Features</a>
+<a class="text-[#CBC3D7] hover:text-[#D0BCFF] transition-colors font-headline" href="#">Showcase</a>
+<a class="text-[#CBC3D7] hover:text-[#D0BCFF] transition-colors font-headline" href="#">Docs</a>
+<a class="text-[#CBC3D7] hover:text-[#D0BCFF] transition-colors font-headline" href="#">Pricing</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="hidden sm:block text-[#CBC3D7] hover:text-[#D0BCFF] transition-all duration-200 px-4 py-2 rounded-lg font-headline">Login</button>
+<button class="bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-6 py-2.5 rounded-lg font-bold hover:opacity-90 active:scale-95 transition-all font-headline">Start Building</button>
+</div>
+</div>
+</nav>
+<main class="relative pt-20">
+<!-- Hero Section -->
+<section class="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-6 dot-grid">
+<div class="absolute inset-0 bg-gradient-to-b from-transparent via-surface to-surface pointer-events-none"></div>
+<div class="relative z-10 text-center max-w-4xl mx-auto mb-16">
+<span class="font-label text-xs uppercase tracking-[0.4em] text-primary mb-6 block">The Technical Frontier</span>
+<h1 class="text-6xl md:text-8xl font-extrabold tracking-tighter font-headline mb-8 leading-[0.9]">
+                    UI for Node, <br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-tertiary">simplified.</span>
+</h1>
+<p class="text-on-surface-variant text-xl md:text-2xl max-w-2xl mx-auto mb-10 leading-relaxed">
+                    A collaborative canvas for engineering complex node-based architectures. Precision meets atmospheric depth.
+                </p>
+<div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+<button class="bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold py-4 px-10 rounded-xl text-lg hover:shadow-[0_0_30px_rgba(208,188,255,0.3)] transition-all">Start Building</button>
+<button class="group flex items-center gap-2 border border-outline-variant/30 text-on-surface py-4 px-10 rounded-xl text-lg hover:bg-surface-container transition-all">
+<span>View Docs</span>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Hero Node Canvas Illustration -->
+<div class="relative w-full max-w-6xl mx-auto h-[500px] mb-20">
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="relative w-full h-full bg-surface-container-low/50 rounded-3xl border border-outline-variant/10 glass-panel overflow-hidden">
+<!-- Connecting Lines (SVG) -->
+<svg class="absolute inset-0 w-full h-full opacity-40">
+<path d="M 200 150 Q 400 150 500 250" fill="none" stroke="url(#grad1)" stroke-width="2"></path>
+<path d="M 500 250 Q 600 350 850 200" fill="none" stroke="url(#grad2)" stroke-width="2"></path>
+<path d="M 200 350 Q 450 350 500 250" fill="none" stroke="url(#grad3)" stroke-width="2"></path>
+<defs>
+<lineargradient id="grad1"><stop offset="0%" stop-color="#D0BCFF"></stop><stop offset="100%" stop-color="#2DD4BF"></stop></lineargradient>
+<lineargradient id="grad2"><stop offset="0%" stop-color="#2DD4BF"></stop><stop offset="100%" stop-color="#FFB95F"></stop></lineargradient>
+<lineargradient id="grad3"><stop offset="0%" stop-color="#D0BCFF"></stop><stop offset="100%" stop-color="#FFB95F"></stop></lineargradient>
+</defs>
+</svg>
+<!-- Nodes -->
+<div class="absolute top-[120px] left-[100px] bg-surface-container p-4 rounded-xl border border-outline-variant/20 shadow-2xl">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-primary text-sm">database</span>
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Data Source</span>
+</div>
+<div class="h-1.5 w-24 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-2/3"></div>
+</div>
+</div>
+<div class="absolute top-[220px] left-[450px] bg-surface-container-highest p-6 rounded-2xl border border-primary/30 shadow-[0_0_40px_rgba(208,188,255,0.1)]">
+<div class="flex items-center gap-3 mb-3">
+<span class="material-symbols-outlined text-secondary">hub</span>
+<span class="font-label text-xs uppercase tracking-widest text-on-surface">Central Orchestrator</span>
+</div>
+<div class="space-y-2">
+<div class="flex gap-2"><div class="w-2 h-2 rounded-full bg-secondary"></div><div class="w-16 h-1 bg-surface-container-low rounded"></div></div>
+<div class="flex gap-2"><div class="w-2 h-2 rounded-full bg-primary"></div><div class="w-20 h-1 bg-surface-container-low rounded"></div></div>
+</div>
+</div>
+<div class="absolute top-[160px] right-[120px] bg-surface-container p-4 rounded-xl border border-outline-variant/20 shadow-2xl">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-tertiary text-sm">send</span>
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Output Stream</span>
+</div>
+<div class="text-[10px] text-on-surface-variant font-mono">200 OK - 14ms</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Feature Cards -->
+<section class="max-w-7xl mx-auto px-6 py-32">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Card 1 -->
+<div class="group bg-surface-container-low p-8 rounded-2xl border border-outline-variant/10 hover:bg-surface-bright transition-all duration-300">
+<div class="w-12 h-12 bg-primary-container/20 rounded-lg flex items-center justify-center mb-6 text-primary">
+<span class="material-symbols-outlined text-3xl">precision_manufacturing</span>
+</div>
+<h3 class="text-2xl font-bold font-headline mb-4">Precision Engineering</h3>
+<p class="text-on-surface-variant leading-relaxed">Every node is built with type-safe precision, ensuring your logic flows exactly as intended without leaks.</p>
+</div>
+<!-- Card 2 -->
+<div class="group bg-surface-container-low p-8 rounded-2xl border border-outline-variant/10 hover:bg-surface-bright transition-all duration-300">
+<div class="w-12 h-12 bg-secondary-container/20 rounded-lg flex items-center justify-center mb-6 text-secondary">
+<span class="material-symbols-outlined text-3xl">sync_alt</span>
+</div>
+<h3 class="text-2xl font-bold font-headline mb-4">Real-time Sync</h3>
+<p class="text-on-surface-variant leading-relaxed">Collaborate with your team on a single canvas. Watch updates propagate across the cluster instantly.</p>
+</div>
+<!-- Card 3 -->
+<div class="group bg-surface-container-low p-8 rounded-2xl border border-outline-variant/10 hover:bg-surface-bright transition-all duration-300">
+<div class="w-12 h-12 bg-tertiary-container/20 rounded-lg flex items-center justify-center mb-6 text-tertiary">
+<span class="material-symbols-outlined text-3xl">code_blocks</span>
+</div>
+<h3 class="text-2xl font-bold font-headline mb-4">Production-Ready Code</h3>
+<p class="text-on-surface-variant leading-relaxed">Export optimized Node.js scripts or React components directly from your visual architecture.</p>
+</div>
+</div>
+</section>
+<!-- Live Code Preview Section -->
+<section class="bg-surface-container-lowest py-32 px-6">
+<div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
+<!-- Left: Visual Canvas -->
+<div class="w-full lg:w-1/2">
+<div class="font-label text-xs tracking-widest text-primary mb-4 uppercase">The Live Canvas</div>
+<h2 class="text-4xl md:text-5xl font-bold font-headline mb-8 leading-tight">Visual flow meets logical depth.</h2>
+<div class="relative bg-surface p-6 rounded-2xl border border-outline-variant/20 shadow-xl overflow-hidden aspect-video flex items-center justify-center">
+<img alt="" class="absolute inset-0 w-full h-full object-cover opacity-20 grayscale" data-alt="Abstract 3D node network visualization with glowing purple and blue connections on a dark background in high technical detail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDy-nfyL5FJPPQNi6hcTafvXw_nwuTzVgKgy8M1ZUnDXhbC6S-lDmSuCKWuAHxtil0RwvsZ-hY0z53huTinN0c1HvJoB-MFUXl1zCKbFVM8Jb5UOKwlkzb7D6DYLm2zRw6hEebwMo12CFhhk93ZW6635sveZpOa3f2hnrwD0_6I9e9IWFtcHh6uK4hUpmj5txcZ4Dkq_pvcv5AdpFuzjp9BX5JM4iFtDo9jw18U4Fflv15wR_e1X8OPRKNG2kCt_1p6S_5KYvZUE5g"/>
+<div class="relative z-10 flex gap-12">
+<div class="w-32 h-20 bg-primary/20 rounded-lg border border-primary/40 flex items-center justify-center backdrop-blur-sm">
+<span class="material-symbols-outlined text-primary">bolt</span>
+</div>
+<div class="w-32 h-20 bg-secondary/20 rounded-lg border border-secondary/40 flex items-center justify-center backdrop-blur-sm">
+<span class="material-symbols-outlined text-secondary">dataset</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right: Code Editor -->
+<div class="w-full lg:w-1/2">
+<div class="bg-[#1e1e1e] rounded-xl shadow-2xl border border-outline-variant/30 overflow-hidden font-mono text-sm">
+<div class="bg-surface-container-high px-4 py-3 flex items-center gap-2 border-b border-outline-variant/20">
+<div class="flex gap-1.5">
+<div class="w-3 h-3 rounded-full bg-error"></div>
+<div class="w-3 h-3 rounded-full bg-tertiary"></div>
+<div class="w-3 h-3 rounded-full bg-secondary"></div>
+</div>
+<span class="ml-4 text-on-surface-variant font-label text-[10px] uppercase">NodeUI_Engine.js</span>
+</div>
+<div class="p-6 text-[#d4d4d4] leading-relaxed">
+<div class="flex"><span class="text-primary mr-4 opacity-50">01</span><span class="text-secondary">import</span> { NodeEngine } <span class="text-secondary">from</span> <span class="text-tertiary">'@nodeui/core'</span>;</div>
+<div class="flex"><span class="text-primary mr-4 opacity-50">02</span></div>
+<div class="flex"><span class="text-primary mr-4 opacity-50">03</span><span class="text-secondary">const</span> <span class="text-primary-fixed-dim">workflow</span> = <span class="text-secondary">new</span> NodeEngine({</div>
+<div class="flex"><span class="text-primary mr-4 opacity-50">04</span>  id: <span class="text-tertiary">'main-canvas-01'</span>,</div>
+<div class="flex"><span class="text-primary mr-4 opacity-50">05</span>  sync: <span class="text-secondary">true</span>,</div>
+<div class="flex"><span class="text-primary mr-4 opacity-50">06</span>  autoOptimize: <span class="text-secondary">true</span></div>
+<div class="flex"><span class="text-primary mr-4 opacity-50">07</span>});</div>
+<div class="flex"><span class="text-primary mr-4 opacity-50">08</span></div>
+<div class="flex"><span class="text-primary mr-4 opacity-50">09</span><span class="text-primary-fixed-dim">workflow</span>.onConnect((<span class="text-primary-fixed-dim">event</span>) =&gt; {</div>
+<div class="flex"><span class="text-primary mr-4 opacity-50">10</span>  <span class="text-primary-fixed-dim">console</span>.log(<span class="text-tertiary">`Nodes connected: ${event.id}`</span>);</div>
+<div class="flex"><span class="text-primary mr-4 opacity-50">11</span>});</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Call To Action -->
+<section class="relative py-40 overflow-hidden text-center">
+<div class="absolute inset-0 -z-10 bg-primary/5 blur-[120px] rounded-full translate-y-1/2 scale-150"></div>
+<div class="max-w-4xl mx-auto px-6">
+<h2 class="text-5xl md:text-7xl font-extrabold font-headline mb-10 tracking-tighter">Ready to Build the Future?</h2>
+<div class="flex flex-col sm:flex-row gap-6 justify-center">
+<button class="bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold py-5 px-12 rounded-2xl text-xl shadow-2xl hover:scale-[1.02] transition-transform">Start Building Free</button>
+<button class="bg-surface-container border border-outline-variant/20 text-on-surface font-bold py-5 px-12 rounded-2xl text-xl hover:bg-surface-bright transition-all">Talk to Sales</button>
+</div>
+<div class="mt-12 flex items-center justify-center gap-8 opacity-40 grayscale grayscale-100">
+<div class="font-label text-sm font-bold">AWS PARTNER</div>
+<div class="font-label text-sm font-bold">ENTERPRISE READY</div>
+<div class="font-label text-sm font-bold">SOC2 COMPLIANT</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-[#0E0E0E] w-full py-12 px-6 border-t border-[#353534]/20">
+<div class="flex flex-col md:flex-row justify-between items-center gap-8 max-w-7xl mx-auto">
+<div class="flex flex-col gap-4 items-center md:items-start">
+<div class="text-lg font-black text-[#D0BCFF] font-label">NodeUI</div>
+<p class="text-[#CBC3D7]/60 font-label text-xs uppercase tracking-widest text-center md:text-left">© 2024 NodeUI. Built for the technical frontier.</p>
+</div>
+<div class="flex gap-8">
+<a class="font-['Space_Grotesk'] text-xs uppercase tracking-widest text-[#CBC3D7]/60 hover:text-[#A078FF] transition-colors opacity-80 hover:opacity-100" href="#">Twitter</a>
+<a class="font-['Space_Grotesk'] text-xs uppercase tracking-widest text-[#CBC3D7]/60 hover:text-[#A078FF] transition-colors opacity-80 hover:opacity-100" href="#">GitHub</a>
+<a class="font-['Space_Grotesk'] text-xs uppercase tracking-widest text-[#CBC3D7]/60 hover:text-[#A078FF] transition-colors opacity-80 hover:opacity-100" href="#">Discord</a>
+<a class="font-['Space_Grotesk'] text-xs uppercase tracking-widest text-[#CBC3D7]/60 hover:text-[#A078FF] transition-colors opacity-80 hover:opacity-100" href="#">Terms</a>
+<a class="font-['Space_Grotesk'] text-xs uppercase tracking-widest text-[#CBC3D7]/60 hover:text-[#A078FF] transition-colors opacity-80 hover:opacity-100" href="#">Privacy</a>
+</div>
+</div>
+</footer>
+</body></html>

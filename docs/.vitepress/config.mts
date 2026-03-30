@@ -1,4 +1,48 @@
 import { defineConfig } from 'vitepress'
+import { resolve } from 'path'
+import { cpSync, existsSync, createReadStream, statSync } from 'fs'
+
+const repoRoot = resolve(__dirname, '../..')
+
+// Vite plugin: serves NodeUI app source in dev, copies it in production build
+function nodeUIEmbed() {
+  return {
+    name: 'nodeui-embed',
+
+    // Dev server: serve src/, config.js, graph.json from the repo root
+    configureServer(server: any) {
+      server.middlewares.use((req: any, res: any, next: any) => {
+        if (req.url?.startsWith('/src/') || req.url === '/config.js' || req.url === '/graph.json') {
+          const filePath = resolve(repoRoot, req.url.slice(1))
+          if (existsSync(filePath) && statSync(filePath).isFile()) {
+            const ext = filePath.split('.').pop() || ''
+            const mimeTypes: Record<string, string> = {
+              js: 'application/javascript',
+              css: 'text/css',
+              json: 'application/json',
+              svg: 'image/svg+xml',
+              png: 'image/png',
+            }
+            res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream')
+            createReadStream(filePath).pipe(res)
+            return
+          }
+        }
+        next()
+      })
+    },
+
+    // Production build: copy source files into dist/
+    closeBundle() {
+      const distDir = resolve(__dirname, 'dist')
+      if (existsSync(distDir)) {
+        cpSync(resolve(repoRoot, 'src'), resolve(distDir, 'src'), { recursive: true })
+        cpSync(resolve(repoRoot, 'config.js'), resolve(distDir, 'config.js'))
+        cpSync(resolve(repoRoot, 'graph.json'), resolve(distDir, 'graph.json'))
+      }
+    }
+  }
+}
 
 export default defineConfig({
   title: 'NodeUI',
@@ -8,8 +52,8 @@ export default defineConfig({
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
-    ['link', { href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap', rel: 'stylesheet' }],
-    ['meta', { name: 'theme-color', content: '#3ecf8e' }],
+    ['link', { href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Space+Grotesk:wght@300;400;500;700&display=swap', rel: 'stylesheet' }],
+    ['meta', { name: 'theme-color', content: '#D0BCFF' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:title', content: 'NodeUI - Visual Programming Interface' }],
     ['meta', { property: 'og:description', content: 'A serverless, node-based visual programming interface for creating interactive graphs and 3D visualizations.' }],
@@ -18,6 +62,15 @@ export default defineConfig({
   appearance: 'dark',
   cleanUrls: true,
   lastUpdated: true,
+
+  vite: {
+    plugins: [nodeUIEmbed()],
+    server: {
+      fs: {
+        allow: [repoRoot]
+      }
+    }
+  },
 
   themeConfig: {
     logo: '/logo.svg',
