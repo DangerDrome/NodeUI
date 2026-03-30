@@ -1,110 +1,80 @@
-/**
- * Minimal CollaborationRoom Durable Object with hibernation
- * Reduces duration charges by hibernating when inactive
- */
+import { DurableObject } from "cloudflare:workers";
 
-export class CollaborationRoom {
-  constructor(state, env) {
-    this.state = state;
-    this.env = env;
+export class CollaborationRoom extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    // Auto ping/pong without waking the object
+    this.ctx.setWebSocketAutoResponse(
+      new WebSocketRequestResponsePair("ping", "pong")
+    );
   }
 
   async fetch(request) {
-    const upgradeHeader = request.headers.get('Upgrade');
-    if (!upgradeHeader || upgradeHeader !== 'websocket') {
-      return new Response('Expected WebSocket', { status: 426 });
+    if (request.headers.get("Upgrade") !== "websocket") {
+      return new Response("Expected WebSocket", { status: 426 });
     }
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
 
-    // Accept the websocket connection
-    this.state.acceptWebSocket(server);
+    this.ctx.acceptWebSocket(server);
 
-    return new Response(null, {
-      status: 101,
-      webSocket: client,
-    });
+    return new Response(null, { status: 101, webSocket: client });
   }
 
-  async webSocketMessage(ws, messageStr) {
-    // Handle incoming messages
+  async webSocketMessage(ws, message) {
     try {
-      const message = JSON.parse(messageStr);
-
-      // Get stored data for this websocket
+      const data = JSON.parse(message);
       const stored = ws.deserializeAttachment() || {};
 
-      switch (message.type) {
-        case 'ping':
-          ws.send(JSON.stringify({ type: 'pong' }));
-          break;
-
-        case 'join':
-          // Store user info
-          stored.userId = message.userId;
+      switch (data.type) {
+        case "join":
+          stored.userId = data.userId;
           stored.joinTime = Date.now();
           ws.serializeAttachment(stored);
 
-          // Get all connected users
-          const users = [];
-          for (const socket of this.state.getWebSockets()) {
-            const data = socket.deserializeAttachment();
-            if (data && data.userId) {
-              users.push(data.userId);
-            }
-          }
-
           // Send user list
-          ws.send(JSON.stringify({
-            type: 'users-list',
-            users: users
-          }));
+          const users = [];
+          for (const socket of this.ctx.getWebSockets()) {
+            const info = socket.deserializeAttachment();
+            if (info && info.userId) users.push(info.userId);
+          }
+          ws.send(JSON.stringify({ type: "users-list", users }));
 
           // Notify others
-          this.broadcast({
-            type: 'user-joined',
-            userId: message.userId
-          }, message.userId);
+          this.broadcast({ type: "user-joined", userId: data.userId }, data.userId);
           break;
 
-        case 'operation':
-        case 'request-state':
-        case 'state-response':
-          // Just broadcast these
-          this.broadcast(message, message.userId);
+        case "operation":
+        case "request-state":
+        case "state-response":
+          this.broadcast(data, data.userId);
           break;
       }
     } catch (err) {
-      console.error('Message handling error:', err);
+      console.error("Message error:", err);
     }
   }
 
   async webSocketClose(ws, code, reason, wasClean) {
     const stored = ws.deserializeAttachment();
     if (stored && stored.userId) {
-      this.broadcast({
-        type: 'user-left',
-        userId: stored.userId
-      });
+      this.broadcast({ type: "user-left", userId: stored.userId });
     }
+    ws.close(code, reason);
   }
 
   async webSocketError(ws, error) {
-    console.error('WebSocket error:', error);
-    ws.close(1011, 'Server error');
+    console.error("WebSocket error:", error);
+    ws.close(1011, "Server error");
   }
 
   broadcast(message, excludeUserId = null) {
-    const messageStr = JSON.stringify(message);
-    for (const ws of this.state.getWebSockets()) {
+    const str = JSON.stringify(message);
+    for (const ws of this.ctx.getWebSockets()) {
       const stored = ws.deserializeAttachment();
       if (!excludeUserId || !stored || stored.userId !== excludeUserId) {
-        try {
-          ws.send(messageStr);
-        } catch (err) {
-          // Ignore send errors
-        }
+        try { ws.send(str); } catch (e) { /* ignore */ }
       }
     }
   }
@@ -112,27 +82,15 @@ export class CollaborationRoom {
 
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url);
-
-    // CORS preflight
-    if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Upgrade, Sec-WebSocket-Key, Sec-WebSocket-Version, Sec-WebSocket-Protocol',
-        },
-      });
+    if (request.headers.get("Upgrade") !== "websocket") {
+      return new Response("NodeUI Collaboration Server", { status: 200 });
     }
 
-    // Extract session ID from URL path: /SESSION_ID or /collab/SESSION_ID
-    const pathParts = url.pathname.split('/').filter(p => p && p !== 'collab');
-    const sessionId = pathParts[pathParts.length - 1] || 'default';
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split("/").filter(p => p && p !== "collab");
+    const sessionId = pathParts[pathParts.length - 1] || "default";
 
-    // Route to the Durable Object for this session
-    const id = env.COLLABORATION_ROOMS.idFromName(sessionId);
-    const stub = env.COLLABORATION_ROOMS.get(id);
-
+    const stub = env.COLLABORATION_ROOMS.getByName(sessionId);
     return stub.fetch(request);
-  }
+  },
 };
