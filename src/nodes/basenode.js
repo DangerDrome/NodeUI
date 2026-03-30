@@ -515,6 +515,16 @@ class BaseNode {
             this.updateHandleColors();
             needsRedraw = true;
         }
+        if (data.x !== undefined) {
+            this.x = data.x;
+            this.element.style.left = `${this.x}px`;
+            needsRedraw = true;
+        }
+        if (data.y !== undefined) {
+            this.y = data.y;
+            this.element.style.top = `${this.y}px`;
+            needsRedraw = true;
+        }
         if (data.width) {
             this.width = data.width;
             this.element.style.width = `${this.width}px`;

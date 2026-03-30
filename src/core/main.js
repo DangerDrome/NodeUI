@@ -323,6 +323,8 @@ class Main {
         events.subscribe('edge:update', (data) => this.updateEdgeProps(data));
         events.subscribe('snap:grid-toggle', () => this.contextMenuHandler.toggleSnapToGrid());
         events.subscribe('node:update', (data) => this.nodeManager.updateNode(data));
+        events.subscribe('node:moved', (data) => this.nodeManager.updateNode(data));
+        events.subscribe('node:resized', (data) => this.nodeManager.updateNode(data));
         events.subscribe('snap:object-toggle', this.contextMenuHandler.toggleSnapToObjects.bind(this.contextMenuHandler));
         events.subscribe('node:visual-update', ({ nodeId }) => this.updateConnectedEdges(nodeId));
         events.subscribe('edge:add-routing-node', (data) => this.splitEdgeWithRoutingNode(data));

@@ -274,11 +274,19 @@ body {
 }
 
 .collaboration-status-indicator-text {
-    color: rgba(255, 255, 255, 0.3); /* Match version watermark opacity */
+    color: rgba(255, 255, 255, 0.3);
     white-space: nowrap;
-    transition: color 0.2s;
+    transition: color 0.2s, opacity 0.2s, max-width 0.3s;
     cursor: pointer;
     user-select: none;
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+}
+
+.collaboration-status-indicator:hover .collaboration-status-indicator-text {
+    max-width: 300px;
+    opacity: 1;
 }
 
 .collaboration-status-indicator:hover .collaboration-status-indicator-text {
