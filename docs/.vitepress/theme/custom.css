@@ -84,7 +84,7 @@
 }
 
 /* Hero action buttons */
-.VPHero .actions .VPButton.big {
+.VPHero .actions .VPButton.medium {
   font-size: 20px !important;
   padding: 12px 28px !important;
 }
