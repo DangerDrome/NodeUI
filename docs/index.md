@@ -18,21 +18,25 @@ hero:
 <script setup>
 import { onMounted } from 'vue'
 onMounted(() => {
-  window.scrollTo(0, 0)
+  // Prevent all iframes from stealing focus
+  document.querySelectorAll('iframe').forEach(f => {
+    f.setAttribute('tabindex', '-1')
+    f.setAttribute('sandbox', f.getAttribute('sandbox') || 'allow-scripts allow-same-origin')
+  })
 
   // Lazy-load iframes only when scrolled into view
   document.querySelectorAll('iframe[data-src]').forEach(frame => {
-    frame.setAttribute('tabindex', '-1')
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          frame.src = frame.dataset.src
-          observer.disconnect()
-        }
-      })
-    }, { rootMargin: '200px' })
+      if (entries[0].isIntersecting) {
+        frame.src = frame.dataset.src
+        observer.disconnect()
+      }
+    }, { rootMargin: '300px' })
     observer.observe(frame)
   })
+
+  // Single scroll reset after everything is set up
+  requestAnimationFrame(() => window.scrollTo(0, 0))
 })
 </script>
 
