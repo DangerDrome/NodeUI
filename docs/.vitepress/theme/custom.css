@@ -73,6 +73,11 @@
    "Launch App" Nav Button
    ============================================ */
 
+.VPNavBar .VPImage.logo {
+  width: 36px;
+  height: 36px;
+}
+
 .VPNavBarMenu .VPLink[href="https://app.nodeui.io"] {
   background: linear-gradient(135deg, #ffe57f, #F9C74F);
   color: #3d2e00 !important;
