@@ -1,8 +1,12 @@
 import { defineConfig } from 'vitepress'
 import { resolve } from 'path'
-import { cpSync, existsSync, createReadStream, statSync } from 'fs'
+import { cpSync, existsSync, createReadStream, statSync, readFileSync } from 'fs'
 
 const repoRoot = resolve(__dirname, '../..')
+
+// Read version from version.js (source of truth, updated by git hooks)
+const versionMatch = readFileSync(resolve(repoRoot, 'src/core/version.js'), 'utf-8').match(/'([^']+)'/)
+const version = versionMatch ? versionMatch[1] : '0.0.0'
 
 // Vite plugin: serves NodeUI app source in dev, copies it in production build
 function nodeUIEmbed() {
@@ -81,7 +85,7 @@ export default defineConfig({
       { text: 'API', link: '/api/', activeMatch: '/api/' },
       { text: 'Collaboration', link: '/collaboration/', activeMatch: '/collaboration/' },
       {
-        text: 'v1.1.22',
+        text: `v${version}`,
         items: [
           { text: 'Changelog', link: '/changelog' },
           { text: 'GitHub Releases', link: 'https://github.com/megasupersoft/nodeui/releases' }
