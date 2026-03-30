@@ -17,7 +17,13 @@ hero:
 
 <script setup>
 import { onMounted } from 'vue'
-onMounted(() => { window.scrollTo(0, 0) })
+onMounted(() => {
+  // Prevent iframes from stealing focus and scrolling the page
+  document.querySelectorAll('iframe').forEach(f => f.setAttribute('tabindex', '-1'))
+  // Keep forcing top position until all iframes have loaded
+  const forceTop = setInterval(() => window.scrollTo(0, 0), 100)
+  setTimeout(() => clearInterval(forceTop), 3000)
+})
 </script>
 
 <HomeContent />
