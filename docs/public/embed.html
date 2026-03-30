@@ -88,15 +88,21 @@
                     embedLog('publishing graph:load-content');
                     events.publish('graph:load-content', JSON.stringify(window.embeddedGraphData));
 
-                    // Monitor collab state
+                    // Monitor collab state and tap events directly
                     setTimeout(() => {
                         const c = window.nodeUI && window.nodeUI.collaboration;
                         if (c) {
-                            embedLog('collab: wsUrl=' + (c.wsUrl || 'null').substring(0,45));
-                            embedLog('collab: connected=' + c.isConnected + ' session=' + (c.sessionId || 'none'));
-                            embedLog('collab: subscribed=' + Object.keys(c.eventHandlers || {}).length + ' events');
-                        } else {
-                            embedLog('collab: NOT FOUND on window.nodeUI');
+                            embedLog('ws:' + (c.isConnected?'ON':'OFF') + ' sess:' + (c.sessionId||'none') + ' subs:' + Object.keys(c.eventHandlers||{}).length);
+                        }
+                        // Direct event tap — proves events fire independent of collab
+                        if (typeof events !== 'undefined') {
+                            events.subscribe('*', (evtName, data) => {
+                                if (['node:moved','node:resized','node:update','edge:create','node:delete','edge:delete'].includes(evtName)) {
+                                    const id = data && (data.nodeId || data.startNodeId || data.id || '');
+                                    embedLog('EVT: ' + evtName + ' ' + id);
+                                }
+                            });
+                            embedLog('wildcard tap active');
                         }
                     }, 2000);
                 }
