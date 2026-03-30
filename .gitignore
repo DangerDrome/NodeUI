@@ -42,5 +42,14 @@ server.log
 *.tmp
 *.temp
 
+# Claude Code / AI tooling
+.claude
+
+# Serena
+.serena/project.local.yml
+
+# Wrangler
+.wrangler/
+
 # Keep scripts directory
 !scripts/
