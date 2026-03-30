@@ -63,6 +63,14 @@
   --vp-code-tab-active-bar-color: #ffe57f;
 }
 
+/* Remove pill/background from Launch nav link */
+.VPNavBarMenuLink[href="https://app.nodeui.io"],
+a.VPNavBarMenuLink[href="https://app.nodeui.io"] {
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 12px !important;
+}
+
 /* --- Typography --- */
 :root {
   --vp-font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
