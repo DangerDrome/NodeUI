@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="src/styles/styles.css">
     <script src="config.js"></script>
     <style>
-        /* Override for embed context */
         html, body {
             margin: 0;
             padding: 0;
@@ -16,45 +15,57 @@
             overflow: hidden;
             background: #1c1c1c;
         }
-        #nodeui-app {
-            width: 100%;
-            height: 100%;
-        }
-        #nodeui-canvas-container {
-            width: 100%;
-            height: 100%;
-        }
+        #nodeui-app { width: 100%; height: 100%; }
+        #nodeui-canvas-container { width: 100%; height: 100%; }
 
-        /* Embed mode: hide user count HUD and version watermark */
+        /* Embed mode: hide HUD elements */
         [style*="position: fixed"][style*="top: 28px"] { display: none !important; }
         .version-watermark { display: none !important; }
 
-        /* Minimal mode: hide grid, version watermark */
+        /* Minimal mode */
         body.minimal .grid-canvas { display: none !important; }
         body.minimal .version-watermark { display: none !important; }
+        body.minimal .collaboration-status-indicator { display: none !important; }
         body.minimal { background: transparent; }
         body.minimal #nodeui-canvas-container { background: transparent; }
+
+        /* Debug log */
+        #embed-log {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.85); color: #3ecf8e;
+            font: 10px monospace; padding: 4px 6px;
+            z-index: 99999; pointer-events: none;
+            max-height: 60px; overflow: hidden;
+            white-space: pre-wrap;
+        }
     </style>
     <script>
-        // Flag to suppress blocking alerts in embed context
         window.NODEUI_EMBED_MODE = true;
 
-        // Determine which graph to load from ?graph= parameter, default to graph.json
         const params = new URLSearchParams(window.location.search);
         const graphFile = params.get('graph') || 'graph.json';
-
-        // Only allow loading from known safe paths (prevent path traversal)
         const safePath = graphFile.replace(/[^a-zA-Z0-9\-_\/\.]/g, '');
 
-        // Minimal mode — no grid, no HUD
         if (params.get('minimal') === '1') {
             document.addEventListener('DOMContentLoaded', () => document.body.classList.add('minimal'));
         }
 
+        // Embed debug logger
+        const _logs = [];
+        window.embedLog = function(msg) {
+            _logs.push(msg);
+            if (_logs.length > 5) _logs.shift();
+            const el = document.getElementById('embed-log');
+            if (el) el.textContent = _logs.join('\n');
+        };
+
         fetch(safePath)
             .then(r => r.json())
-            .then(data => { window.embeddedGraphData = data; })
-            .catch(() => {});
+            .then(data => {
+                window.embeddedGraphData = data;
+                embedLog('graph loaded: ' + data.nodes.length + ' nodes');
+            })
+            .catch(e => embedLog('graph fetch failed: ' + e.message));
     </script>
 </head>
 <body>
@@ -62,6 +73,7 @@
         <div id="nodeui-canvas-container" tabindex="0"></div>
         <div id="nodeui-pinned-node-container"></div>
     </div>
+    <div id="embed-log"></div>
 
     <script src="src/core/libs.js"></script>
     <script src="src/core/version.js"></script>
@@ -69,17 +81,27 @@
     <script src="src/core/collaboration.js"></script>
     <script src="src/main.js"></script>
     <script>
-        // After NodeUI initializes, load the embedded graph
-        // Session auto-join is handled by the Collaboration class via ?session= URL param
         window.addEventListener('load', () => {
             const waitForEvents = setInterval(() => {
                 if (typeof events !== 'undefined' && window.embeddedGraphData) {
                     clearInterval(waitForEvents);
+                    embedLog('publishing graph:load-content');
                     events.publish('graph:load-content', JSON.stringify(window.embeddedGraphData));
+
+                    // Monitor collab state
+                    setTimeout(() => {
+                        const c = window.nodeUI && window.nodeUI.collaboration;
+                        if (c) {
+                            embedLog('collab: wsUrl=' + (c.wsUrl || 'null').substring(0,45));
+                            embedLog('collab: connected=' + c.isConnected + ' session=' + (c.sessionId || 'none'));
+                            embedLog('collab: subscribed=' + Object.keys(c.eventHandlers || {}).length + ' events');
+                        } else {
+                            embedLog('collab: NOT FOUND on window.nodeUI');
+                        }
+                    }, 2000);
                 }
             }, 100);
             setTimeout(() => clearInterval(waitForEvents), 5000);
-
         });
     </script>
 </body>
