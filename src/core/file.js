@@ -277,16 +277,22 @@ class File {
                 // Defer node creation and animation
                 setTimeout(() => {
                     const idMap = new Map();
-                    const nodesToPin = []; // Keep track of nodes to pin after creation
+                    const nodesToPin = [];
+
+                    // Preserve original IDs when in a collab session so all users share the same IDs
+                    const inCollabSession = new URLSearchParams(window.location.search).get('session');
+
+                    // Suppress collab broadcasts during graph load to prevent flooding the session
+                    if (this.nodeUI.collaboration) {
+                        this.nodeUI.collaboration._suppressBroadcast = true;
+                    }
 
                     data.nodes.forEach(nodeData => {
                         const oldId = nodeData.id;
-                        const newId = crypto.randomUUID();
+                        const newId = inCollabSession ? oldId : crypto.randomUUID();
                         idMap.set(oldId, newId);
 
                         const shouldBePinned = nodeData.isPinned;
-
-                        // Create the node as unpinned initially
                         const newNodeData = { ...nodeData, id: newId, isPinned: false };
                         events.publish('node:create', newNodeData);
 
@@ -314,14 +320,17 @@ class File {
                         }
                     });
 
-                    // After all nodes are in the DOM, pin the ones that need to be pinned.
-                    // This triggers the `reparentNode` logic correctly.
                     nodesToPin.forEach(nodeId => {
                         const node = this.nodeUI.nodes.get(nodeId);
                         if (node) {
                             this.nodeUI.updateNode({ nodeId: nodeId, isPinned: true });
                         }
                     });
+
+                    // Re-enable collab broadcasts after graph is loaded
+                    if (this.nodeUI.collaboration) {
+                        this.nodeUI.collaboration._suppressBroadcast = false;
+                    }
                     
                     this.nodeUI.animatePanZoom(targetScale, targetOffsetX, targetOffsetY, 400);
                     console.log("Graph loaded.");

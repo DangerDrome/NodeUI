@@ -660,7 +660,7 @@ class Collaboration {
      * @param {object} data - The event data
      */
     handleLocalEvent(eventName, data) {
-        if (!this.isConnected) {
+        if (!this.isConnected || this._suppressBroadcast) {
             return;
         }
         
