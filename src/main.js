@@ -2756,8 +2756,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.log('Could not load graph from URL param:', e);
             }
         } else if (window.NODEUI_EMBED_MODE && zoomParam && !isNaN(zoomParam)) {
-            // In embed mode, graph loads via embeddedGraphData — apply zoom after it renders
-            setTimeout(applyZoom, 1000);
+            // In embed mode, bake zoom into the initial frame calculation
+            window.NODEUI_FRAME_ZOOM = zoomParam;
         }
     } catch (error) {
         console.error('Failed to initialize NodeUI:', error);

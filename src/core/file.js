@@ -256,11 +256,12 @@ class File {
                 const selectionHeight = (maxY - minY) + padding * 2;
                 const containerRect = this.nodeUI.container.getBoundingClientRect();
                 
+                const frameZoom = window.NODEUI_FRAME_ZOOM || 1;
                 const targetScale = Math.min(
-                    containerRect.width / selectionWidth, 
+                    containerRect.width / selectionWidth,
                     containerRect.height / selectionHeight,
                     1.5 // Cap max zoom level
-                );
+                ) * frameZoom;
 
                 const selectionCenterX = minX + (maxX - minX) / 2;
                 const selectionCenterY = minY + (maxY - minY) / 2;
