@@ -216,11 +216,14 @@ class Main {
         // Ensure the container can receive keyboard events
         this.container.focus();
         
-        // Handle initial URL hash
-        if (!window.location.hash) {
-            window.location.hash = 'main';
-        } else {
-            this.handleHashChange();
+        // Handle initial URL hash (skip in embedded context to prevent parent scroll)
+        const isEmbedded = new URLSearchParams(window.location.search).get('session') || new URLSearchParams(window.location.search).get('graph');
+        if (!isEmbedded) {
+            if (!window.location.hash) {
+                window.location.hash = 'main';
+            } else {
+                this.handleHashChange();
+            }
         }
 
         console.log('%c[Main]%c Service initialized.', 'color: #3ecf8e; font-weight: bold;', 'color: inherit;');

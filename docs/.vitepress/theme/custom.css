@@ -379,6 +379,7 @@
   outline: none;
   display: block;
   background: #1c1c1c;
+  overflow: hidden;
 }
 
 /* ============================================
