@@ -70,10 +70,9 @@ const nodeTypes = [
     <div class="showcase-embed">
       <div class="nodeui-embed-wrapper">
         <iframe
-          :src="`/embed.html?graph=${mediaShowcase.graph}`"
+          :data-src="`/embed.html?graph=${mediaShowcase.graph}`"
           class="nodeui-embed-iframe"
           :title="`NodeUI ${mediaShowcase.label} example`"
-          loading="lazy"
           allow="clipboard-read; clipboard-write"
         ></iframe>
       </div>
@@ -92,10 +91,9 @@ const nodeTypes = [
         <div class="collab-embed-label">User A</div>
         <div class="nodeui-embed-wrapper">
           <iframe
-            :src="`https://app.nodeui.io/?session=${collabSession}&graph=examples/collab-demo.json`"
+            :data-src="`https://app.nodeui.io/?session=${collabSession}&graph=examples/collab-demo.json`"
             class="nodeui-embed-iframe"
             title="Collaboration — User A"
-            loading="lazy"
             allow="clipboard-read; clipboard-write"
           ></iframe>
         </div>
@@ -104,10 +102,9 @@ const nodeTypes = [
         <div class="collab-embed-label">User B</div>
         <div class="nodeui-embed-wrapper">
           <iframe
-            :src="`https://app.nodeui.io/?session=${collabSession}&graph=examples/collab-demo.json`"
+            :data-src="`https://app.nodeui.io/?session=${collabSession}&graph=examples/collab-demo.json`"
             class="nodeui-embed-iframe"
             title="Collaboration — User B"
-            loading="lazy"
             allow="clipboard-read; clipboard-write"
           ></iframe>
         </div>
@@ -129,10 +126,9 @@ const nodeTypes = [
     <div class="showcase-embed">
       <div class="nodeui-embed-wrapper">
         <iframe
-          :src="`/embed.html?graph=${item.graph}`"
+          :data-src="`/embed.html?graph=${item.graph}`"
           class="nodeui-embed-iframe"
           :title="`NodeUI ${item.label} example`"
-          loading="lazy"
           allow="clipboard-read; clipboard-write"
         ></iframe>
       </div>
