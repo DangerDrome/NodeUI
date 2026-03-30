@@ -1,18 +1,18 @@
 /* ============================================
-   NodeUI VitePress Theme — Purple Design System
+   NodeUI VitePress Theme — Yellow Design System
    "The Collaborative Canvas"
    ============================================ */
 
 :root {
-  /* --- Brand Colors (Purple Primary) --- */
-  --vp-c-brand-1: #D0BCFF;
-  --vp-c-brand-2: #A078FF;
-  --vp-c-brand-3: #5516be;
-  --vp-c-brand-soft: rgba(208, 188, 255, 0.14);
+  /* --- Brand Colors (Yellow Primary — matches default node) --- */
+  --vp-c-brand-1: #ffe57f;
+  --vp-c-brand-2: #F9C74F;
+  --vp-c-brand-3: #CA8100;
+  --vp-c-brand-soft: rgba(249, 199, 79, 0.14);
 
   /* --- Design System Tokens --- */
-  --nui-primary: #D0BCFF;
-  --nui-primary-container: #A078FF;
+  --nui-primary: #ffe57f;
+  --nui-primary-container: #F9C74F;
   --nui-secondary: #4FDBC8;
   --nui-secondary-container: #04B4A2;
   --nui-tertiary: #FFB95F;
@@ -27,14 +27,14 @@
   --nui-surface-container-highest: #353534;
   --nui-surface-bright: #393939;
   --nui-on-surface: #E5E2E1;
-  --nui-on-surface-variant: #CBC3D7;
-  --nui-outline: #958EA0;
-  --nui-outline-variant: #494454;
+  --nui-on-surface-variant: #C9C3B5;
+  --nui-outline: #9E9685;
+  --nui-outline-variant: #544E42;
 
   /* --- Tip / Warning / Danger --- */
-  --vp-c-tip-1: #D0BCFF;
-  --vp-c-tip-2: rgba(208, 188, 255, 0.14);
-  --vp-c-tip-3: rgba(208, 188, 255, 0.08);
+  --vp-c-tip-1: #ffe57f;
+  --vp-c-tip-2: rgba(249, 199, 79, 0.14);
+  --vp-c-tip-3: rgba(249, 199, 79, 0.08);
   --vp-c-warning-1: #FFB95F;
   --vp-c-danger-1: #FFB4AB;
 }
@@ -46,13 +46,13 @@
   --vp-c-bg-elv: #201F1F;
   --vp-c-bg-soft: #1C1B1B;
 
-  --vp-c-border: rgba(73, 68, 84, 0.3);
-  --vp-c-divider: rgba(73, 68, 84, 0.3);
+  --vp-c-border: rgba(84, 78, 60, 0.3);
+  --vp-c-divider: rgba(84, 78, 60, 0.3);
   --vp-c-gutter: #1C1B1B;
 
   --vp-c-text-1: #E5E2E1;
-  --vp-c-text-2: #CBC3D7;
-  --vp-c-text-3: #958EA0;
+  --vp-c-text-2: #C9C3B5;
+  --vp-c-text-3: #9E9685;
 
   --vp-c-default-1: #353534;
   --vp-c-default-2: #2A2A2A;
@@ -60,7 +60,7 @@
   --vp-c-default-soft: rgba(53, 53, 52, 0.5);
 
   --vp-code-block-bg: #0E0E0E;
-  --vp-code-tab-active-bar-color: #D0BCFF;
+  --vp-code-tab-active-bar-color: #ffe57f;
 }
 
 /* --- Typography --- */
@@ -74,11 +74,11 @@
    ============================================ */
 
 .VPNavBarMenu .VPLink[href="https://app.nodeui.io"] {
-  background: linear-gradient(135deg, #D0BCFF, #A078FF);
-  color: #23005c !important;
+  background: linear-gradient(135deg, #ffe57f, #F9C74F);
+  color: #3d2e00 !important;
   font-weight: 700;
-  padding: 6px 16px;
-  border-radius: 8px;
+  padding: 6px 20px;
+  border-radius: 999px;
   font-size: 13px;
   transition: all 0.2s ease;
   margin-left: 4px;
@@ -86,7 +86,7 @@
 
 .VPNavBarMenu .VPLink[href="https://app.nodeui.io"]:hover {
   opacity: 0.9;
-  box-shadow: 0 0 20px rgba(208, 188, 255, 0.3);
+  box-shadow: 0 0 20px rgba(249, 199, 79, 0.3);
 }
 
 /* ============================================
@@ -97,8 +97,8 @@
   background: rgba(19, 19, 19, 0.8) !important;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(73, 68, 84, 0.2) !important;
-  box-shadow: 0 4px 20px rgba(208, 188, 255, 0.04);
+  border-bottom: 1px solid rgba(84, 78, 60, 0.2) !important;
+  box-shadow: 0 4px 20px rgba(249, 199, 79, 0.04);
 }
 
 .VPSidebar {
@@ -111,7 +111,7 @@
   background: rgba(19, 19, 19, 0.8) !important;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(73, 68, 84, 0.2) !important;
+  border-bottom: 1px solid rgba(84, 78, 60, 0.2) !important;
 }
 
 /* ============================================
@@ -146,7 +146,7 @@
 }
 
 .VPHero .name .clip {
-  background: linear-gradient(135deg, #D0BCFF 0%, #4FDBC8 50%, #FFB95F 100%);
+  background: linear-gradient(135deg, #ffe57f 0%, #F9C74F 50%, #CA8100 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -164,23 +164,23 @@
 }
 
 .VPHero .VPButton.brand {
-  background: linear-gradient(135deg, #D0BCFF, #A078FF);
+  background: linear-gradient(135deg, #ffe57f, #F9C74F);
   border: none;
-  color: #23005c;
+  color: #3d2e00;
   font-weight: 700;
   border-radius: 12px;
   padding: 12px 28px;
-  box-shadow: 0 0 30px rgba(208, 188, 255, 0.15);
+  box-shadow: 0 0 30px rgba(249, 199, 79, 0.15);
 }
 
 .VPHero .VPButton.brand:hover {
-  box-shadow: 0 0 40px rgba(208, 188, 255, 0.3);
+  box-shadow: 0 0 40px rgba(249, 199, 79, 0.3);
   transform: translateY(-1px);
 }
 
 .VPHero .VPButton.alt {
   background: transparent;
-  border: 1px solid rgba(73, 68, 84, 0.3);
+  border: 1px solid rgba(84, 78, 60, 0.3);
   color: var(--nui-on-surface);
   border-radius: 12px;
   padding: 12px 28px;
@@ -188,7 +188,7 @@
 
 .VPHero .VPButton.alt:hover {
   background: var(--nui-surface-container);
-  border-color: rgba(73, 68, 84, 0.5);
+  border-color: rgba(84, 78, 60, 0.5);
 }
 
 /* ============================================
@@ -199,15 +199,15 @@
   background: var(--nui-surface-container-low) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(73, 68, 84, 0.1) !important;
+  border: 1px solid rgba(84, 78, 60, 0.1) !important;
   border-radius: 16px !important;
   transition: all 0.3s ease !important;
 }
 
 .VPFeature:hover {
   background: var(--nui-surface-bright) !important;
-  border-color: rgba(208, 188, 255, 0.2) !important;
-  box-shadow: 0 8px 40px rgba(208, 188, 255, 0.06);
+  border-color: rgba(249, 199, 79, 0.2) !important;
+  box-shadow: 0 8px 40px rgba(249, 199, 79, 0.06);
   transform: translateY(-2px);
 }
 
@@ -221,7 +221,7 @@
 
 .VPFeature .VPImage,
 .VPFeature .icon {
-  color: #D0BCFF;
+  color: #ffe57f;
 }
 
 /* ============================================
@@ -229,26 +229,26 @@
    ============================================ */
 
 .vp-doc a {
-  color: #D0BCFF;
+  color: #ffe57f;
   text-decoration: none;
 }
 
 .vp-doc a:hover {
-  color: #A078FF;
+  color: #F9C74F;
   text-decoration: underline;
 }
 
 /* Inline code */
 .vp-doc :not(pre) > code {
-  background-color: rgba(208, 188, 255, 0.1);
-  color: #D0BCFF;
+  background-color: rgba(249, 199, 79, 0.1);
+  color: #ffe57f;
   border-radius: 4px;
 }
 
 /* Code blocks */
 .vp-doc div[class*='language-'] {
   border-radius: 12px;
-  border: 1px solid rgba(73, 68, 84, 0.15);
+  border: 1px solid rgba(84, 78, 60, 0.15);
 }
 
 /* Tables */
@@ -257,12 +257,12 @@
 }
 
 .vp-doc tr {
-  border-top: 1px solid rgba(73, 68, 84, 0.2);
+  border-top: 1px solid rgba(84, 78, 60, 0.2);
 }
 
 .vp-doc th,
 .vp-doc td {
-  border: 1px solid rgba(73, 68, 84, 0.2);
+  border: 1px solid rgba(84, 78, 60, 0.2);
 }
 
 .vp-doc th {
@@ -271,13 +271,13 @@
 
 /* Blockquotes */
 .vp-doc blockquote {
-  border-left-color: #D0BCFF;
-  background-color: rgba(208, 188, 255, 0.05);
+  border-left-color: #ffe57f;
+  background-color: rgba(249, 199, 79, 0.05);
 }
 
 /* Custom containers */
 .vp-doc .custom-block.tip {
-  border-color: #D0BCFF;
+  border-color: #ffe57f;
 }
 
 .vp-doc .custom-block.warning {
@@ -363,8 +363,8 @@
   aspect-ratio: 16 / 9;
   border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(73, 68, 84, 0.2);
-  box-shadow: 0 8px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(208, 188, 255, 0.04);
+  border: 1px solid rgba(84, 78, 60, 0.2);
+  box-shadow: 0 8px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(249, 199, 79, 0.04);
 }
 
 .nodeui-embed-iframe {
@@ -373,6 +373,46 @@
   border: none;
   display: block;
   background: #1c1c1c;
+}
+
+/* ============================================
+   Collaboration — Two embeds side by side
+   ============================================ */
+
+.collab-section {
+  padding: 80px 24px;
+}
+
+.collab-embeds {
+  display: flex;
+  gap: 24px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.collab-embed-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.collab-embed-label {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: var(--nui-primary);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.collab-embeds .nodeui-embed-wrapper {
+  aspect-ratio: 16 / 10;
+}
+
+@media (max-width: 768px) {
+  .collab-embeds {
+    flex-direction: column;
+  }
 }
 
 /* ============================================
@@ -390,7 +430,7 @@
   background: var(--nui-surface-container-low);
   border-radius: 16px;
   padding: 32px;
-  border: 1px solid rgba(73, 68, 84, 0.1);
+  border: 1px solid rgba(84, 78, 60, 0.1);
   transition: all 0.3s ease;
 }
 
@@ -411,8 +451,8 @@
 }
 
 .nodeui-feature-card .feature-icon.purple {
-  background: rgba(208, 188, 255, 0.15);
-  color: #D0BCFF;
+  background: rgba(249, 199, 79, 0.15);
+  color: #ffe57f;
 }
 
 .nodeui-feature-card .feature-icon.teal {
@@ -440,140 +480,81 @@
 }
 
 /* ============================================
-   Code Preview Section
+   Hero Node — real node rendered in hero image slot
+   Imports app design tokens + node styles verbatim
    ============================================ */
 
-.nodeui-code-section {
-  background: var(--nui-surface-container-lowest);
-  padding: 80px 24px;
-  margin: 0 -24px;
+/* App design tokens needed for the hero node */
+.VPHero .node {
+  --color-bg-panel: #242424;
+  --color-bg-hover: #2d2d2d;
+  --color-border-default: #3a3a3a;
+  --color-text-default: #e0e0e0;
+  --color-text-subtle: #9e9e9e;
+  --color-text-emphasis: #ffffff;
+  --color-accent: #3ecf8e;
+  --color-node-yellow-bg: rgba(249, 199, 79, 0.2);
+  --color-node-yellow-border: rgba(249, 199, 79, 0.8);
+  --color-node-yellow-text: #ffe57f;
+  --radius-medium: 8px;
+  --shadow-small: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --font-size-small: 12px;
+  --font-size-medium: 14px;
+  --border-width-thin: 1px;
+  --h1-font-size: 4.1rem;
+  --h1-font-weight: 1000;
+  --h1-color: #9e9e9e;
+  --handle-size-mult: 1;
+  pointer-events: none;
+  cursor: default;
 }
 
-.nodeui-code-split {
+/* ============================================
+   Showcase Sections — Alternating text + embed
+   ============================================ */
+
+.showcase-section {
   display: flex;
-  gap: 48px;
   align-items: center;
-  max-width: 1200px;
+  gap: 48px;
+  max-width: 1300px;
   margin: 0 auto;
+  padding: 80px 24px;
 }
 
-.nodeui-code-left {
-  flex: 1;
+.showcase-section.showcase-reversed {
+  flex-direction: row-reverse;
 }
 
-.nodeui-code-left .label {
-  font-family: 'Space Grotesk', monospace;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.4em;
-  color: var(--nui-primary);
-  margin-bottom: 16px;
+.showcase-text {
+  flex: 0 0 320px;
+  min-width: 0;
 }
 
-.nodeui-code-left h2 {
-  font-size: 40px;
+.showcase-title {
+  font-size: 32px;
   font-weight: 800;
   color: var(--nui-on-surface);
-  line-height: 1.1;
+  margin: 0 0 12px 0;
   letter-spacing: -0.02em;
-  margin: 0 0 24px 0;
+  line-height: 1.1;
 }
 
-.nodeui-code-visual {
-  position: relative;
-  background: var(--nui-surface);
-  border-radius: 16px;
-  border: 1px solid rgba(73, 68, 84, 0.15);
-  overflow: hidden;
-  aspect-ratio: 16 / 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 32px;
-  padding: 32px;
-}
-
-.nodeui-code-visual .mini-node {
-  width: 100px;
-  height: 64px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(8px);
-  font-size: 20px;
-}
-
-.nodeui-code-visual .mini-node.purple {
-  background: rgba(208, 188, 255, 0.15);
-  border: 1px solid rgba(208, 188, 255, 0.3);
-  color: #D0BCFF;
-}
-
-.nodeui-code-visual .mini-node.teal {
-  background: rgba(79, 219, 200, 0.15);
-  border: 1px solid rgba(79, 219, 200, 0.3);
-  color: #4FDBC8;
-}
-
-.nodeui-code-right {
-  flex: 1;
-}
-
-.nodeui-code-editor {
-  background: #1e1e1e;
-  border-radius: 16px;
-  border: 1px solid rgba(73, 68, 84, 0.2);
-  overflow: hidden;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
-}
-
-.nodeui-code-editor .editor-titlebar {
-  background: var(--nui-surface-container-high);
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid rgba(73, 68, 84, 0.15);
-}
-
-.nodeui-code-editor .dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.nodeui-code-editor .dot.red { background: #FFB4AB; }
-.nodeui-code-editor .dot.yellow { background: #FFB95F; }
-.nodeui-code-editor .dot.green { background: #4FDBC8; }
-
-.nodeui-code-editor .editor-filename {
-  margin-left: 12px;
-  font-family: 'Space Grotesk', monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+.showcase-subtitle {
+  font-size: 16px;
   color: var(--nui-on-surface-variant);
+  margin: 0;
+  line-height: 1.7;
 }
 
-.nodeui-code-editor .editor-body {
-  padding: 24px;
-  font-family: 'Space Grotesk', monospace;
-  font-size: 13px;
-  line-height: 1.8;
-  color: #d4d4d4;
+.showcase-embed {
+  flex: 1;
+  min-width: 0;
 }
 
-.nodeui-code-editor .line-num {
-  color: var(--nui-primary);
-  opacity: 0.4;
-  margin-right: 16px;
-  user-select: none;
+.showcase-embed .nodeui-embed-wrapper {
+  aspect-ratio: 16 / 10;
 }
-
-.nodeui-code-editor .kw { color: #4FDBC8; }
-.nodeui-code-editor .fn { color: #D0BCFF; }
-.nodeui-code-editor .str { color: #FFB95F; }
 
 /* ============================================
    Node Type Cards
@@ -589,7 +570,7 @@
 .nodeui-node-card {
   background: var(--nui-surface-container);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(73, 68, 84, 0.1);
+  border: 1px solid rgba(84, 78, 60, 0.1);
   border-radius: 12px;
   padding: 24px;
   transition: all 0.3s ease;
@@ -600,11 +581,11 @@
 .nodeui-node-card:hover {
   background: var(--nui-surface-bright);
   transform: translateY(-2px);
-  box-shadow: 0 8px 40px rgba(208, 188, 255, 0.06);
+  box-shadow: 0 8px 40px rgba(249, 199, 79, 0.06);
 }
 
-.nodeui-node-card.color-purple { border-left: 3px solid rgba(208, 188, 255, 0.6); }
-.nodeui-node-card.color-purple:hover { box-shadow: 0 8px 40px rgba(208, 188, 255, 0.08); }
+.nodeui-node-card.color-purple { border-left: 3px solid rgba(249, 199, 79, 0.6); }
+.nodeui-node-card.color-purple:hover { box-shadow: 0 8px 40px rgba(249, 199, 79, 0.08); }
 
 .nodeui-node-card.color-teal { border-left: 3px solid rgba(79, 219, 200, 0.6); }
 .nodeui-node-card.color-teal:hover { box-shadow: 0 8px 40px rgba(79, 219, 200, 0.08); }
@@ -629,49 +610,6 @@
   line-height: 1.5;
 }
 
-/* ============================================
-   Architecture Section
-   ============================================ */
-
-.nodeui-arch-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-top: 32px;
-}
-
-.nodeui-arch-item {
-  background: var(--nui-surface-container);
-  border: 1px solid rgba(73, 68, 84, 0.1);
-  border-radius: 12px;
-  padding: 24px;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.nodeui-arch-item:hover {
-  background: var(--nui-surface-bright);
-  border-color: rgba(208, 188, 255, 0.15);
-}
-
-.nodeui-arch-item .arch-icon {
-  font-size: 32px;
-  margin-bottom: 12px;
-}
-
-.nodeui-arch-item h3 {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--nui-on-surface);
-  margin: 0 0 8px 0;
-}
-
-.nodeui-arch-item p {
-  font-size: 13px;
-  color: var(--nui-on-surface-variant);
-  margin: 0;
-  line-height: 1.5;
-}
 
 /* ============================================
    CTA Section
@@ -688,7 +626,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, rgba(208, 188, 255, 0.05) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(249, 199, 79, 0.05) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -729,25 +667,25 @@
 }
 
 .nodeui-btn-primary {
-  background: linear-gradient(135deg, #D0BCFF, #A078FF);
+  background: linear-gradient(135deg, #ffe57f, #F9C74F);
   color: #23005c !important;
-  box-shadow: 0 4px 20px rgba(208, 188, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(249, 199, 79, 0.2);
 }
 
 .nodeui-btn-primary:hover {
-  box-shadow: 0 8px 30px rgba(208, 188, 255, 0.35);
+  box-shadow: 0 8px 30px rgba(249, 199, 79, 0.35);
   transform: translateY(-2px);
 }
 
 .nodeui-btn-secondary {
   background: transparent;
   color: var(--nui-on-surface) !important;
-  border: 1px solid rgba(73, 68, 84, 0.3);
+  border: 1px solid rgba(84, 78, 60, 0.3);
 }
 
 .nodeui-btn-secondary:hover {
   background: var(--nui-surface-container);
-  border-color: rgba(73, 68, 84, 0.5);
+  border-color: rgba(84, 78, 60, 0.5);
   transform: translateY(-1px);
 }
 
@@ -757,15 +695,15 @@
 
 .nodeui-screenshot {
   border-radius: 16px;
-  border: 1px solid rgba(73, 68, 84, 0.15);
+  border: 1px solid rgba(84, 78, 60, 0.15);
   overflow: hidden;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
   transition: all 0.3s ease;
 }
 
 .nodeui-screenshot:hover {
-  box-shadow: 0 16px 60px rgba(208, 188, 255, 0.08);
-  border-color: rgba(208, 188, 255, 0.2);
+  box-shadow: 0 16px 60px rgba(249, 199, 79, 0.08);
+  border-color: rgba(249, 199, 79, 0.2);
 }
 
 .nodeui-screenshot img {
@@ -778,8 +716,20 @@
    ============================================ */
 
 @media (max-width: 960px) {
-  .nodeui-code-split {
+  .showcase-section,
+  .showcase-section.showcase-reversed {
     flex-direction: column;
+    padding: 48px 24px;
+  }
+
+  .showcase-text {
+    flex: none;
+    width: 100%;
+    text-align: center;
+  }
+
+  .showcase-embed {
+    width: 100%;
   }
 
   .nodeui-feature-grid {
@@ -796,6 +746,10 @@
     font-size: 28px;
   }
 
+  .showcase-title {
+    font-size: 24px;
+  }
+
   .nodeui-cta h2 {
     font-size: 32px;
   }
@@ -804,16 +758,7 @@
     grid-template-columns: 1fr;
   }
 
-  .nodeui-arch-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   .nodeui-feature-grid {
     grid-template-columns: 1fr;
-  }
-
-  .nodeui-graph-canvas {
-    border-radius: 16px;
-    aspect-ratio: 4 / 3;
   }
 }

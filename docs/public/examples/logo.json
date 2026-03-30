@@ -1,0 +1,48 @@
+{
+  "metadata": {
+    "projectName": "Logo",
+    "thumbnailUrl": "",
+    "contextMenuSettings": {
+      "canvas": {
+        "cut": { "label": "Cut", "iconClass": "icon-scissors" },
+        "copy": { "label": "Copy", "iconClass": "icon-copy" },
+        "paste": { "label": "Paste", "iconClass": "icon-clipboard" },
+        "delete": { "label": "Delete", "iconClass": "icon-trash-2" },
+        "note": { "label": "Note", "iconClass": "icon-file-text" },
+        "routingNode": { "label": "Router", "iconClass": "icon-network" },
+        "group": { "label": "Group", "iconClass": "icon-group" },
+        "log": { "label": "Log", "iconClass": "icon-terminal" },
+        "subgraph": { "label": "Subgraph", "iconClass": "icon-box" },
+        "saveGraph": { "label": "Save Graph", "iconClass": "icon-download" },
+        "loadGraph": { "label": "Load Graph", "iconClass": "icon-upload" },
+        "snapGrid": { "label": "Grid Snap", "iconClass": "icon-grid-2x2" },
+        "snapObject": { "label": "Obj Snap", "iconClass": "icon-layout-panel-left" }
+      },
+      "edge": {
+        "edit": { "label": "Edit Label", "iconClass": "icon-edit" },
+        "addRoutingNode": { "label": "Add Routing Node", "iconClass": "icon-network" },
+        "delete": { "label": "Delete", "iconClass": "icon-trash-2" }
+      }
+    }
+  },
+  "canvasState": {
+    "scale": 3,
+    "offsetX": -1410,
+    "offsetY": -920
+  },
+  "nodes": [
+    {
+      "id": "logo-node",
+      "x": 540,
+      "y": 340,
+      "width": 280,
+      "height": 160,
+      "title": "Note",
+      "content": "# NodeUI",
+      "type": "BaseNode",
+      "color": "yellow",
+      "isPinned": false
+    }
+  ],
+  "edges": []
+}

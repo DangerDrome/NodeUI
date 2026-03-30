@@ -53,7 +53,7 @@ export default defineConfig({
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
     ['link', { href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Space+Grotesk:wght@300;400;500;700&display=swap', rel: 'stylesheet' }],
-    ['meta', { name: 'theme-color', content: '#D0BCFF' }],
+    ['meta', { name: 'theme-color', content: '#ffe57f' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:title', content: 'NodeUI - Visual Programming Interface' }],
     ['meta', { property: 'og:description', content: 'A serverless, node-based visual programming interface for creating interactive graphs and 3D visualizations.' }],
@@ -87,7 +87,7 @@ export default defineConfig({
           { text: 'GitHub Releases', link: 'https://github.com/megasupersoft/nodeui/releases' }
         ]
       },
-      { text: 'Launch App', link: 'https://app.nodeui.io', target: '_blank', rel: 'noopener' }
+      { text: 'Launch', link: 'https://app.nodeui.io', target: '_blank', rel: 'noopener' }
     ],
 
     sidebar: {

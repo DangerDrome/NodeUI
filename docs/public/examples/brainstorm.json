@@ -1,0 +1,220 @@
+{
+  "metadata": {
+    "projectName": "Product Launch Brainstorm",
+    "thumbnailUrl": "",
+    "contextMenuSettings": {
+      "canvas": {
+        "cut": { "label": "Cut", "iconClass": "icon-scissors" },
+        "copy": { "label": "Copy", "iconClass": "icon-copy" },
+        "paste": { "label": "Paste", "iconClass": "icon-clipboard" },
+        "delete": { "label": "Delete", "iconClass": "icon-trash-2" },
+        "note": { "label": "Note", "iconClass": "icon-file-text" },
+        "routingNode": { "label": "Router", "iconClass": "icon-network" },
+        "group": { "label": "Group", "iconClass": "icon-group" },
+        "log": { "label": "Log", "iconClass": "icon-terminal" },
+        "subgraph": { "label": "Subgraph", "iconClass": "icon-box" },
+        "saveGraph": { "label": "Save Graph", "iconClass": "icon-download" },
+        "loadGraph": { "label": "Load Graph", "iconClass": "icon-upload" },
+        "snapGrid": { "label": "Grid Snap", "iconClass": "icon-grid-2x2" },
+        "snapObject": { "label": "Obj Snap", "iconClass": "icon-layout-panel-left" }
+      },
+      "edge": {
+        "edit": { "label": "Edit Label", "iconClass": "icon-edit" },
+        "addRoutingNode": { "label": "Add Routing Node", "iconClass": "icon-network" },
+        "delete": { "label": "Delete", "iconClass": "icon-trash-2" }
+      }
+    }
+  },
+  "nodes": [
+    {
+      "id": "center-01",
+      "x": 580,
+      "y": 340,
+      "width": 260,
+      "height": 140,
+      "title": "Central Idea",
+      "content": "## Product Launch\nQ3 release — mobile-first strategy",
+      "type": "BaseNode",
+      "color": "purple",
+      "isPinned": false
+    },
+    {
+      "id": "branch-01",
+      "x": 200,
+      "y": 140,
+      "width": 240,
+      "height": 130,
+      "title": "Marketing",
+      "content": "### Channels\n- Social media blitz\n- Email drip campaign\n- Influencer partnerships",
+      "type": "BaseNode",
+      "color": "blue",
+      "isPinned": false
+    },
+    {
+      "id": "branch-02",
+      "x": 960,
+      "y": 140,
+      "width": 240,
+      "height": 130,
+      "title": "Engineering",
+      "content": "### Milestones\n- API freeze: Week 6\n- Beta build: Week 8\n- RC: Week 10",
+      "type": "BaseNode",
+      "color": "green",
+      "isPinned": false
+    },
+    {
+      "id": "branch-03",
+      "x": 200,
+      "y": 560,
+      "width": 240,
+      "height": 120,
+      "title": "Design",
+      "content": "### Deliverables\n- Brand refresh\n- Landing page\n- App store assets",
+      "type": "BaseNode",
+      "color": "yellow",
+      "isPinned": false
+    },
+    {
+      "id": "branch-04",
+      "x": 960,
+      "y": 560,
+      "width": 240,
+      "height": 120,
+      "title": "Operations",
+      "content": "### Logistics\n- Support team scaling\n- Infrastructure load testing\n- Rollback plan",
+      "type": "BaseNode",
+      "color": "red",
+      "isPinned": false
+    },
+    {
+      "id": "detail-01",
+      "x": -80,
+      "y": 60,
+      "width": 200,
+      "height": 100,
+      "title": "Budget",
+      "content": "**$45k** allocated\nSplit: 60% digital, 40% events",
+      "type": "BaseNode",
+      "color": "blue",
+      "isPinned": false
+    },
+    {
+      "id": "detail-02",
+      "x": 1280,
+      "y": 60,
+      "width": 200,
+      "height": 100,
+      "title": "Tech Stack",
+      "content": "React Native + Node.js\nCloudflare Workers edge",
+      "type": "BaseNode",
+      "color": "green",
+      "isPinned": false
+    },
+    {
+      "id": "detail-03",
+      "x": -80,
+      "y": 620,
+      "width": 200,
+      "height": 100,
+      "title": "Timeline",
+      "content": "Mockups due **Week 3**\nFinal assets **Week 7**",
+      "type": "BaseNode",
+      "color": "yellow",
+      "isPinned": false
+    },
+    {
+      "id": "detail-04",
+      "x": 1280,
+      "y": 620,
+      "width": 200,
+      "height": 100,
+      "title": "Risk",
+      "content": "**High:** API rate limits\n**Med:** Third-party deps",
+      "type": "BaseNode",
+      "color": "red",
+      "isPinned": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-c-b1",
+      "startNodeId": "center-01",
+      "endNodeId": "branch-01",
+      "startHandleId": "left",
+      "endHandleId": "bottom",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-c-b2",
+      "startNodeId": "center-01",
+      "endNodeId": "branch-02",
+      "startHandleId": "right",
+      "endHandleId": "bottom",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-c-b3",
+      "startNodeId": "center-01",
+      "endNodeId": "branch-03",
+      "startHandleId": "left",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-c-b4",
+      "startNodeId": "center-01",
+      "endNodeId": "branch-04",
+      "startHandleId": "right",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-b1-d1",
+      "startNodeId": "branch-01",
+      "endNodeId": "detail-01",
+      "startHandleId": "left",
+      "endHandleId": "right",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-b2-d2",
+      "startNodeId": "branch-02",
+      "endNodeId": "detail-02",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-b3-d3",
+      "startNodeId": "branch-03",
+      "endNodeId": "detail-03",
+      "startHandleId": "left",
+      "endHandleId": "right",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-b4-d4",
+      "startNodeId": "branch-04",
+      "endNodeId": "detail-04",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    }
+  ]
+}

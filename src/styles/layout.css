@@ -50,7 +50,12 @@ body {
 }
 
 #nodeui-canvas-container:focus {
-    outline: 2px solid transparent;
+    outline: none;
+}
+
+#nodeui-canvas-container:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: -2px;
 }
 
 #nodeui-pinned-node-container {
@@ -333,6 +338,12 @@ body {
     padding: 6px 8px;
     color: var(--color-text-default);
     box-sizing: border-box;
+    outline: none;
+}
+
+.popover-input:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: -2px;
 }
 
 .popover-color-palette {
@@ -498,6 +509,11 @@ body {
     box-sizing: border-box;
     font: inherit;
     outline: none;
+}
+
+.context-menu-input:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: -2px;
 }
 
 /* Drag & Drop Overlay */

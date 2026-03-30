@@ -1,0 +1,357 @@
+{
+  "metadata": {
+    "projectName": "Microservices Overview",
+    "thumbnailUrl": "",
+    "contextMenuSettings": {
+      "canvas": {
+        "cut": { "label": "Cut", "iconClass": "icon-scissors" },
+        "copy": { "label": "Copy", "iconClass": "icon-copy" },
+        "paste": { "label": "Paste", "iconClass": "icon-clipboard" },
+        "delete": { "label": "Delete", "iconClass": "icon-trash-2" },
+        "note": { "label": "Note", "iconClass": "icon-file-text" },
+        "routingNode": { "label": "Router", "iconClass": "icon-network" },
+        "group": { "label": "Group", "iconClass": "icon-group" },
+        "log": { "label": "Log", "iconClass": "icon-terminal" },
+        "subgraph": { "label": "Subgraph", "iconClass": "icon-box" },
+        "saveGraph": { "label": "Save Graph", "iconClass": "icon-download" },
+        "loadGraph": { "label": "Load Graph", "iconClass": "icon-upload" },
+        "snapGrid": { "label": "Grid Snap", "iconClass": "icon-grid-2x2" },
+        "snapObject": { "label": "Obj Snap", "iconClass": "icon-layout-panel-left" }
+      },
+      "edge": {
+        "edit": { "label": "Edit Label", "iconClass": "icon-edit" },
+        "addRoutingNode": { "label": "Add Routing Node", "iconClass": "icon-network" },
+        "delete": { "label": "Delete", "iconClass": "icon-trash-2" }
+      }
+    }
+  },
+  "nodes": [
+    {
+      "id": "gateway",
+      "x": 500,
+      "y": 120,
+      "width": 260,
+      "height": 120,
+      "title": "API Gateway",
+      "content": "## Entry Point\nAuth, rate limiting, routing\nCloudflare Workers",
+      "type": "BaseNode",
+      "color": "purple",
+      "isPinned": false
+    },
+    {
+      "id": "svc-auth",
+      "x": 140,
+      "y": 380,
+      "width": 280,
+      "height": 160,
+      "title": "Auth Service",
+      "content": "",
+      "type": "SubGraphNode",
+      "color": "blue",
+      "isPinned": false,
+      "subgraphId": "sg-auth",
+      "subgraphPath": "subgraphs/sg-auth.json",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "auth-login",
+            "x": 300,
+            "y": 300,
+            "width": 220,
+            "height": 110,
+            "title": "Login Handler",
+            "content": "OAuth2 + PKCE\nJWT issuance",
+            "type": "BaseNode",
+            "color": "blue",
+            "isPinned": false
+          },
+          {
+            "id": "auth-session",
+            "x": 620,
+            "y": 300,
+            "width": 220,
+            "height": 110,
+            "title": "Session Manager",
+            "content": "Redis-backed sessions\nRefresh token rotation",
+            "type": "BaseNode",
+            "color": "blue",
+            "isPinned": false
+          },
+          {
+            "id": "auth-rbac",
+            "x": 460,
+            "y": 480,
+            "width": 220,
+            "height": 110,
+            "title": "RBAC Engine",
+            "content": "Role-based access\nPermission evaluation",
+            "type": "BaseNode",
+            "color": "purple",
+            "isPinned": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "e-login-session",
+            "startNodeId": "auth-login",
+            "endNodeId": "auth-session",
+            "startHandleId": "right",
+            "endHandleId": "left",
+            "type": "BaseEdge",
+            "label": "",
+            "routingPoints": []
+          },
+          {
+            "id": "e-session-rbac",
+            "startNodeId": "auth-session",
+            "endNodeId": "auth-rbac",
+            "startHandleId": "bottom",
+            "endHandleId": "right",
+            "type": "BaseEdge",
+            "label": "",
+            "routingPoints": []
+          },
+          {
+            "id": "e-login-rbac",
+            "startNodeId": "auth-login",
+            "endNodeId": "auth-rbac",
+            "startHandleId": "bottom",
+            "endHandleId": "left",
+            "type": "BaseEdge",
+            "label": "",
+            "routingPoints": []
+          }
+        ]
+      },
+      "exposedAttributes": []
+    },
+    {
+      "id": "svc-orders",
+      "x": 500,
+      "y": 380,
+      "width": 280,
+      "height": 160,
+      "title": "Order Service",
+      "content": "",
+      "type": "SubGraphNode",
+      "color": "green",
+      "isPinned": false,
+      "subgraphId": "sg-orders",
+      "subgraphPath": "subgraphs/sg-orders.json",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "order-create",
+            "x": 300,
+            "y": 300,
+            "width": 220,
+            "height": 110,
+            "title": "Order Creator",
+            "content": "Validation & pricing\nInventory check",
+            "type": "BaseNode",
+            "color": "green",
+            "isPinned": false
+          },
+          {
+            "id": "order-payment",
+            "x": 620,
+            "y": 300,
+            "width": 220,
+            "height": 110,
+            "title": "Payment Processor",
+            "content": "Stripe integration\nIdempotent charges",
+            "type": "BaseNode",
+            "color": "yellow",
+            "isPinned": false
+          },
+          {
+            "id": "order-fulfill",
+            "x": 460,
+            "y": 480,
+            "width": 220,
+            "height": 110,
+            "title": "Fulfillment",
+            "content": "Shipping labels\nTracking events",
+            "type": "BaseNode",
+            "color": "green",
+            "isPinned": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "e-create-payment",
+            "startNodeId": "order-create",
+            "endNodeId": "order-payment",
+            "startHandleId": "right",
+            "endHandleId": "left",
+            "type": "BaseEdge",
+            "label": "",
+            "routingPoints": []
+          },
+          {
+            "id": "e-payment-fulfill",
+            "startNodeId": "order-payment",
+            "endNodeId": "order-fulfill",
+            "startHandleId": "bottom",
+            "endHandleId": "right",
+            "type": "BaseEdge",
+            "label": "",
+            "routingPoints": []
+          }
+        ]
+      },
+      "exposedAttributes": []
+    },
+    {
+      "id": "svc-notify",
+      "x": 860,
+      "y": 380,
+      "width": 280,
+      "height": 160,
+      "title": "Notification Service",
+      "content": "",
+      "type": "SubGraphNode",
+      "color": "yellow",
+      "isPinned": false,
+      "subgraphId": "sg-notify",
+      "subgraphPath": "subgraphs/sg-notify.json",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "notify-email",
+            "x": 300,
+            "y": 300,
+            "width": 200,
+            "height": 100,
+            "title": "Email",
+            "content": "Transactional emails\nSendGrid / SES",
+            "type": "BaseNode",
+            "color": "yellow",
+            "isPinned": false
+          },
+          {
+            "id": "notify-push",
+            "x": 580,
+            "y": 300,
+            "width": 200,
+            "height": 100,
+            "title": "Push",
+            "content": "Mobile push\nFCM / APNs",
+            "type": "BaseNode",
+            "color": "yellow",
+            "isPinned": false
+          },
+          {
+            "id": "notify-sms",
+            "x": 440,
+            "y": 460,
+            "width": 200,
+            "height": 100,
+            "title": "SMS",
+            "content": "Twilio\nOTP & alerts",
+            "type": "BaseNode",
+            "color": "red",
+            "isPinned": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "e-email-sms",
+            "startNodeId": "notify-email",
+            "endNodeId": "notify-sms",
+            "startHandleId": "bottom",
+            "endHandleId": "left",
+            "type": "BaseEdge",
+            "label": "",
+            "routingPoints": []
+          },
+          {
+            "id": "e-push-sms",
+            "startNodeId": "notify-push",
+            "endNodeId": "notify-sms",
+            "startHandleId": "bottom",
+            "endHandleId": "right",
+            "type": "BaseEdge",
+            "label": "",
+            "routingPoints": []
+          }
+        ]
+      },
+      "exposedAttributes": []
+    },
+    {
+      "id": "event-bus",
+      "x": 440,
+      "y": 640,
+      "width": 400,
+      "height": 100,
+      "title": "Event Bus",
+      "content": "## Async Messaging\nKafka topics for inter-service communication",
+      "type": "BaseNode",
+      "color": "red",
+      "isPinned": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-gw-auth",
+      "startNodeId": "gateway",
+      "endNodeId": "svc-auth",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-gw-orders",
+      "startNodeId": "gateway",
+      "endNodeId": "svc-orders",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-gw-notify",
+      "startNodeId": "gateway",
+      "endNodeId": "svc-notify",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-auth-bus",
+      "startNodeId": "svc-auth",
+      "endNodeId": "event-bus",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-orders-bus",
+      "startNodeId": "svc-orders",
+      "endNodeId": "event-bus",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-notify-bus",
+      "startNodeId": "svc-notify",
+      "endNodeId": "event-bus",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    }
+  ]
+}

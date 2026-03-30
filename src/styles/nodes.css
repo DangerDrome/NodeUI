@@ -140,7 +140,12 @@
     overflow-x: hidden;
     overflow-wrap: break-word;
     white-space: pre-wrap;
-    outline: none; /* Disable default browser outline for contenteditable */
+    outline: none;
+}
+
+.node-content:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: -2px;
 }
 
 /** Cursor for editable content */
@@ -190,7 +195,7 @@
 }
 
 .node-content tr:nth-child(even) {
-    background-color: rgba(0,0,0,0.1);
+    background-color: var(--color-bg-overlay);
 }
 
 /* Fix for list indentation after padding change */
@@ -207,14 +212,14 @@
     z-index: 1001;
 }
 
-.resize-handle.n { top: -5px; left: 5px; right: 5px; height: 10px; cursor: ns-resize; }
-.resize-handle.s { bottom: -5px; left: 5px; right: 5px; height: 10px; cursor: ns-resize; }
-.resize-handle.w { left: -5px; top: 5px; bottom: 5px; width: 10px; cursor: ew-resize; }
-.resize-handle.e { right: -5px; top: 5px; bottom: 5px; width: 10px; cursor: ew-resize; }
-.resize-handle.nw { top: -5px; left: -5px; width: 12px; height: 12px; cursor: nwse-resize; }
-.resize-handle.ne { top: -5px; right: -5px; width: 12px; height: 12px; cursor: nesw-resize; }
-.resize-handle.sw { bottom: -5px; left: -5px; width: 12px; height: 12px; cursor: nesw-resize; }
-.resize-handle.se { bottom: -5px; right: -5px; width: 12px; height: 12px; cursor: nwse-resize; }
+.resize-handle.n { top: -8px; left: 8px; right: 8px; height: 16px; cursor: ns-resize; }
+.resize-handle.s { bottom: -8px; left: 8px; right: 8px; height: 16px; cursor: ns-resize; }
+.resize-handle.w { left: -8px; top: 8px; bottom: 8px; width: 16px; cursor: ew-resize; }
+.resize-handle.e { right: -8px; top: 8px; bottom: 8px; width: 16px; cursor: ew-resize; }
+.resize-handle.nw { top: -8px; left: -8px; width: 20px; height: 20px; cursor: nwse-resize; }
+.resize-handle.ne { top: -8px; right: -8px; width: 20px; height: 20px; cursor: nesw-resize; }
+.resize-handle.sw { bottom: -8px; left: -8px; width: 20px; height: 20px; cursor: nesw-resize; }
+.resize-handle.se { bottom: -8px; right: -8px; width: 20px; height: 20px; cursor: nwse-resize; }
 
 .resize-handle.se::after {
     content: '';
@@ -254,7 +259,7 @@
 
 /* Style for group nodes */
 .group-node {
-    background-color: rgba(18, 18, 18, 0.95); /* Very transparent so edges show through */
+    background-color: var(--color-bg-elevated); /* Very transparent so edges show through */
     border-style: dashed;
     backdrop-filter: none; /* Override the base node blur effect */
     /* Swap default and hover states for groups */
@@ -291,7 +296,7 @@
 }
 
 .node-handle-zone:hover {
-    background-color: rgba(62, 207, 142, 0);
+    background-color: transparent;
 }
 
 /* Visible handle that appears on hover */
@@ -508,19 +513,24 @@ g[data-color="purple"] .edge-label-background { fill: var(--color-node-purple-bo
     box-shadow: var(--shadow-large);
 }
 
+.edge-label-editor:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: -2px;
+}
+
 /* 4. NODE COLOR VARIANTS
 -------------------------------------------------------------------------------- */
 .node[data-color="default"] { --color-accent-glow: rgba(230, 230, 230, 0.5); }
 .node[data-color="red"] { background-color: var(--color-node-red-bg); border-color: var(--color-node-red-border); --color-accent-glow: var(--color-node-red-border); }
-.node[data-color="red"] .node-title-bar { color: #ff8a80; }
+.node[data-color="red"] .node-title-bar { color: var(--color-node-red-text); }
 .node[data-color="green"] { background-color: var(--color-node-green-bg); border-color: var(--color-node-green-border); --color-accent-glow: var(--color-node-green-border); }
-.node[data-color="green"] .node-title-bar { color: #b9f6ca; }
+.node[data-color="green"] .node-title-bar { color: var(--color-node-green-text); }
 .node[data-color="blue"] { background-color: var(--color-node-blue-bg); border-color: var(--color-node-blue-border); --color-accent-glow: var(--color-node-blue-border); }
-.node[data-color="blue"] .node-title-bar { color: #82b1ff; }
+.node[data-color="blue"] .node-title-bar { color: var(--color-node-blue-text); }
 .node[data-color="yellow"] { background-color: var(--color-node-yellow-bg); border-color: var(--color-node-yellow-border); --color-accent-glow: var(--color-node-yellow-border); }
-.node[data-color="yellow"] .node-title-bar { color: #ffe57f; }
+.node[data-color="yellow"] .node-title-bar { color: var(--color-node-yellow-text); }
 .node[data-color="purple"] { background-color: var(--color-node-purple-bg); border-color: var(--color-node-purple-border); --color-accent-glow: var(--color-node-purple-border); }
-.node[data-color="purple"] .node-title-bar { color: #e1b5ff; }
+.node[data-color="purple"] .node-title-bar { color: var(--color-node-purple-text); }
 
 /* 5. SPECIALIZED NODE TYPES
 -------------------------------------------------------------------------------- */
@@ -555,8 +565,13 @@ g[data-color="purple"] .edge-label-background { fill: var(--color-node-purple-bo
 
 .log-container[contenteditable="true"] {
     cursor: text;
-    background-color: rgba(0,0,0,0.3);
-    outline: 0px;
+    background-color: var(--color-bg-inset-hover);
+    outline: none;
+}
+
+.log-container:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: -2px;
 }
 
 .log-entry {
@@ -618,7 +633,7 @@ g[data-color="purple"] .edge-label-background { fill: var(--color-node-purple-bo
     display: flex;
     flex-direction: column;
     gap: 24px;
-    background-color: rgba(0,0,0,0.2);
+    background-color: var(--color-bg-inset);
 }
 
 .settings-section {
@@ -707,6 +722,13 @@ input[type="color"] {
     border-radius: var(--radius-small);
     color: var(--color-text-default);
     padding: 4px 8px;
+    outline: none;
+}
+
+.settings-input:focus-visible,
+input[type="color"]:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: -2px;
 }
 
 input[type="color"] {
@@ -851,6 +873,11 @@ input:checked + .slider:before {
     transition: opacity .2s;
     border-radius: 2px;
     cursor: pointer;
+}
+
+.settings-node input[type="range"]:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 4px;
 }
 
 .settings-node input[type="range"]:hover {
@@ -1098,7 +1125,7 @@ input:checked + .slider:before {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background-color: #2b2b2b; /* A slightly lighter dark color for the timeline bg */
+    background-color: var(--color-bg-elevated-subtle); /* A slightly lighter dark color for the timeline bg */
 }
 
 .threejs-canvas-container {
@@ -1136,7 +1163,7 @@ input:checked + .slider:before {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: var(--color-bg-overlay);
     border-radius: var(--radius-small);
     position: relative;
     cursor: crosshair;
@@ -1202,7 +1229,7 @@ input:checked + .slider:before {
 /* Scrubbing feedback */
 .image-sequence-thumbnail-container.is-scrubbing {
     cursor: grabbing;
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: var(--color-bg-inset);
 }
 
 .image-sequence-thumbnail-container.is-scrubbing .image-sequence-thumbnail {

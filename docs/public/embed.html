@@ -24,11 +24,31 @@
             width: 100%;
             height: 100%;
         }
+
+        /* Minimal mode: hide grid, version watermark, and collaboration HUD */
+        body.minimal .grid-canvas { display: none !important; }
+        body.minimal .version-watermark { display: none !important; }
+        body.minimal .collaboration-status-indicator { display: none !important; }
+        body.minimal { background: transparent; }
+        body.minimal #nodeui-canvas-container { background: transparent; }
     </style>
     <script>
-        // Pre-load the graph data so the app picks it up on init
-        // The app checks window.embeddedGraphData as a fallback
-        fetch('graph.json')
+        // Flag to suppress blocking alerts in embed context
+        window.NODEUI_EMBED_MODE = true;
+
+        // Determine which graph to load from ?graph= parameter, default to graph.json
+        const params = new URLSearchParams(window.location.search);
+        const graphFile = params.get('graph') || 'graph.json';
+
+        // Only allow loading from known safe paths (prevent path traversal)
+        const safePath = graphFile.replace(/[^a-zA-Z0-9\-_\/\.]/g, '');
+
+        // Minimal mode — no grid, no HUD
+        if (params.get('minimal') === '1') {
+            document.addEventListener('DOMContentLoaded', () => document.body.classList.add('minimal'));
+        }
+
+        fetch(safePath)
             .then(r => r.json())
             .then(data => { window.embeddedGraphData = data; })
             .catch(() => {});
@@ -46,14 +66,26 @@
     <script src="src/core/collaboration.js"></script>
     <script src="src/main.js"></script>
     <script>
-        // After NodeUI initializes, load the graph
-        // The DOMContentLoaded in main.js has loadInitialGraph disabled,
-        // so we trigger it manually after a short delay
+        // After NodeUI initializes, load the graph and optionally join a collab session
         window.addEventListener('load', () => {
+            const embedParams = new URLSearchParams(window.location.search);
+            const sessionId = embedParams.get('session');
+
             const waitForEvents = setInterval(() => {
                 if (typeof events !== 'undefined' && window.embeddedGraphData) {
                     clearInterval(waitForEvents);
                     events.publish('graph:load-content', JSON.stringify(window.embeddedGraphData));
+
+                    // Auto-join a collaboration session if specified
+                    if (sessionId) {
+                        const waitForCollab = setInterval(() => {
+                            if (window.nodeUI && window.nodeUI.collaboration) {
+                                clearInterval(waitForCollab);
+                                window.nodeUI.collaboration.joinSession(sessionId);
+                            }
+                        }, 100);
+                        setTimeout(() => clearInterval(waitForCollab), 5000);
+                    }
                 }
             }, 100);
             // Safety timeout - stop trying after 5s

@@ -2656,6 +2656,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const canvasContainer = document.getElementById('nodeui-canvas-container');
         const app = new Main(canvasContainer);
+        window.nodeUI = app;
 
         // Load the initial graph from graph.json or embedded data
         const loadInitialGraph = async () => {

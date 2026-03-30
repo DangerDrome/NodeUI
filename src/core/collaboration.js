@@ -194,7 +194,9 @@ class Collaboration {
      */
     showError(message) {
         console.error('Collaboration error:', message);
-        alert(message);
+        if (!window.NODEUI_EMBED_MODE) {
+            alert(message);
+        }
     }
     
     /**

@@ -1,0 +1,110 @@
+{
+  "metadata": {
+    "projectName": "Media Showcase",
+    "thumbnailUrl": "",
+    "contextMenuSettings": {
+      "canvas": {
+        "cut": { "label": "Cut", "iconClass": "icon-scissors" },
+        "copy": { "label": "Copy", "iconClass": "icon-copy" },
+        "paste": { "label": "Paste", "iconClass": "icon-clipboard" },
+        "delete": { "label": "Delete", "iconClass": "icon-trash-2" },
+        "note": { "label": "Note", "iconClass": "icon-file-text" },
+        "routingNode": { "label": "Router", "iconClass": "icon-network" },
+        "group": { "label": "Group", "iconClass": "icon-group" },
+        "log": { "label": "Log", "iconClass": "icon-terminal" },
+        "subgraph": { "label": "Subgraph", "iconClass": "icon-box" },
+        "saveGraph": { "label": "Save Graph", "iconClass": "icon-download" },
+        "loadGraph": { "label": "Load Graph", "iconClass": "icon-upload" },
+        "snapGrid": { "label": "Grid Snap", "iconClass": "icon-grid-2x2" },
+        "snapObject": { "label": "Obj Snap", "iconClass": "icon-layout-panel-left" }
+      },
+      "edge": {
+        "edit": { "label": "Edit Label", "iconClass": "icon-edit" },
+        "addRoutingNode": { "label": "Add Routing Node", "iconClass": "icon-network" },
+        "delete": { "label": "Delete", "iconClass": "icon-trash-2" }
+      }
+    }
+  },
+  "nodes": [
+    {
+      "id": "img-1",
+      "x": 100,
+      "y": 200,
+      "width": 340,
+      "height": 300,
+      "title": "Image",
+      "content": "![Misty mountain landscape](https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80)\n\n*Just use `![alt](url)` markdown*",
+      "type": "BaseNode",
+      "color": "blue",
+      "isPinned": false
+    },
+    {
+      "id": "yt-1",
+      "x": 520,
+      "y": 200,
+      "width": 400,
+      "height": 320,
+      "title": "YouTube",
+      "content": "![video](https://www.youtube.com/watch?v=dQw4w9WgXcQ)\n\n*Use `![video](youtube-url)` to embed*",
+      "type": "BaseNode",
+      "color": "red",
+      "isPinned": false
+    },
+    {
+      "id": "vid-1",
+      "x": 1000,
+      "y": 200,
+      "width": 340,
+      "height": 300,
+      "title": "Video File",
+      "content": "![video](https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm)\n\n*Use `![video](file.mp4)` for direct files*",
+      "type": "BaseNode",
+      "color": "green",
+      "isPinned": false
+    },
+    {
+      "id": "howto",
+      "x": 480,
+      "y": 600,
+      "width": 480,
+      "height": 160,
+      "title": "Rich Media Nodes",
+      "content": "## Embed anything\nImages, YouTube, Vimeo, and direct video files — all from markdown. Or just **drag & drop** files onto any node.",
+      "type": "BaseNode",
+      "color": "purple",
+      "isPinned": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-img-howto",
+      "startNodeId": "img-1",
+      "endNodeId": "howto",
+      "startHandleId": "bottom",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-yt-howto",
+      "startNodeId": "yt-1",
+      "endNodeId": "howto",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-vid-howto",
+      "startNodeId": "vid-1",
+      "endNodeId": "howto",
+      "startHandleId": "bottom",
+      "endHandleId": "right",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    }
+  ]
+}

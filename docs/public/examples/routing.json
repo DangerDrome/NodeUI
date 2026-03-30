@@ -1,0 +1,284 @@
+{
+  "metadata": {
+    "projectName": "Data Pipeline",
+    "thumbnailUrl": "",
+    "contextMenuSettings": {
+      "canvas": {
+        "cut": { "label": "Cut", "iconClass": "icon-scissors" },
+        "copy": { "label": "Copy", "iconClass": "icon-copy" },
+        "paste": { "label": "Paste", "iconClass": "icon-clipboard" },
+        "delete": { "label": "Delete", "iconClass": "icon-trash-2" },
+        "note": { "label": "Note", "iconClass": "icon-file-text" },
+        "routingNode": { "label": "Router", "iconClass": "icon-network" },
+        "group": { "label": "Group", "iconClass": "icon-group" },
+        "log": { "label": "Log", "iconClass": "icon-terminal" },
+        "subgraph": { "label": "Subgraph", "iconClass": "icon-box" },
+        "saveGraph": { "label": "Save Graph", "iconClass": "icon-download" },
+        "loadGraph": { "label": "Load Graph", "iconClass": "icon-upload" },
+        "snapGrid": { "label": "Grid Snap", "iconClass": "icon-grid-2x2" },
+        "snapObject": { "label": "Obj Snap", "iconClass": "icon-layout-panel-left" }
+      },
+      "edge": {
+        "edit": { "label": "Edit Label", "iconClass": "icon-edit" },
+        "addRoutingNode": { "label": "Add Routing Node", "iconClass": "icon-network" },
+        "delete": { "label": "Delete", "iconClass": "icon-trash-2" }
+      }
+    }
+  },
+  "nodes": [
+    {
+      "id": "src-webhook",
+      "x": 100,
+      "y": 200,
+      "width": 200,
+      "height": 100,
+      "title": "Webhooks",
+      "content": "Incoming events\nHTTPS POST",
+      "type": "BaseNode",
+      "color": "purple",
+      "isPinned": false
+    },
+    {
+      "id": "src-api",
+      "x": 100,
+      "y": 400,
+      "width": 200,
+      "height": 100,
+      "title": "REST API",
+      "content": "User-submitted data\nBatch uploads",
+      "type": "BaseNode",
+      "color": "purple",
+      "isPinned": false
+    },
+    {
+      "id": "src-stream",
+      "x": 100,
+      "y": 600,
+      "width": 200,
+      "height": 100,
+      "title": "Event Stream",
+      "content": "Kafka consumer\nReal-time events",
+      "type": "BaseNode",
+      "color": "purple",
+      "isPinned": false
+    },
+    {
+      "id": "router-ingest",
+      "x": 440,
+      "y": 410,
+      "width": 20,
+      "height": 20,
+      "title": "",
+      "content": "",
+      "type": "RoutingNode",
+      "color": "default",
+      "isPinned": false
+    },
+    {
+      "id": "validate",
+      "x": 560,
+      "y": 260,
+      "width": 220,
+      "height": 100,
+      "title": "Validate",
+      "content": "Schema validation\nDedup & sanitize",
+      "type": "BaseNode",
+      "color": "blue",
+      "isPinned": false
+    },
+    {
+      "id": "transform",
+      "x": 560,
+      "y": 460,
+      "width": 220,
+      "height": 100,
+      "title": "Transform",
+      "content": "Normalize fields\nEnrich metadata",
+      "type": "BaseNode",
+      "color": "blue",
+      "isPinned": false
+    },
+    {
+      "id": "router-process",
+      "x": 900,
+      "y": 410,
+      "width": 20,
+      "height": 20,
+      "title": "",
+      "content": "",
+      "type": "RoutingNode",
+      "color": "default",
+      "isPinned": false
+    },
+    {
+      "id": "sink-db",
+      "x": 1060,
+      "y": 180,
+      "width": 200,
+      "height": 100,
+      "title": "Database",
+      "content": "PostgreSQL\nPrimary store",
+      "type": "BaseNode",
+      "color": "green",
+      "isPinned": false
+    },
+    {
+      "id": "sink-search",
+      "x": 1060,
+      "y": 380,
+      "width": 200,
+      "height": 100,
+      "title": "Search Index",
+      "content": "Elasticsearch\nFull-text search",
+      "type": "BaseNode",
+      "color": "green",
+      "isPinned": false
+    },
+    {
+      "id": "sink-analytics",
+      "x": 1060,
+      "y": 580,
+      "width": 200,
+      "height": 100,
+      "title": "Analytics",
+      "content": "ClickHouse\nAggregations & reports",
+      "type": "BaseNode",
+      "color": "green",
+      "isPinned": false
+    },
+    {
+      "id": "dlq",
+      "x": 560,
+      "y": 680,
+      "width": 220,
+      "height": 90,
+      "title": "Dead Letter Queue",
+      "content": "Failed records\nRetry + alerting",
+      "type": "BaseNode",
+      "color": "red",
+      "isPinned": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-wh-r1",
+      "startNodeId": "src-webhook",
+      "endNodeId": "router-ingest",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-api-r1",
+      "startNodeId": "src-api",
+      "endNodeId": "router-ingest",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-stream-r1",
+      "startNodeId": "src-stream",
+      "endNodeId": "router-ingest",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-r1-val",
+      "startNodeId": "router-ingest",
+      "endNodeId": "validate",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-r1-trans",
+      "startNodeId": "router-ingest",
+      "endNodeId": "transform",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-val-r2",
+      "startNodeId": "validate",
+      "endNodeId": "router-process",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-trans-r2",
+      "startNodeId": "transform",
+      "endNodeId": "router-process",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-r2-db",
+      "startNodeId": "router-process",
+      "endNodeId": "sink-db",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-r2-search",
+      "startNodeId": "router-process",
+      "endNodeId": "sink-search",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-r2-analytics",
+      "startNodeId": "router-process",
+      "endNodeId": "sink-analytics",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-val-dlq",
+      "startNodeId": "validate",
+      "endNodeId": "dlq",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-trans-dlq",
+      "startNodeId": "transform",
+      "endNodeId": "dlq",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    }
+  ]
+}
