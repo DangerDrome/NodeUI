@@ -17,6 +17,7 @@ const showcases = [
     title: 'Your thoughts, connected.',
     subtitle: 'Brainstorm, plan, and map out ideas on an infinite canvas. Every node supports full markdown — headings, lists, code blocks.',
     graph: 'examples/brainstorm.json',
+    zoom: 1.5,
   },
   {
     id: 'groups',
@@ -24,6 +25,7 @@ const showcases = [
     title: 'Structure at any scale.',
     subtitle: 'Group nodes into containers to build swimlanes, kanban boards, or layered system diagrams. Drag in, drag out.',
     graph: 'examples/groups.json',
+    zoom: 1.5,
   },
   {
     id: 'routing',
@@ -31,6 +33,7 @@ const showcases = [
     title: 'Model real systems.',
     subtitle: 'Route edges through waypoints to keep complex graphs readable. Map out APIs, event streams, and data flows without the mess.',
     graph: 'examples/routing.json',
+    zoom: 1.5,
   },
   {
     id: 'subgraphs',
@@ -133,7 +136,7 @@ const nodeTypes = [
     <div class="showcase-embed">
       <div class="nodeui-embed-wrapper">
         <iframe
-          :data-src="`/embed.html?lite&graph=${item.graph}`"
+          :data-src="`/embed.html?lite&graph=${item.graph}${item.zoom ? '&zoom=' + item.zoom : ''}`"
           class="nodeui-embed-iframe"
           :title="`NodeUI ${item.label} example`"
           allow="clipboard-read; clipboard-write"
