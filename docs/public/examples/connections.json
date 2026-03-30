@@ -28,10 +28,10 @@
   "nodes": [
     {
       "id": "a",
-      "x": 300,
-      "y": 350,
-      "width": 240,
-      "height": 140,
+      "x": 200,
+      "y": 300,
+      "width": 340,
+      "height": 200,
       "title": "Idea",
       "content": "# Start here",
       "type": "BaseNode",
@@ -41,9 +41,9 @@
     {
       "id": "b",
       "x": 700,
-      "y": 350,
-      "width": 240,
-      "height": 140,
+      "y": 300,
+      "width": 380,
+      "height": 200,
       "title": "Connection",
       "content": "# Then connect",
       "type": "BaseNode",
