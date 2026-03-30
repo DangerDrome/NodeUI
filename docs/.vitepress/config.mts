@@ -91,7 +91,6 @@ export default defineConfig({
           { text: 'GitHub Releases', link: 'https://github.com/megasupersoft/nodeui/releases' }
         ]
       },
-      { text: 'Launch', link: 'https://app.nodeui.io', target: '_blank', rel: 'noopener' }
     ],
 
     sidebar: {

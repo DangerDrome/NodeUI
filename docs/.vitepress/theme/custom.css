@@ -63,11 +63,6 @@
   --vp-code-tab-active-bar-color: #ffe57f;
 }
 
-/* Launch nav link — accent color, no pill */
-.VPNavBarMenu a[href*="app.nodeui.io"] {
-  color: var(--nui-primary) !important;
-  background: transparent !important;
-}
 
 /* --- Typography --- */
 :root {
