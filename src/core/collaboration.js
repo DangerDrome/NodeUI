@@ -400,8 +400,10 @@ class Collaboration {
                 // Subscribe to sync events
                 this.subscribeToEvents();
                 
-                // Request current state from other users (skip if graph already loaded, e.g. embeds)
-                if (!window.NODEUI_EMBED_MODE) {
+                // Request current state from other users
+                // Skip if a graph is being loaded from URL param (both users load the same graph)
+                const hasGraphParam = new URLSearchParams(window.location.search).get('graph');
+                if (!window.NODEUI_EMBED_MODE && !hasGraphParam) {
                     this.send({
                         type: 'request-state',
                         sessionId: this.sessionId,
@@ -610,8 +612,8 @@ class Collaboration {
                 break;
                 
             case 'state-response':
-                // Skip state sync in embed mode — graph is pre-loaded
-                if (window.NODEUI_EMBED_MODE) return;
+                // Skip state sync when graph is pre-loaded (embed or ?graph= param)
+                if (window.NODEUI_EMBED_MODE || new URLSearchParams(window.location.search).get('graph')) return;
 
                 // Only load state from users in the same context
                 if (message.graphContext && message.graphContext !== this.nodeUI.graphContext.currentGraphId) {
