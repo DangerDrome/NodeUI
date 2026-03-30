@@ -517,12 +517,12 @@ class BaseNode {
         }
         if (data.x !== undefined) {
             this.x = data.x;
-            this.element.style.left = `${this.x}px`;
+            if (this.element) this.element.style.left = `${this.x}px`;
             needsRedraw = true;
         }
         if (data.y !== undefined) {
             this.y = data.y;
-            this.element.style.top = `${this.y}px`;
+            if (this.element) this.element.style.top = `${this.y}px`;
             needsRedraw = true;
         }
         if (data.width) {

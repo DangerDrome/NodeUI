@@ -225,6 +225,9 @@ class Nodes {
      */
     updateNode(data) {
         const node = this.nodeUI.nodes.get(data.nodeId);
+        if (window.embedLog && (data.x !== undefined || data.y !== undefined || data.width !== undefined)) {
+            window.embedLog('UPDATE: ' + data.nodeId + ' x=' + data.x + ' y=' + data.y + ' found=' + !!node + ' el=' + !!(node && node.element));
+        }
         if (node) {
             const oldPinnedState = node.isPinned;
             node.update(data);
