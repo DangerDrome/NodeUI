@@ -761,6 +761,13 @@
   }
 }
 
+/* Hide embeds on phones, keep on tablets (768px+) */
+@media (max-width: 640px) {
+  .showcase-embed,
+  .collab-embeds {
+    display: none;
+  }
+}
 
 @media (max-width: 768px) {
   .nodeui-section {
