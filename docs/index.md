@@ -4,7 +4,7 @@ layout: home
 hero:
   name: NodeUI
   text: "Connecting ideas, and sharing them."
-  tagline: A browser-based node graph editor. Free, open source, and works without any setup.
+  tagline: Build node graphs, flowcharts, and diagrams directly in the browser. No installs, no accounts — just open and start connecting ideas and share.
   actions:
     - theme: brand
       text: Launch
