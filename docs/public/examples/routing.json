@@ -33,7 +33,7 @@
       "width": 300,
       "height": 180,
       "title": "Webhooks",
-      "content": "Incoming events\nHTTPS POST",
+      "content": "# Incoming events",
       "type": "BaseNode",
       "color": "purple",
       "isPinned": false
@@ -45,7 +45,7 @@
       "width": 300,
       "height": 180,
       "title": "REST API",
-      "content": "User-submitted data\nBatch uploads",
+      "content": "# User data",
       "type": "BaseNode",
       "color": "purple",
       "isPinned": false
@@ -57,7 +57,7 @@
       "width": 300,
       "height": 180,
       "title": "Event Stream",
-      "content": "Kafka consumer\nReal-time events",
+      "content": "# Real-time events",
       "type": "BaseNode",
       "color": "purple",
       "isPinned": false
@@ -81,7 +81,7 @@
       "width": 300,
       "height": 180,
       "title": "Validate",
-      "content": "Schema validation\nDedup & sanitize",
+      "content": "# Validate",
       "type": "BaseNode",
       "color": "blue",
       "isPinned": false
@@ -93,7 +93,7 @@
       "width": 300,
       "height": 180,
       "title": "Transform",
-      "content": "Normalize fields\nEnrich metadata",
+      "content": "# Transform",
       "type": "BaseNode",
       "color": "blue",
       "isPinned": false
@@ -117,7 +117,7 @@
       "width": 300,
       "height": 180,
       "title": "Database",
-      "content": "PostgreSQL\nPrimary store",
+      "content": "# Database",
       "type": "BaseNode",
       "color": "green",
       "isPinned": false
@@ -129,7 +129,7 @@
       "width": 300,
       "height": 180,
       "title": "Search Index",
-      "content": "Elasticsearch\nFull-text search",
+      "content": "# Search",
       "type": "BaseNode",
       "color": "green",
       "isPinned": false
@@ -141,7 +141,7 @@
       "width": 300,
       "height": 180,
       "title": "Analytics",
-      "content": "ClickHouse\nAggregations & reports",
+      "content": "# Analytics",
       "type": "BaseNode",
       "color": "green",
       "isPinned": false
@@ -153,7 +153,7 @@
       "width": 300,
       "height": 180,
       "title": "Dead Letter Queue",
-      "content": "Failed records\nRetry + alerting",
+      "content": "# Dead letters",
       "type": "BaseNode",
       "color": "red",
       "isPinned": false
