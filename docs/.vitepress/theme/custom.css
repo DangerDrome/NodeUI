@@ -94,7 +94,7 @@
 }
 
 .VPHero .actions .VPButton.alt:hover {
-  background-color: var(--vp-c-brand-3) !important;
+  background-color: rgba(249, 199, 79, 0.2) !important;
   border-color: transparent !important;
 }
 
