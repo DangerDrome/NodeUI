@@ -225,12 +225,10 @@ class Main {
         this.bindEventListeners();
         this.subscribeToEvents();
         
-        // Ensure the container can receive keyboard events
-        this.container.focus();
-        
-        // Handle initial URL hash (skip in embedded context to prevent parent scroll)
-        const isEmbedded = new URLSearchParams(window.location.search).get('session') || new URLSearchParams(window.location.search).get('graph');
+        // Skip focus and hash changes in any embedded context
+        const isEmbedded = window.NODEUI_EMBED_MODE || LITE_MODE || new URLSearchParams(window.location.search).get('session') || new URLSearchParams(window.location.search).get('graph');
         if (!isEmbedded) {
+            this.container.focus();
             if (!window.location.hash) {
                 window.location.hash = 'main';
             } else {

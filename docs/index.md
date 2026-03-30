@@ -18,14 +18,9 @@ hero:
 <script setup>
 import { onMounted } from 'vue'
 onMounted(() => {
-  // Prevent all iframes from stealing focus
-  document.querySelectorAll('iframe').forEach(f => {
-    f.setAttribute('tabindex', '-1')
-    f.setAttribute('sandbox', f.getAttribute('sandbox') || 'allow-scripts allow-same-origin')
-  })
-
   // Lazy-load iframes only when scrolled into view
   document.querySelectorAll('iframe[data-src]').forEach(frame => {
+    frame.setAttribute('tabindex', '-1')
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
         frame.src = frame.dataset.src
@@ -34,7 +29,6 @@ onMounted(() => {
     }, { rootMargin: '300px' })
     observer.observe(frame)
   })
-
 })
 </script>
 
