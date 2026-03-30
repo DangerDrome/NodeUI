@@ -2725,9 +2725,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             events.publish('graph:load-content', JSON.stringify(defaultGraph));
         };
 
-        // Load graph from ?graph= URL param if specified, otherwise start blank
+        // Load graph from ?graph= URL param if specified (skip if embed.html handles it)
         const graphParam = new URLSearchParams(window.location.search).get('graph');
-        if (graphParam) {
+        if (graphParam && !window.NODEUI_EMBED_MODE) {
             try {
                 const safePath = graphParam.replace(/[^a-zA-Z0-9\-_\/\.]/g, '');
                 const response = await fetch(safePath);
