@@ -400,12 +400,14 @@ class Collaboration {
                 // Subscribe to sync events
                 this.subscribeToEvents();
                 
-                // Request current state from other users
-                this.send({
-                    type: 'request-state',
-                    sessionId: this.sessionId,
-                    userId: this.userId
-                });
+                // Request current state from other users (skip if graph already loaded, e.g. embeds)
+                if (!window.NODEUI_EMBED_MODE) {
+                    this.send({
+                        type: 'request-state',
+                        sessionId: this.sessionId,
+                        userId: this.userId
+                    });
+                }
                 
                 events.publish('collaboration:connected', { sessionId: this.sessionId });
                 
@@ -605,12 +607,14 @@ class Collaboration {
                 break;
                 
             case 'state-response':
+                // Skip state sync in embed mode — graph is pre-loaded
+                if (window.NODEUI_EMBED_MODE) return;
+
                 // Only load state from users in the same context
                 if (message.graphContext && message.graphContext !== this.nodeUI.graphContext.currentGraphId) {
-                    // console.log('Ignoring state from different context:', message.graphContext);
                     return;
                 }
-                
+
                 // Only load the first state response to avoid conflicts
                 if (!this.hasLoadedState) {
                     this.hasLoadedState = true;
