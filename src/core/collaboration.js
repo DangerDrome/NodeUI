@@ -204,16 +204,16 @@ class Collaboration {
      * @returns {string} The WebSocket server URL
      */
     getWebSocketUrl() {
-        // Check for environment variable or configuration
-        if (window.NODEUI_WS_URL) {
-            return window.NODEUI_WS_URL;
-        }
-        
-        // Check URL parameters for custom server
+        // URL parameter takes highest priority (used by embeds)
         const urlParams = new URLSearchParams(window.location.search);
         const customWsUrl = urlParams.get('ws');
         if (customWsUrl) {
             return customWsUrl;
+        }
+
+        // Check for environment variable or configuration
+        if (window.NODEUI_WS_URL) {
+            return window.NODEUI_WS_URL;
         }
         
         // Check if running on Cloudflare Pages (production)

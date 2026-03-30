@@ -14,14 +14,14 @@
 // Uncomment and modify the line below to set your production WebSocket server:
 // window.NODEUI_WS_URL = 'wss://your-websocket-server.com';
 
-// For nodeui.io production deployment:
-if (window.location.hostname === 'nodeui.io') {
-    // Using Cloudflare Pages Functions - same domain!
-    // If this doesn't work, fall back to a separate Worker deployment
-    window.NODEUI_WS_URL = 'wss://nodeui.io/collab';
-    
-    // Fallback option - deploy server/cloudflare-worker.js as a separate Worker:
-    // window.NODEUI_WS_URL = 'wss://nodeui-collab.YOUR-ACCOUNT.workers.dev';
+// For production deployment:
+// The collab Pages Function lives on the app project (app.nodeui.io), not the docs site
+if (window.location.hostname === 'app.nodeui.io') {
+    // Same-origin — collab Functions deployed with this app
+    window.NODEUI_WS_URL = 'wss://app.nodeui.io/collab';
+} else if (window.location.hostname === 'nodeui.io') {
+    // Docs site — point to the app's collab endpoint
+    window.NODEUI_WS_URL = 'wss://app.nodeui.io/collab';
 }
 
 // For development, it will default to ws://localhost:8080
