@@ -64,12 +64,9 @@
 }
 
 /* Launch nav link — accent color, no pill */
-.VPNavBarMenuLink[href="https://app.nodeui.io"],
-a.VPNavBarMenuLink[href="https://app.nodeui.io"] {
-  background: transparent !important;
-  border-radius: 0 !important;
-  padding: 0 12px !important;
+.VPNavBarMenu a[href*="app.nodeui.io"] {
   color: var(--nui-primary) !important;
+  background: transparent !important;
 }
 
 /* --- Typography --- */
