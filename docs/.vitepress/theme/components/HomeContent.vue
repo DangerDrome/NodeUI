@@ -178,7 +178,6 @@ const nodeTypes = [
     <div class="nodeui-cta-buttons">
       <a href="https://app.nodeui.io" class="nodeui-btn nodeui-btn-primary" target="_blank">Launch</a>
       <a href="/guide/quick-start" class="nodeui-btn nodeui-btn-secondary">Quick Start Guide</a>
-      <a href="https://github.com/megasupersoft/nodeui" class="nodeui-btn nodeui-btn-secondary" target="_blank">View Source</a>
     </div>
   </div>
 </template>
