@@ -78,6 +78,26 @@
                 }
             }, 100);
             setTimeout(() => clearInterval(waitForEvents), 5000);
+
+            // Debug: show collab connection status
+            const sessionParam = new URLSearchParams(window.location.search).get('session');
+            if (sessionParam) {
+                const dbg = document.createElement('div');
+                dbg.id = 'collab-debug';
+                dbg.style.cssText = 'position:fixed;top:4px;left:4px;font:11px monospace;color:#666;z-index:99999;pointer-events:none;';
+                dbg.textContent = 'ws: connecting...';
+                document.body.appendChild(dbg);
+                setInterval(() => {
+                    if (window.nodeUI && window.nodeUI.collaboration) {
+                        const c = window.nodeUI.collaboration;
+                        const state = c.isConnected ? 'connected' : (c.ws ? 'ws:' + c.ws.readyState : 'no ws');
+                        dbg.textContent = `ws: ${state} | session: ${c.sessionId || 'none'} | url: ${(c.wsUrl || 'null').substring(0, 40)}`;
+                        dbg.style.color = c.isConnected ? '#3ecf8e' : '#e5484d';
+                    } else {
+                        dbg.textContent = 'ws: no nodeUI yet';
+                    }
+                }, 500);
+            }
         });
     </script>
 </body>
