@@ -234,6 +234,17 @@ class BaseNode {
      * @param {HTMLElement} contentArea The element to render into.
      */
     async renderMarkdown(contentArea) {
+        // In lite mode, render simple HTML without loading the full markdown CDN
+        if (window.LITE_MODE) {
+            contentArea.innerHTML = (this.content || '').split('\n').map(line => {
+                if (line.startsWith('### ')) return `<h3>${line.slice(4)}</h3>`;
+                if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
+                if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
+                return line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            }).join('<br>');
+            return;
+        }
+
         // Initialize markdown processor if not already done
         if (!window.markdownReady) {
             window.markdownReady = window.initializeMarkdown();

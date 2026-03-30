@@ -21,11 +21,10 @@
         /* Embed mode: hide HUD elements */
         [style*="position: fixed"][style*="top: 28px"] { display: none !important; }
         .version-watermark { display: none !important; }
+        .collaboration-status-indicator { display: none !important; }
 
         /* Minimal mode */
         body.minimal .grid-canvas { display: none !important; }
-        body.minimal .version-watermark { display: none !important; }
-        body.minimal .collaboration-status-indicator { display: none !important; }
         body.minimal { background: transparent; }
         body.minimal #nodeui-canvas-container { background: transparent; }
     </style>
@@ -35,6 +34,7 @@
         const params = new URLSearchParams(window.location.search);
         const graphFile = params.get('graph') || 'graph.json';
         const safePath = graphFile.replace(/[^a-zA-Z0-9\-_\/\.]/g, '');
+        const isLite = params.has('lite');
 
         if (params.get('minimal') === '1') {
             document.addEventListener('DOMContentLoaded', () => document.body.classList.add('minimal'));
@@ -44,6 +44,12 @@
             .then(r => r.json())
             .then(data => { window.embeddedGraphData = data; })
             .catch(() => {});
+
+        // In lite mode, stub out heavy modules so they don't need to load
+        if (isLite) {
+            window.initializeMarkdown = () => Promise.resolve();
+            window.markdownReady = Promise.resolve();
+        }
     </script>
 </head>
 <body>
@@ -54,8 +60,16 @@
 
     <script src="src/core/libs.js"></script>
     <script src="src/core/version.js"></script>
-    <script src="src/core/markdown.js"></script>
-    <script src="src/core/collaboration.js"></script>
+    <script>
+        // Only load heavy modules in full mode
+        if (!new URLSearchParams(window.location.search).has('lite')) {
+            document.write('<script src="src/core/markdown.js"><\/script>');
+            document.write('<script src="src/core/collaboration.js"><\/script>');
+        } else {
+            // Stub Collaboration class for lite mode
+            window.Collaboration = class { constructor() { this.isConnected = false; this._suppressBroadcast = true; } handleLocalEvent() {} };
+        }
+    </script>
     <script src="src/main.js"></script>
     <script>
         window.addEventListener('load', () => {

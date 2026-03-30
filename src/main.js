@@ -3,11 +3,15 @@
  * and handling all user interactions like panning, zooming, and dragging.
  */
 
+// Lite mode — skip heavy modules for fast embedding
+const LITE_MODE = new URLSearchParams(window.location.search).has('lite');
+window.LITE_MODE = LITE_MODE;
+
 // Module loader for core dependencies
 async function loadCoreModules() {
     const modules = [
         'src/core/events.js',
-        'src/core/canvas.js', 
+        'src/core/canvas.js',
         'src/core/file.js',
         'src/core/contextMenu.js',
         'src/core/nodes.js',
@@ -20,7 +24,10 @@ async function loadCoreModules() {
         'src/nodes/baseedge.js'
     ];
 
-    const extendedNodeModules = [
+    const extendedNodeModules = LITE_MODE ? [
+        'src/nodes/routingnode.js',
+        'src/nodes/groupnode.js'
+    ] : [
         'src/nodes/routingnode.js',
         'src/nodes/groupnode.js',
         'src/nodes/lognode.js',
@@ -42,13 +49,13 @@ async function loadCoreModules() {
     try {
         // Load all core modules in parallel
         await Promise.all(modules.map(loadScript));
-        
+
         // Load base node/edge classes first
         await Promise.all(baseNodeModules.map(loadScript));
-        
+
         // Then load all extended node types in parallel
         await Promise.all(extendedNodeModules.map(loadScript));
-        
+
         console.log('All core modules and node classes loaded successfully');
     } catch (error) {
         console.error('Error loading modules:', error);
@@ -207,8 +214,13 @@ class Main {
         this.nodeManager = new Nodes(this);
         this.interactionHandler = new Interactions(this);
         
-        // Initialize collaboration
-        this.collaboration = new Collaboration(this);
+        // Initialize collaboration (skip in lite mode)
+        if (!LITE_MODE) {
+            this.collaboration = new Collaboration(this);
+        } else {
+            // Stub so code that references this.collaboration doesn't crash
+            this.collaboration = { handleLocalEvent() {}, isConnected: false, _suppressBroadcast: true };
+        }
         this.canvasRenderer.initCanvas();
         this.bindEventListeners();
         this.subscribeToEvents();

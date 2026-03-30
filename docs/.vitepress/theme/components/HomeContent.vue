@@ -70,7 +70,7 @@ const nodeTypes = [
     <div class="showcase-embed">
       <div class="nodeui-embed-wrapper">
         <iframe
-          :data-src="`/embed-lite.html?graph=${mediaShowcase.graph}`"
+          :data-src="`/embed.html?lite&graph=${mediaShowcase.graph}`"
           class="nodeui-embed-iframe"
           :title="`NodeUI ${mediaShowcase.label} example`"
           allow="clipboard-read; clipboard-write"
@@ -126,7 +126,7 @@ const nodeTypes = [
     <div class="showcase-embed">
       <div class="nodeui-embed-wrapper">
         <iframe
-          :data-src="`/embed-lite.html?graph=${item.graph}`"
+          :data-src="`/embed.html?lite&graph=${item.graph}`"
           class="nodeui-embed-iframe"
           :title="`NodeUI ${item.label} example`"
           allow="clipboard-read; clipboard-write"
