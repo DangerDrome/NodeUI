@@ -40,7 +40,7 @@
 }
 
 /* Force dark mode — matches app.nodeui.io canvas */
-.dark {
+:root {
   --vp-c-bg: #1c1c1c;
   --vp-c-bg-alt: #1C1B1B;
   --vp-c-bg-elv: #201F1F;

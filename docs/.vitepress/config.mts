@@ -63,7 +63,7 @@ export default defineConfig({
     ['meta', { property: 'og:description', content: 'A serverless, node-based visual programming interface for creating interactive graphs and 3D visualizations.' }],
   ],
 
-  appearance: 'dark',
+  appearance: false,
   cleanUrls: true,
   lastUpdated: true,
 
@@ -155,9 +155,7 @@ export default defineConfig({
       ],
     },
 
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/megasupersoft/nodeui' }
-    ],
+    socialLinks: [],
 
     editLink: {
       pattern: 'https://github.com/megasupersoft/nodeui/edit/master/docs/:path',
