@@ -26,7 +26,8 @@ async function loadCoreModules() {
 
     const extendedNodeModules = LITE_MODE ? [
         'src/nodes/routingnode.js',
-        'src/nodes/groupnode.js'
+        'src/nodes/groupnode.js',
+        'src/nodes/subgraphnode.js'
     ] : [
         'src/nodes/routingnode.js',
         'src/nodes/groupnode.js',
