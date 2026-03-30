@@ -168,7 +168,7 @@ export default defineConfig({
 
     footer: {
       message: 'All rights reserved.',
-      copyright: 'Copyright &copy; 2024-present Megasupersoft'
+      copyright: 'Copyright &copy; 2024-present <a href="https://megasupersoft.com" target="_blank">Megasupersoft</a>'
     }
   }
 })
