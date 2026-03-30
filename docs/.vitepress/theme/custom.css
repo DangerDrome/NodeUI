@@ -89,6 +89,10 @@
   padding: 12px 28px !important;
 }
 
+.VPHero .actions .VPButton.alt {
+  border-color: transparent !important;
+}
+
 /* --- Typography --- */
 :root {
   --vp-font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
