@@ -89,7 +89,7 @@ const nodeTypes = [
         <div class="collab-embed-label">User A</div>
         <div class="nodeui-embed-wrapper">
           <iframe
-            src="/embed.html?graph=examples/connections.json&ws=wss://nodeui-collaboration-do.danger-ltd.workers.dev&session=NODEUI-DEMO"
+            src="https://app.nodeui.io/?session=NODEUI-DEMO"
             class="nodeui-embed-iframe"
             title="Collaboration — User A"
             loading="lazy"
@@ -101,7 +101,7 @@ const nodeTypes = [
         <div class="collab-embed-label">User B</div>
         <div class="nodeui-embed-wrapper">
           <iframe
-            src="/embed.html?graph=examples/connections.json&ws=wss://nodeui-collaboration-do.danger-ltd.workers.dev&session=NODEUI-DEMO"
+            src="https://app.nodeui.io/?session=NODEUI-DEMO"
             class="nodeui-embed-iframe"
             title="Collaboration — User B"
             loading="lazy"
