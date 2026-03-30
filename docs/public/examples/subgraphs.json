@@ -1,47 +1,95 @@
 {
   "metadata": {
-    "projectName": "Microservices Overview",
+    "projectName": "Untitled Graph",
     "thumbnailUrl": "",
     "contextMenuSettings": {
       "canvas": {
-        "cut": { "label": "Cut", "iconClass": "icon-scissors" },
-        "copy": { "label": "Copy", "iconClass": "icon-copy" },
-        "paste": { "label": "Paste", "iconClass": "icon-clipboard" },
-        "delete": { "label": "Delete", "iconClass": "icon-trash-2" },
-        "note": { "label": "Note", "iconClass": "icon-file-text" },
-        "routingNode": { "label": "Router", "iconClass": "icon-network" },
-        "group": { "label": "Group", "iconClass": "icon-group" },
-        "log": { "label": "Log", "iconClass": "icon-terminal" },
-        "subgraph": { "label": "Subgraph", "iconClass": "icon-box" },
-        "saveGraph": { "label": "Save Graph", "iconClass": "icon-download" },
-        "loadGraph": { "label": "Load Graph", "iconClass": "icon-upload" },
-        "snapGrid": { "label": "Grid Snap", "iconClass": "icon-grid-2x2" },
-        "snapObject": { "label": "Obj Snap", "iconClass": "icon-layout-panel-left" }
+        "cut": {
+          "label": "Cut",
+          "iconClass": "icon-scissors"
+        },
+        "copy": {
+          "label": "Copy",
+          "iconClass": "icon-copy"
+        },
+        "paste": {
+          "label": "Paste",
+          "iconClass": "icon-clipboard"
+        },
+        "delete": {
+          "label": "Delete",
+          "iconClass": "icon-trash-2"
+        },
+        "note": {
+          "label": "Note",
+          "iconClass": "icon-file-text"
+        },
+        "routingNode": {
+          "label": "Router",
+          "iconClass": "icon-network"
+        },
+        "group": {
+          "label": "Group",
+          "iconClass": "icon-group"
+        },
+        "log": {
+          "label": "Log",
+          "iconClass": "icon-terminal"
+        },
+        "subgraph": {
+          "label": "Subgraph",
+          "iconClass": "icon-box"
+        },
+        "saveGraph": {
+          "label": "Save Graph",
+          "iconClass": "icon-download"
+        },
+        "loadGraph": {
+          "label": "Load Graph",
+          "iconClass": "icon-upload"
+        },
+        "snapGrid": {
+          "label": "Grid Snap",
+          "iconClass": "icon-grid-2x2"
+        },
+        "snapObject": {
+          "label": "Obj Snap",
+          "iconClass": "icon-layout-panel-left"
+        }
       },
       "edge": {
-        "edit": { "label": "Edit Label", "iconClass": "icon-edit" },
-        "addRoutingNode": { "label": "Add Routing Node", "iconClass": "icon-network" },
-        "delete": { "label": "Delete", "iconClass": "icon-trash-2" }
+        "edit": {
+          "label": "Edit Label",
+          "iconClass": "icon-edit"
+        },
+        "addRoutingNode": {
+          "label": "Add Routing Node",
+          "iconClass": "icon-network"
+        },
+        "delete": {
+          "label": "Delete",
+          "iconClass": "icon-trash-2"
+        }
       }
     }
   },
   "nodes": [
     {
-      "id": "gateway",
-      "x": 530,
-      "y": 80,
-      "width": 340,
-      "height": 200,
+      "id": "9396be30-9f41-4eae-b81f-2c1b194bd948",
+      "x": 869.4316067398029,
+      "y": 66.10133159581999,
+      "width": 200,
+      "height": 186.10133159582,
       "title": "API Gateway",
-      "content": "# Entry Point",
+      "content": "# In.",
       "type": "BaseNode",
       "color": "purple",
       "isPinned": false
     },
     {
-      "id": "svc-auth",
-      "x": 80,
-      "y": 400,
+      "id": "833c6f02-f5a7-4a21-bc91-6c82d0c39c8c",
+      "x": 52.11686894223145,
+      "y": 385.22432371297737,
       "width": 360,
       "height": 220,
       "title": "Auth Service",
@@ -55,8 +103,8 @@
         "nodes": [
           {
             "id": "auth-login",
-            "x": 240,
-            "y": 260,
+            "x": 192.3778353170536,
+            "y": 239.40663148845562,
             "width": 260,
             "height": 160,
             "title": "Login Handler",
@@ -67,20 +115,20 @@
           },
           {
             "id": "auth-session",
-            "x": 580,
-            "y": 260,
+            "x": 551.6841182966265,
+            "y": 267.72251319182914,
             "width": 260,
             "height": 160,
             "title": "Session Manager",
             "content": "Redis-backed sessions\nRefresh token rotation",
             "type": "BaseNode",
-            "color": "blue",
+            "color": "yellow",
             "isPinned": false
           },
           {
             "id": "auth-rbac",
-            "x": 410,
-            "y": 490,
+            "x": 336.6361246776231,
+            "y": 533.7609080870318,
             "width": 260,
             "height": 160,
             "title": "RBAC Engine",
@@ -126,9 +174,9 @@
       "exposedAttributes": []
     },
     {
-      "id": "svc-orders",
-      "x": 520,
-      "y": 400,
+      "id": "b9067e07-4f5c-4a47-a5a6-c264131b87b4",
+      "x": 507.0236197769616,
+      "y": 453.4498173815071,
       "width": 360,
       "height": 220,
       "title": "Order Service",
@@ -149,7 +197,7 @@
             "title": "Order Creator",
             "content": "Validation & pricing\nInventory check",
             "type": "BaseNode",
-            "color": "green",
+            "color": "red",
             "isPinned": false
           },
           {
@@ -173,7 +221,7 @@
             "title": "Fulfillment",
             "content": "Shipping labels\nTracking events",
             "type": "BaseNode",
-            "color": "green",
+            "color": "blue",
             "isPinned": false
           }
         ],
@@ -197,15 +245,25 @@
             "type": "BaseEdge",
             "label": "",
             "routingPoints": []
+          },
+          {
+            "id": "22f9a413-ceea-409a-b3ca-a99c83fb1ea5",
+            "startNodeId": "order-fulfill",
+            "endNodeId": "order-create",
+            "startHandleId": "top",
+            "endHandleId": "bottom",
+            "type": "BaseEdge",
+            "label": "",
+            "routingPoints": []
           }
         ]
       },
       "exposedAttributes": []
     },
     {
-      "id": "svc-notify",
-      "x": 960,
-      "y": 400,
+      "id": "64e6e6d0-3cff-4ec7-a780-f80d078c1c21",
+      "x": 931.7951405069496,
+      "y": 546.4293351779892,
       "width": 360,
       "height": 220,
       "title": "Notification Service",
@@ -219,14 +277,14 @@
         "nodes": [
           {
             "id": "notify-email",
-            "x": 240,
+            "x": 210.39703276465494,
             "y": 260,
             "width": 260,
             "height": 160,
             "title": "Email",
             "content": "Transactional emails\nSendGrid / SES",
             "type": "BaseNode",
-            "color": "yellow",
+            "color": "purple",
             "isPinned": false
           },
           {
@@ -238,13 +296,13 @@
             "title": "Push",
             "content": "Mobile push\nFCM / APNs",
             "type": "BaseNode",
-            "color": "yellow",
+            "color": "green",
             "isPinned": false
           },
           {
             "id": "notify-sms",
-            "x": 410,
-            "y": 490,
+            "x": 412.574171063943,
+            "y": 553.0671910666047,
             "width": 260,
             "height": 160,
             "title": "SMS",
@@ -274,19 +332,39 @@
             "type": "BaseEdge",
             "label": "",
             "routingPoints": []
+          },
+          {
+            "id": "869299de-fb14-479b-99ed-eda23ec316b1",
+            "startNodeId": "notify-email",
+            "endNodeId": "notify-push",
+            "startHandleId": "bottom",
+            "endHandleId": "bottom",
+            "type": "BaseEdge",
+            "label": "",
+            "routingPoints": []
+          },
+          {
+            "id": "2a225e8b-c060-4031-b281-4882900c59c4",
+            "startNodeId": "notify-email",
+            "endNodeId": "notify-push",
+            "startHandleId": "right",
+            "endHandleId": "left",
+            "type": "BaseEdge",
+            "label": "",
+            "routingPoints": []
           }
         ]
       },
       "exposedAttributes": []
     },
     {
-      "id": "event-bus",
-      "x": 400,
-      "y": 740,
-      "width": 460,
-      "height": 200,
+      "id": "6f1c6f21-2f55-430d-b536-68c435922c9e",
+      "x": 262.4372921745338,
+      "y": 845.3553382736609,
+      "width": 200,
+      "height": 168.72799609059496,
       "title": "Event Bus",
-      "content": "# Async Messaging",
+      "content": "# Out.",
       "type": "BaseNode",
       "color": "red",
       "isPinned": false
@@ -295,8 +373,8 @@
   "edges": [
     {
       "id": "e-gw-auth",
-      "startNodeId": "gateway",
-      "endNodeId": "svc-auth",
+      "startNodeId": "9396be30-9f41-4eae-b81f-2c1b194bd948",
+      "endNodeId": "833c6f02-f5a7-4a21-bc91-6c82d0c39c8c",
       "startHandleId": "bottom",
       "endHandleId": "top",
       "routingPoints": [],
@@ -305,8 +383,8 @@
     },
     {
       "id": "e-gw-orders",
-      "startNodeId": "gateway",
-      "endNodeId": "svc-orders",
+      "startNodeId": "9396be30-9f41-4eae-b81f-2c1b194bd948",
+      "endNodeId": "b9067e07-4f5c-4a47-a5a6-c264131b87b4",
       "startHandleId": "bottom",
       "endHandleId": "top",
       "routingPoints": [],
@@ -315,8 +393,8 @@
     },
     {
       "id": "e-gw-notify",
-      "startNodeId": "gateway",
-      "endNodeId": "svc-notify",
+      "startNodeId": "9396be30-9f41-4eae-b81f-2c1b194bd948",
+      "endNodeId": "64e6e6d0-3cff-4ec7-a780-f80d078c1c21",
       "startHandleId": "bottom",
       "endHandleId": "top",
       "routingPoints": [],
@@ -325,8 +403,8 @@
     },
     {
       "id": "e-auth-bus",
-      "startNodeId": "svc-auth",
-      "endNodeId": "event-bus",
+      "startNodeId": "833c6f02-f5a7-4a21-bc91-6c82d0c39c8c",
+      "endNodeId": "6f1c6f21-2f55-430d-b536-68c435922c9e",
       "startHandleId": "bottom",
       "endHandleId": "top",
       "routingPoints": [],
@@ -335,8 +413,8 @@
     },
     {
       "id": "e-orders-bus",
-      "startNodeId": "svc-orders",
-      "endNodeId": "event-bus",
+      "startNodeId": "b9067e07-4f5c-4a47-a5a6-c264131b87b4",
+      "endNodeId": "6f1c6f21-2f55-430d-b536-68c435922c9e",
       "startHandleId": "bottom",
       "endHandleId": "top",
       "routingPoints": [],
@@ -345,8 +423,8 @@
     },
     {
       "id": "e-notify-bus",
-      "startNodeId": "svc-notify",
-      "endNodeId": "event-bus",
+      "startNodeId": "64e6e6d0-3cff-4ec7-a780-f80d078c1c21",
+      "endNodeId": "6f1c6f21-2f55-430d-b536-68c435922c9e",
       "startHandleId": "bottom",
       "endHandleId": "top",
       "routingPoints": [],
