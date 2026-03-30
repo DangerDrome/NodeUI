@@ -2704,7 +2704,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             events.publish('graph:load-content', JSON.stringify(defaultGraph));
         };
 
-        // await loadInitialGraph(); // Disabled - start with blank canvas
+        // Load graph from ?graph= URL param if specified, otherwise start blank
+        const graphParam = new URLSearchParams(window.location.search).get('graph');
+        if (graphParam) {
+            try {
+                const safePath = graphParam.replace(/[^a-zA-Z0-9\-_\/\.]/g, '');
+                const response = await fetch(safePath);
+                if (response.ok) {
+                    events.publish('graph:load-content', await response.text());
+                }
+            } catch (e) {
+                console.log('Could not load graph from URL param:', e);
+            }
+        }
     } catch (error) {
         console.error('Failed to initialize NodeUI:', error);
     }
