@@ -5,8 +5,8 @@ const collabSession = 'DEMO-' + Math.random().toString(36).substring(2, 8).toUpp
 const mediaShowcase = {
   id: 'media',
   label: 'Rich Media',
-  title: 'Images, video, YouTube',
-  subtitle: 'Embed images, YouTube videos, Vimeo, and direct video files in any node. Just paste a URL or drag and drop.',
+  title: 'Not just text.',
+  subtitle: 'Drop images, YouTube videos, Vimeo, and direct video URLs straight onto the canvas. Any node can hold any content.',
   graph: 'examples/media.json',
 }
 
@@ -14,37 +14,37 @@ const showcases = [
   {
     id: 'brainstorm',
     label: 'Whiteboarding',
-    title: 'Think visually',
-    subtitle: 'Map out ideas, connect concepts, and plan projects on an infinite canvas. Markdown content in every node.',
+    title: 'Your thoughts, connected.',
+    subtitle: 'Brainstorm, plan, and map out ideas on an infinite canvas. Every node supports full markdown — headings, lists, code blocks.',
     graph: 'examples/brainstorm.json',
   },
   {
     id: 'groups',
     label: 'Organization',
-    title: 'Group and structure',
-    subtitle: 'Use GroupNodes to organize related nodes into containers. Drag nodes in and out, collapse groups, and build layered architectures.',
+    title: 'Structure at any scale.',
+    subtitle: 'Group nodes into containers to build swimlanes, kanban boards, or layered system diagrams. Drag in, drag out.',
     graph: 'examples/groups.json',
   },
   {
     id: 'routing',
-    label: 'Edge Routing',
-    title: 'Clean connections',
-    subtitle: 'RoutingNodes act as waypoints for edges, keeping complex graphs readable. Build data pipelines, flowcharts, and system diagrams.',
+    label: 'Data Pipelines',
+    title: 'Model real systems.',
+    subtitle: 'Route edges through waypoints to keep complex graphs readable. Map out APIs, event streams, and data flows without the mess.',
     graph: 'examples/routing.json',
   },
   {
     id: 'subgraphs',
     label: 'Nested Graphs',
-    title: 'Drill into detail',
-    subtitle: 'SubGraphNodes contain entire graphs inside them. Double-click to dive in, breadcrumb your way back. Infinite depth.',
+    title: 'Infinite depth.',
+    subtitle: 'Embed entire graphs inside a single node. Double-click to go deeper, use the breadcrumb to come back. No limit on nesting.',
     graph: 'examples/subgraphs.json',
   },
 ]
 
 const features = [
-  { icon: '&#9881;', title: 'Zero Installation', desc: 'No build tools, no server, no signup. Open a file and start working.', accent: 'purple' },
-  { icon: '&#8644;', title: 'Real-time Collaboration', desc: 'Work together on a shared canvas. Live cursors, synced edits, powered by Cloudflare Durable Objects.', accent: 'teal' },
-  { icon: '&#60;/&#62;', title: 'Pure Web Tech', desc: 'Vanilla JavaScript. No framework lock-in. Runs anywhere a browser runs — even from a USB stick.', accent: 'gold' },
+  { icon: '&#9881;', title: 'Nothing to install', desc: 'No build step, no server, no account. Open the URL and you\'re in.', accent: 'purple' },
+  { icon: '&#8644;', title: 'Real-time collaboration', desc: 'Multiple people, one canvas. Every move syncs instantly via Cloudflare Durable Objects.', accent: 'teal' },
+  { icon: '&#60;/&#62;', title: 'Vanilla JavaScript', desc: 'No framework, no lock-in. Drop it anywhere a browser runs — local file, CDN, USB stick.', accent: 'gold' },
 ]
 
 const nodeTypes = [
@@ -83,8 +83,8 @@ const nodeTypes = [
   <div class="collab-section">
     <div class="nodeui-section">
       <p class="nodeui-section-label">Real-time Collaboration</p>
-      <h2 class="nodeui-section-title">Two canvases, one session</h2>
-      <p class="nodeui-section-subtitle">Move a node on the left — watch it move on the right. Powered by Cloudflare Durable Objects.</p>
+      <h2 class="nodeui-section-title">Built for teams.</h2>
+      <p class="nodeui-section-subtitle">Move a node on the left — watch it move on the right. Real-time sync powered by Cloudflare Durable Objects.</p>
     </div>
     <div class="collab-embeds">
       <div class="collab-embed-col">
@@ -150,7 +150,7 @@ const nodeTypes = [
   <div class="nodeui-section">
     <p class="nodeui-section-label">Components</p>
     <h2 class="nodeui-section-title">Built-in Node Types</h2>
-    <p class="nodeui-section-subtitle">8 specialized node types for every use case</p>
+    <p class="nodeui-section-subtitle">Eight node types, ready to use out of the box.</p>
     <div class="nodeui-node-grid">
       <a
         v-for="node in nodeTypes"
@@ -166,8 +166,8 @@ const nodeTypes = [
 
   <!-- CTA -->
   <div class="nodeui-cta">
-    <h2>Start building on an infinite canvas</h2>
-    <p>No installation. No signup. Just open and go.</p>
+    <h2>Open it and start.</h2>
+    <p>No installation, no account, no waiting. NodeUI runs entirely in your browser.</p>
     <div class="nodeui-cta-buttons">
       <a href="https://app.nodeui.io" class="nodeui-btn nodeui-btn-primary" target="_blank">Launch</a>
       <a href="/guide/quick-start" class="nodeui-btn nodeui-btn-secondary">Quick Start Guide</a>

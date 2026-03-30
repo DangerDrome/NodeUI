@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: NodeUI
-  text: "UI for Node, simplified."
-  tagline: A collaborative canvas for engineering complex node-based architectures. Precision meets atmospheric depth.
+  text: "A canvas for connected thinking."
+  tagline: Build node graphs, flowcharts, and diagrams directly in the browser. No installs, no accounts — just open and start connecting ideas.
   actions:
     - theme: brand
       text: Launch
