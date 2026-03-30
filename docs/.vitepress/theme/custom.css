@@ -74,6 +74,11 @@
   .VPHero .name {
     font-size: 56px !important;
   }
+
+  .VPHero .image {
+    margin-top: 40px !important;
+    padding-top: 0 !important;
+  }
 }
 
 /* --- Typography --- */
