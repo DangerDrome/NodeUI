@@ -102,7 +102,7 @@ const nodeTypes = [
         <div class="collab-embed-label">User B</div>
         <div class="nodeui-embed-wrapper">
           <iframe
-            :data-src="`https://app.nodeui.io/?session=${collabSession}&graph=examples/collab-demo-b.json`"
+            :data-src="`https://app.nodeui.io/?session=${collabSession}&graph=examples/collab-demo.json&zoom=0.6`"
             class="nodeui-embed-iframe"
             title="Collaboration — User B"
             allow="clipboard-read; clipboard-write"

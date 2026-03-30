@@ -2727,13 +2727,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         // Load graph from ?graph= URL param if specified (skip if embed.html handles it)
-        const graphParam = new URLSearchParams(window.location.search).get('graph');
+        const searchParams = new URLSearchParams(window.location.search);
+        const graphParam = searchParams.get('graph');
+        const zoomParam = parseFloat(searchParams.get('zoom'));
         if (graphParam && !window.NODEUI_EMBED_MODE) {
             try {
                 const safePath = graphParam.replace(/[^a-zA-Z0-9\-_\/\.]/g, '');
                 const response = await fetch(safePath);
                 if (response.ok) {
                     events.publish('graph:load-content', await response.text());
+                    // Apply zoom override after graph loads and auto-frames
+                    if (zoomParam && !isNaN(zoomParam)) {
+                        setTimeout(() => {
+                            const s = app.panZoom.scale * zoomParam;
+                            const rect = canvasContainer.getBoundingClientRect();
+                            const cx = rect.width / 2, cy = rect.height / 2;
+                            app.panZoom.offsetX = cx - (cx - app.panZoom.offsetX) * (s / app.panZoom.scale);
+                            app.panZoom.offsetY = cy - (cy - app.panZoom.offsetY) * (s / app.panZoom.scale);
+                            app.panZoom.scale = s;
+                            app.updateCanvasTransform();
+                        }, 500);
+                    }
                 }
             } catch (e) {
                 console.log('Could not load graph from URL param:', e);
