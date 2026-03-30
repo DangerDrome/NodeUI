@@ -531,9 +531,6 @@ class Collaboration {
      * @param {object} data - The data to send
      */
     send(data) {
-        if (data.type === 'operation' && window.embedLog) {
-            window.embedLog('SEND: ' + data.eventName + ' ' + JSON.stringify(data.data).substring(0, 60));
-        }
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             try {
                 const message = JSON.stringify(data);
@@ -664,7 +661,6 @@ class Collaboration {
      */
     handleLocalEvent(eventName, data) {
         if (!this.isConnected) {
-            if (window.embedLog) window.embedLog('LOCAL SKIP: not connected, event=' + eventName);
             return;
         }
         
@@ -720,13 +716,8 @@ class Collaboration {
      * @param {object} message - The operation message
      */
     handleRemoteOperation(message) {
-        if (window.embedLog) {
-            window.embedLog('RECV: ' + message.eventName + ' from=' + message.userId);
-        }
-
         // Skip if this is our own operation (echo prevention)
         if (this.localOperations.has(message.operationId) || message.userId === this.userId) {
-            if (window.embedLog) window.embedLog('SKIP: own op or already processed');
             return;
         }
         
@@ -735,7 +726,6 @@ class Collaboration {
             if (message.eventName === 'subgraph:update') {
                 // Let it through
             } else {
-                if (window.embedLog) window.embedLog('SKIP: context mismatch remote=' + message.graphContext + ' local=' + this.nodeUI.graphContext.currentGraphId);
                 return;
             }
         }

@@ -28,16 +28,6 @@
         body.minimal .collaboration-status-indicator { display: none !important; }
         body.minimal { background: transparent; }
         body.minimal #nodeui-canvas-container { background: transparent; }
-
-        /* Debug log */
-        #embed-log {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: rgba(0,0,0,0.85); color: #3ecf8e;
-            font: 10px monospace; padding: 4px 6px;
-            z-index: 99999; pointer-events: none;
-            max-height: 60px; overflow: hidden;
-            white-space: pre-wrap;
-        }
     </style>
     <script>
         window.NODEUI_EMBED_MODE = true;
@@ -50,22 +40,10 @@
             document.addEventListener('DOMContentLoaded', () => document.body.classList.add('minimal'));
         }
 
-        // Embed debug logger
-        const _logs = [];
-        window.embedLog = function(msg) {
-            _logs.push(msg);
-            if (_logs.length > 5) _logs.shift();
-            const el = document.getElementById('embed-log');
-            if (el) el.textContent = _logs.join('\n');
-        };
-
         fetch(safePath)
             .then(r => r.json())
-            .then(data => {
-                window.embeddedGraphData = data;
-                embedLog('graph loaded: ' + data.nodes.length + ' nodes');
-            })
-            .catch(e => embedLog('graph fetch failed: ' + e.message));
+            .then(data => { window.embeddedGraphData = data; })
+            .catch(() => {});
     </script>
 </head>
 <body>
@@ -73,7 +51,6 @@
         <div id="nodeui-canvas-container" tabindex="0"></div>
         <div id="nodeui-pinned-node-container"></div>
     </div>
-    <div id="embed-log"></div>
 
     <script src="src/core/libs.js"></script>
     <script src="src/core/version.js"></script>
@@ -85,26 +62,7 @@
             const waitForEvents = setInterval(() => {
                 if (typeof events !== 'undefined' && window.embeddedGraphData) {
                     clearInterval(waitForEvents);
-                    embedLog('publishing graph:load-content');
                     events.publish('graph:load-content', JSON.stringify(window.embeddedGraphData));
-
-                    // Monitor collab state and tap events directly
-                    setTimeout(() => {
-                        const c = window.nodeUI && window.nodeUI.collaboration;
-                        if (c) {
-                            embedLog('ws:' + (c.isConnected?'ON':'OFF') + ' sess:' + (c.sessionId||'none') + ' subs:' + Object.keys(c.eventHandlers||{}).length);
-                        }
-                        // Direct event tap — proves events fire independent of collab
-                        if (typeof events !== 'undefined') {
-                            events.subscribe('*', (evtName, data) => {
-                                if (['node:moved','node:resized','node:update','edge:create','node:delete','edge:delete'].includes(evtName)) {
-                                    const id = data && (data.nodeId || data.startNodeId || data.id || '');
-                                    embedLog('EVT: ' + evtName + ' ' + id);
-                                }
-                            });
-                            embedLog('wildcard tap active');
-                        }
-                    }, 2000);
                 }
             }, 100);
             setTimeout(() => clearInterval(waitForEvents), 5000);
