@@ -35,7 +35,7 @@
       "title": "Idea",
       "content": "## Start here\nEvery graph begins with a single node",
       "type": "BaseNode",
-      "color": "yellow",
+      "color": "blue",
       "isPinned": false
     },
     {
@@ -47,7 +47,7 @@
       "title": "Connection",
       "content": "## Then connect\nDrag from any handle to link nodes",
       "type": "BaseNode",
-      "color": "yellow",
+      "color": "green",
       "isPinned": false
     }
   ],

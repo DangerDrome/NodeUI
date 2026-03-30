@@ -2658,6 +2658,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const app = new Main(canvasContainer);
         window.nodeUI = app;
 
+        // Hide chrome when embedded (loaded with ?session= param, e.g. in an iframe)
+        if (new URLSearchParams(window.location.search).get('session')) {
+            const style = document.createElement('style');
+            style.textContent = '.version-watermark{display:none!important}[style*="position: fixed"][style*="top: 28px"]{display:none!important}.collaboration-status-indicator-text{max-width:0;overflow:hidden;opacity:0}.collaboration-status-indicator:hover .collaboration-status-indicator-text{max-width:300px;opacity:1}';
+            document.head.appendChild(style);
+        }
+
         // Load the initial graph from graph.json or embedded data
         const loadInitialGraph = async () => {
             // Priority 1: Try to load from graph.json (if running on server)
