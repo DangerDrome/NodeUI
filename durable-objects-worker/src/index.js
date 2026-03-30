@@ -17,7 +17,7 @@ export class CollaborationRoom {
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
-    
+
     // Accept the websocket connection
     this.state.acceptWebSocket(server);
 
@@ -31,21 +31,21 @@ export class CollaborationRoom {
     // Handle incoming messages
     try {
       const message = JSON.parse(messageStr);
-      
+
       // Get stored data for this websocket
       const stored = ws.deserializeAttachment() || {};
-      
+
       switch (message.type) {
         case 'ping':
           ws.send(JSON.stringify({ type: 'pong' }));
           break;
-          
+
         case 'join':
           // Store user info
           stored.userId = message.userId;
           stored.joinTime = Date.now();
           ws.serializeAttachment(stored);
-          
+
           // Get all connected users
           const users = [];
           for (const socket of this.state.getWebSockets()) {
@@ -54,20 +54,20 @@ export class CollaborationRoom {
               users.push(data.userId);
             }
           }
-          
+
           // Send user list
           ws.send(JSON.stringify({
             type: 'users-list',
             users: users
           }));
-          
+
           // Notify others
           this.broadcast({
             type: 'user-joined',
             userId: message.userId
           }, message.userId);
           break;
-          
+
         case 'operation':
         case 'request-state':
         case 'state-response':
@@ -89,7 +89,7 @@ export class CollaborationRoom {
       });
     }
   }
-  
+
   async webSocketError(ws, error) {
     console.error('WebSocket error:', error);
     ws.close(1011, 'Server error');
@@ -112,6 +112,27 @@ export class CollaborationRoom {
 
 export default {
   async fetch(request, env) {
-    return new Response('Collaboration Worker', { status: 200 });
+    const url = new URL(request.url);
+
+    // CORS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Upgrade, Sec-WebSocket-Key, Sec-WebSocket-Version, Sec-WebSocket-Protocol',
+        },
+      });
+    }
+
+    // Extract session ID from URL path: /SESSION_ID or /collab/SESSION_ID
+    const pathParts = url.pathname.split('/').filter(p => p && p !== 'collab');
+    const sessionId = pathParts[pathParts.length - 1] || 'default';
+
+    // Route to the Durable Object for this session
+    const id = env.COLLABORATION_ROOMS.idFromName(sessionId);
+    const stub = env.COLLABORATION_ROOMS.get(id);
+
+    return stub.fetch(request);
   }
-}
+};
