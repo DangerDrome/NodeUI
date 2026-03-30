@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NodeUI Embed</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1c1c1c; font-family: 'Inter', -apple-system, sans-serif; }
+  #canvas { width: 100%; height: 100%; position: relative; cursor: grab; }
+  #canvas.dragging { cursor: grabbing; }
+  #transform { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+  .grid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(circle, #3a3a3a 1px, transparent 1px); background-size: 20px 20px; pointer-events: none; }
+
+  /* Nodes */
+  .n { position: absolute; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; flex-direction: column; backdrop-filter: blur(10px); min-width: 120px; pointer-events: auto; }
+  .n-title { padding: 10px 14px; font-size: 12px; font-weight: 600; border-bottom: 1px solid; border-radius: 7px 7px 0 0; user-select: none; }
+  .n-body { padding: 12px 14px; font-size: 13px; color: #e0e0e0; line-height: 1.5; white-space: pre-wrap; overflow: hidden; }
+  .n-body h1, .n-body h2, .n-body h3 { margin: 0 0 4px 0; color: #9e9e9e; }
+  .n-body h1 { font-size: 2rem; font-weight: 900; }
+  .n-body h2 { font-size: 1.2rem; font-weight: 700; }
+  .n-body h3 { font-size: 1rem; font-weight: 600; }
+  .n-body strong { color: #fff; }
+
+  /* Colors */
+  .c-default { background: rgba(58,58,58,0.5); border: 1px solid rgba(90,90,90,0.8); }
+  .c-default .n-title { color: #9e9e9e; border-color: rgba(90,90,90,0.8); }
+  .c-red { background: rgba(229,72,77,0.2); border: 1px solid rgba(229,72,77,0.8); }
+  .c-red .n-title { color: #ff8a80; border-color: rgba(229,72,77,0.8); }
+  .c-green { background: rgba(62,207,142,0.2); border: 1px solid rgba(62,207,142,0.8); }
+  .c-green .n-title { color: #b9f6ca; border-color: rgba(62,207,142,0.8); }
+  .c-blue { background: rgba(0,144,255,0.2); border: 1px solid rgba(0,144,255,0.8); }
+  .c-blue .n-title { color: #82b1ff; border-color: rgba(0,144,255,0.8); }
+  .c-yellow { background: rgba(249,199,79,0.2); border: 1px solid rgba(249,199,79,0.8); }
+  .c-yellow .n-title { color: #ffe57f; border-color: rgba(249,199,79,0.8); }
+  .c-purple { background: rgba(157,78,221,0.2); border: 1px solid rgba(157,78,221,0.8); }
+  .c-purple .n-title { color: #e1b5ff; border-color: rgba(157,78,221,0.8); }
+
+  /* Groups */
+  .n.group { background: rgba(18,18,18,0.95); border-style: dashed; backdrop-filter: none; }
+  .n.group .n-title { border-bottom-color: transparent; }
+
+  /* Edges */
+  svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+  .edge { fill: none; stroke: rgba(120,120,120,1); stroke-width: 2; stroke-linecap: round; }
+
+  /* Edge colors */
+  .edge-red { stroke: rgba(229,72,77,0.8); }
+  .edge-green { stroke: rgba(62,207,142,0.8); }
+  .edge-blue { stroke: rgba(0,144,255,0.8); }
+  .edge-yellow { stroke: rgba(249,199,79,0.8); }
+  .edge-purple { stroke: rgba(157,78,221,0.8); }
+
+  /* Minimal mode */
+  body.minimal { background: transparent; }
+  body.minimal .grid { display: none; }
+</style>
+</head>
+<body>
+<div id="canvas">
+  <div class="grid"></div>
+  <div id="transform">
+    <svg id="edges"></svg>
+    <div id="nodes"></div>
+  </div>
+</div>
+<script>
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const graphFile = (params.get('graph') || 'graph.json').replace(/[^a-zA-Z0-9\-_\/\.]/g, '');
+  if (params.get('minimal') === '1') document.body.classList.add('minimal');
+
+  // Pan/zoom state
+  let scale = 1, ox = 0, oy = 0, dragging = false, sx = 0, sy = 0, sox = 0, soy = 0;
+  const canvas = document.getElementById('canvas');
+  const transform = document.getElementById('transform');
+
+  function applyTransform() {
+    transform.style.transform = `translate(${ox}px,${oy}px) scale(${scale})`;
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    if (e.target.closest('.n')) return;
+    dragging = true; sx = e.clientX; sy = e.clientY; sox = ox; soy = oy;
+    canvas.classList.add('dragging'); canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    ox = sox + (e.clientX - sx); oy = soy + (e.clientY - sy); applyTransform();
+  });
+  canvas.addEventListener('pointerup', () => { dragging = false; canvas.classList.remove('dragging'); });
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const zf = e.deltaY > 0 ? 0.9 : 1.1;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const ns = Math.max(0.1, Math.min(5, scale * zf));
+    ox = mx - (mx - ox) * (ns / scale); oy = my - (my - oy) * (ns / scale);
+    scale = ns; applyTransform();
+  }, { passive: false });
+
+  // Simple markdown-ish rendering (headers + bold only)
+  function renderContent(text) {
+    return text.split('\n').map(line => {
+      if (line.startsWith('### ')) return `<h3>${line.slice(4)}</h3>`;
+      if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
+      if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
+      return line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    }).join('<br>');
+  }
+
+  // Handle positions for edge anchoring
+  function getHandlePos(node, handle) {
+    const x = node.x, y = node.y, w = node.width, h = node.height;
+    switch(handle) {
+      case 'top': return { x: x + w/2, y: y };
+      case 'bottom': return { x: x + w/2, y: y + h };
+      case 'left': return { x: x, y: y + h/2 };
+      case 'right': return { x: x + w, y: y + h/2 };
+      default: return { x: x + w/2, y: y + h/2 };
+    }
+  }
+
+  // Bezier edge path
+  function edgePath(p1, p2, h1, h2) {
+    const dx = Math.abs(p2.x - p1.x) * 0.5, dy = Math.abs(p2.y - p1.y) * 0.5;
+    let c1x = p1.x, c1y = p1.y, c2x = p2.x, c2y = p2.y;
+    if (h1 === 'right') c1x += dx; else if (h1 === 'left') c1x -= dx;
+    else if (h1 === 'bottom') c1y += dy; else if (h1 === 'top') c1y -= dy;
+    if (h2 === 'right') c2x += dx; else if (h2 === 'left') c2x -= dx;
+    else if (h2 === 'bottom') c2y += dy; else if (h2 === 'top') c2y -= dy;
+    return `M${p1.x},${p1.y} C${c1x},${c1y} ${c2x},${c2y} ${p2.x},${p2.y}`;
+  }
+
+  // Load and render
+  fetch(graphFile).then(r => r.json()).then(data => {
+    const nodeMap = {};
+    const nodesEl = document.getElementById('nodes');
+    const edgesEl = document.getElementById('edges');
+
+    // Render nodes
+    (data.nodes || []).forEach(n => {
+      nodeMap[n.id] = n;
+      const isGroup = n.type === 'GroupNode';
+      const el = document.createElement('div');
+      el.className = `n c-${n.color || 'default'}${isGroup ? ' group' : ''}`;
+      el.style.cssText = `left:${n.x}px;top:${n.y}px;width:${n.width}px;height:${n.height}px;`;
+      el.innerHTML = `<div class="n-title">${n.title || ''}</div><div class="n-body">${renderContent(n.content || '')}</div>`;
+      nodesEl.appendChild(el);
+    });
+
+    // Render edges
+    (data.edges || []).forEach(e => {
+      const sn = nodeMap[e.startNodeId], en = nodeMap[e.endNodeId];
+      if (!sn || !en) return;
+      const p1 = getHandlePos(sn, e.startHandleId);
+      const p2 = getHandlePos(en, e.endHandleId);
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', edgePath(p1, p2, e.startHandleId, e.endHandleId));
+      path.setAttribute('class', `edge edge-${sn.color || 'default'}`);
+      edgesEl.appendChild(path);
+    });
+
+    // Frame content
+    if (data.canvasState) {
+      scale = data.canvasState.scale || 1;
+      ox = data.canvasState.offsetX || 0;
+      oy = data.canvasState.offsetY || 0;
+    } else if (data.nodes && data.nodes.length) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      data.nodes.forEach(n => {
+        if (n.type === 'GroupNode') return;
+        minX = Math.min(minX, n.x); minY = Math.min(minY, n.y);
+        maxX = Math.max(maxX, n.x + n.width); maxY = Math.max(maxY, n.y + n.height);
+      });
+      const pad = 80, sw = (maxX - minX) + pad * 2, sh = (maxY - minY) + pad * 2;
+      const rect = canvas.getBoundingClientRect();
+      scale = Math.min(rect.width / sw, rect.height / sh, 1.5);
+      const cx = minX + (maxX - minX) / 2, cy = minY + (maxY - minY) / 2;
+      ox = (rect.width / 2) - (cx * scale); oy = (rect.height / 2) - (cy * scale);
+    }
+    applyTransform();
+  }).catch(() => {});
+})();
+</script>
+</body>
+</html>
