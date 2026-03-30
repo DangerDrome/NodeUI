@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: NodeUI
-  text: "A canvas for connected thinking."
+  text: "Connecting ideas, and sharing them."
   tagline: Build node graphs, flowcharts, and diagrams directly in the browser. No installs, no accounts — just open and start connecting ideas.
   actions:
     - theme: brand
