@@ -1,0 +1,298 @@
+{
+  "metadata": {
+    "projectName": "Product Launch Brainstorm",
+    "thumbnailUrl": "",
+    "contextMenuSettings": {
+      "canvas": {
+        "cut": {
+          "label": "Cut",
+          "iconClass": "icon-scissors"
+        },
+        "copy": {
+          "label": "Copy",
+          "iconClass": "icon-copy"
+        },
+        "paste": {
+          "label": "Paste",
+          "iconClass": "icon-clipboard"
+        },
+        "delete": {
+          "label": "Delete",
+          "iconClass": "icon-trash-2"
+        },
+        "note": {
+          "label": "Note",
+          "iconClass": "icon-file-text"
+        },
+        "routingNode": {
+          "label": "Router",
+          "iconClass": "icon-network"
+        },
+        "group": {
+          "label": "Group",
+          "iconClass": "icon-group"
+        },
+        "log": {
+          "label": "Log",
+          "iconClass": "icon-terminal"
+        },
+        "subgraph": {
+          "label": "Subgraph",
+          "iconClass": "icon-box"
+        },
+        "saveGraph": {
+          "label": "Save Graph",
+          "iconClass": "icon-download"
+        },
+        "loadGraph": {
+          "label": "Load Graph",
+          "iconClass": "icon-upload"
+        },
+        "snapGrid": {
+          "label": "Grid Snap",
+          "iconClass": "icon-grid-2x2"
+        },
+        "snapObject": {
+          "label": "Obj Snap",
+          "iconClass": "icon-layout-panel-left"
+        }
+      },
+      "edge": {
+        "edit": {
+          "label": "Edit Label",
+          "iconClass": "icon-edit"
+        },
+        "addRoutingNode": {
+          "label": "Add Routing Node",
+          "iconClass": "icon-network"
+        },
+        "delete": {
+          "label": "Delete",
+          "iconClass": "icon-trash-2"
+        }
+      }
+    }
+  },
+  "nodes": [
+    {
+      "id": "949380e3-886d-4fa2-8207-7dc42a2f4bbe",
+      "x": 392.9829115302612,
+      "y": 375.1206232981885,
+      "width": 569.3273582850823,
+      "height": 197.60345116094834,
+      "title": "Central Idea",
+      "content": "# Product Launch",
+      "type": "BaseNode",
+      "color": "green",
+      "isPinned": false
+    },
+    {
+      "id": "963159c5-7556-42e0-973b-8e0bacbfd6bb",
+      "x": 21.763863211044303,
+      "y": 80,
+      "width": 369.8833641467468,
+      "height": 192.22958872568069,
+      "title": "Marketing",
+      "content": "# Channels",
+      "type": "BaseNode",
+      "color": "yellow",
+      "isPinned": false
+    },
+    {
+      "id": "9f991d53-5c0a-48de-a2e0-d65712c067e1",
+      "x": 795.5520184167292,
+      "y": 28.844865092328227,
+      "width": 427.0170884697388,
+      "height": 189.5861953562067,
+      "title": "Engineering",
+      "content": "# Milestones",
+      "type": "BaseNode",
+      "color": "blue",
+      "isPinned": false
+    },
+    {
+      "id": "a8b3a919-ffa6-425a-939b-336d7bab400d",
+      "x": 274.88004558233337,
+      "y": 762.3712426164964,
+      "width": 442.0547957082898,
+      "height": 182.99062727806927,
+      "title": "Design",
+      "content": "# Deliverables",
+      "type": "BaseNode",
+      "color": "purple",
+      "isPinned": false
+    },
+    {
+      "id": "0f1ef504-603a-4a2b-a0fe-931c4d9faf26",
+      "x": 1040,
+      "y": 600,
+      "width": 357.5171721372402,
+      "height": 180,
+      "title": "Operations",
+      "content": "# Logistics",
+      "type": "BaseNode",
+      "color": "default",
+      "isPinned": false
+    },
+    {
+      "id": "8b61c06c-45b9-440b-b645-daae365acbd2",
+      "x": -665.4982204614985,
+      "y": -114.10104391758935,
+      "width": 488.693309170229,
+      "height": 194.10104391758935,
+      "title": "Budget",
+      "content": "# $45k Budget",
+      "type": "BaseNode",
+      "color": "red",
+      "isPinned": false
+    },
+    {
+      "id": "d07a1577-b427-4271-8c82-bed663b64f89",
+      "x": 1420,
+      "y": 80,
+      "width": 458.913553641289,
+      "height": 181.56893955146506,
+      "title": "Tech Stack",
+      "content": "# Tech Stack",
+      "type": "BaseNode",
+      "color": "default",
+      "isPinned": false
+    },
+    {
+      "id": "5b70378b-5068-40bb-be38-9351c95f22a5",
+      "x": -208.38555821997767,
+      "y": 858.765572046475,
+      "width": 341.48266052775693,
+      "height": 186.36203722956841,
+      "title": "Timeline",
+      "content": "# Timeline",
+      "type": "BaseNode",
+      "color": "purple",
+      "isPinned": false
+    },
+    {
+      "id": "c6118539-35ea-4ebf-8f8a-2e64053f2aef",
+      "x": 1518.2585024011187,
+      "y": 747.0170884697387,
+      "width": 260,
+      "height": 160,
+      "title": "Risk",
+      "content": "# Risk",
+      "type": "BaseNode",
+      "color": "red",
+      "isPinned": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-b1-d1",
+      "startNodeId": "963159c5-7556-42e0-973b-8e0bacbfd6bb",
+      "endNodeId": "8b61c06c-45b9-440b-b645-daae365acbd2",
+      "startHandleId": "left",
+      "endHandleId": "right",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-b2-d2",
+      "startNodeId": "9f991d53-5c0a-48de-a2e0-d65712c067e1",
+      "endNodeId": "d07a1577-b427-4271-8c82-bed663b64f89",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-b3-d3",
+      "startNodeId": "a8b3a919-ffa6-425a-939b-336d7bab400d",
+      "endNodeId": "5b70378b-5068-40bb-be38-9351c95f22a5",
+      "startHandleId": "left",
+      "endHandleId": "right",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-b4-d4",
+      "startNodeId": "0f1ef504-603a-4a2b-a0fe-931c4d9faf26",
+      "endNodeId": "c6118539-35ea-4ebf-8f8a-2e64053f2aef",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "a3088f84-818e-4a89-b7ca-8368c17a61b8",
+      "startNodeId": "8b61c06c-45b9-440b-b645-daae365acbd2",
+      "endNodeId": "963159c5-7556-42e0-973b-8e0bacbfd6bb",
+      "startHandleId": "right",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "3215ba10-655b-4a37-a7ac-341e5322d14c",
+      "startNodeId": "963159c5-7556-42e0-973b-8e0bacbfd6bb",
+      "endNodeId": "963159c5-7556-42e0-973b-8e0bacbfd6bb",
+      "startHandleId": "bottom",
+      "endHandleId": "bottom",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "7d3b48d1-9b33-4288-943d-7fe54a32f4c2",
+      "startNodeId": "963159c5-7556-42e0-973b-8e0bacbfd6bb",
+      "endNodeId": "949380e3-886d-4fa2-8207-7dc42a2f4bbe",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "252e7d8a-0e12-4c4d-bf5f-3bcfa14bda4e",
+      "startNodeId": "949380e3-886d-4fa2-8207-7dc42a2f4bbe",
+      "endNodeId": "a8b3a919-ffa6-425a-939b-336d7bab400d",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "8c686748-7e03-410f-a515-3644cea96dd3",
+      "startNodeId": "949380e3-886d-4fa2-8207-7dc42a2f4bbe",
+      "endNodeId": "0f1ef504-603a-4a2b-a0fe-931c4d9faf26",
+      "startHandleId": "right",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "b79bd155-8b37-4e0d-960e-87f46a213c19",
+      "startNodeId": "949380e3-886d-4fa2-8207-7dc42a2f4bbe",
+      "endNodeId": "9f991d53-5c0a-48de-a2e0-d65712c067e1",
+      "startHandleId": "right",
+      "endHandleId": "bottom",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "c2af5dbb-3acf-4781-bcec-d988edbba644",
+      "startNodeId": "9f991d53-5c0a-48de-a2e0-d65712c067e1",
+      "endNodeId": "949380e3-886d-4fa2-8207-7dc42a2f4bbe",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    }
+  ]
+}

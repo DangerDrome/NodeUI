@@ -1,0 +1,114 @@
+{
+  "metadata": {
+    "projectName": "Connections",
+    "thumbnailUrl": "",
+    "contextMenuSettings": {
+      "canvas": {
+        "cut": {
+          "label": "Cut",
+          "iconClass": "icon-scissors"
+        },
+        "copy": {
+          "label": "Copy",
+          "iconClass": "icon-copy"
+        },
+        "paste": {
+          "label": "Paste",
+          "iconClass": "icon-clipboard"
+        },
+        "delete": {
+          "label": "Delete",
+          "iconClass": "icon-trash-2"
+        },
+        "note": {
+          "label": "Note",
+          "iconClass": "icon-file-text"
+        },
+        "routingNode": {
+          "label": "Router",
+          "iconClass": "icon-network"
+        },
+        "group": {
+          "label": "Group",
+          "iconClass": "icon-group"
+        },
+        "log": {
+          "label": "Log",
+          "iconClass": "icon-terminal"
+        },
+        "subgraph": {
+          "label": "Subgraph",
+          "iconClass": "icon-box"
+        },
+        "saveGraph": {
+          "label": "Save Graph",
+          "iconClass": "icon-download"
+        },
+        "loadGraph": {
+          "label": "Load Graph",
+          "iconClass": "icon-upload"
+        },
+        "snapGrid": {
+          "label": "Grid Snap",
+          "iconClass": "icon-grid-2x2"
+        },
+        "snapObject": {
+          "label": "Obj Snap",
+          "iconClass": "icon-layout-panel-left"
+        }
+      },
+      "edge": {
+        "edit": {
+          "label": "Edit Label",
+          "iconClass": "icon-edit"
+        },
+        "addRoutingNode": {
+          "label": "Add Routing Node",
+          "iconClass": "icon-network"
+        },
+        "delete": {
+          "label": "Delete",
+          "iconClass": "icon-trash-2"
+        }
+      }
+    }
+  },
+  "nodes": [
+    {
+      "id": "a",
+      "x": 197.8405788170586,
+      "y": 181.83152389842124,
+      "width": 402.18424680874796,
+      "height": 193.98216966366954,
+      "title": "Idea",
+      "content": "# Start here",
+      "type": "BaseNode",
+      "color": "yellow",
+      "isPinned": false
+    },
+    {
+      "id": "b",
+      "x": 754.3833556320233,
+      "y": 362.7786004222127,
+      "width": 440.1783033633045,
+      "height": 274.2199074814089,
+      "title": "Connection",
+      "content": "# Then connect",
+      "type": "BaseNode",
+      "color": "green",
+      "isPinned": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-a-b",
+      "startNodeId": "a",
+      "endNodeId": "b",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    }
+  ]
+}

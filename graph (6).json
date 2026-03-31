@@ -1,0 +1,332 @@
+{
+  "metadata": {
+    "projectName": "Data Pipeline",
+    "thumbnailUrl": "",
+    "contextMenuSettings": {
+      "canvas": {
+        "cut": {
+          "label": "Cut",
+          "iconClass": "icon-scissors"
+        },
+        "copy": {
+          "label": "Copy",
+          "iconClass": "icon-copy"
+        },
+        "paste": {
+          "label": "Paste",
+          "iconClass": "icon-clipboard"
+        },
+        "delete": {
+          "label": "Delete",
+          "iconClass": "icon-trash-2"
+        },
+        "note": {
+          "label": "Note",
+          "iconClass": "icon-file-text"
+        },
+        "routingNode": {
+          "label": "Router",
+          "iconClass": "icon-network"
+        },
+        "group": {
+          "label": "Group",
+          "iconClass": "icon-group"
+        },
+        "log": {
+          "label": "Log",
+          "iconClass": "icon-terminal"
+        },
+        "subgraph": {
+          "label": "Subgraph",
+          "iconClass": "icon-box"
+        },
+        "saveGraph": {
+          "label": "Save Graph",
+          "iconClass": "icon-download"
+        },
+        "loadGraph": {
+          "label": "Load Graph",
+          "iconClass": "icon-upload"
+        },
+        "snapGrid": {
+          "label": "Grid Snap",
+          "iconClass": "icon-grid-2x2"
+        },
+        "snapObject": {
+          "label": "Obj Snap",
+          "iconClass": "icon-layout-panel-left"
+        }
+      },
+      "edge": {
+        "edit": {
+          "label": "Edit Label",
+          "iconClass": "icon-edit"
+        },
+        "addRoutingNode": {
+          "label": "Add Routing Node",
+          "iconClass": "icon-network"
+        },
+        "delete": {
+          "label": "Delete",
+          "iconClass": "icon-trash-2"
+        }
+      }
+    }
+  },
+  "nodes": [
+    {
+      "id": "b8185faf-271d-4fdb-bdec-c26540e3eea1",
+      "x": -266.0228609937047,
+      "y": -38.77258950300562,
+      "width": 556.3699859615144,
+      "height": 200.41884843941264,
+      "title": "Webhooks",
+      "content": "# Incoming events",
+      "type": "BaseNode",
+      "color": "purple",
+      "isPinned": false
+    },
+    {
+      "id": "8e4cf22c-193c-4d89-88e0-2b53ecad5ef7",
+      "x": -85.01883345174971,
+      "y": 294.06811880030654,
+      "width": 383.9441546953631,
+      "height": 180,
+      "title": "REST API",
+      "content": "# User data",
+      "type": "BaseNode",
+      "color": "purple",
+      "isPinned": false
+    },
+    {
+      "id": "b79d5f54-ebba-43e3-88af-35ff38d143c7",
+      "x": -119.0922783660343,
+      "y": 588.7508304127643,
+      "width": 347.64397969196284,
+      "height": 259.40663281993807,
+      "title": "Event Stream",
+      "content": "# Real-time events",
+      "type": "BaseNode",
+      "color": "purple",
+      "isPinned": false
+    },
+    {
+      "id": "d0164c16-9b62-4897-8b73-a47f4027f4b4",
+      "x": 530,
+      "y": 420,
+      "width": 20,
+      "height": 20,
+      "title": "",
+      "content": "",
+      "type": "RoutingNode",
+      "color": "default",
+      "isPinned": false
+    },
+    {
+      "id": "c1d4dfed-06c4-48b8-9eb1-68d93cad8fdc",
+      "x": 596.372978570432,
+      "y": 56.48773867013019,
+      "width": 300,
+      "height": 180,
+      "title": "Validate",
+      "content": "# Validate",
+      "type": "BaseNode",
+      "color": "blue",
+      "isPinned": false
+    },
+    {
+      "id": "aa68e16d-975e-4486-9aaf-f5c028b4acdb",
+      "x": 810.7747337686944,
+      "y": 504.65774044488353,
+      "width": 384.17548998571635,
+      "height": 180,
+      "title": "Transform",
+      "content": "# Transform",
+      "type": "BaseNode",
+      "color": "blue",
+      "isPinned": false
+    },
+    {
+      "id": "c697b138-94ef-434e-9d65-5b9a7f0f9a61",
+      "x": 1110,
+      "y": 420,
+      "width": 20,
+      "height": 20,
+      "title": "",
+      "content": "",
+      "type": "RoutingNode",
+      "color": "default",
+      "isPinned": false
+    },
+    {
+      "id": "51076dab-5a94-4eb2-8354-041dc6020dac",
+      "x": 1156.079641992943,
+      "y": -53.282528060409426,
+      "width": 372.7442506049401,
+      "height": 187.7940268505293,
+      "title": "Database",
+      "content": "# Database",
+      "type": "BaseNode",
+      "color": "green",
+      "isPinned": false
+    },
+    {
+      "id": "77828dc5-c770-44b3-ac57-fb83dd5bbf5b",
+      "x": 1319.754205854058,
+      "y": 220.49158829188417,
+      "width": 284.4119462989414,
+      "height": 174.80398209964713,
+      "title": "Search Index",
+      "content": "# Search",
+      "type": "BaseNode",
+      "color": "green",
+      "isPinned": false
+    },
+    {
+      "id": "b298f828-3800-40e6-acbd-8f1a9e0435d7",
+      "x": 1366.5183669572336,
+      "y": 504.65774044488353,
+      "width": 388.33230430599866,
+      "height": 187.7940268505293,
+      "title": "Analytics",
+      "content": "# Analytics",
+      "type": "BaseNode",
+      "color": "green",
+      "isPinned": false
+    },
+    {
+      "id": "f03c078f-e1a3-4100-b78e-5a75fdb79a7b",
+      "x": 345.26098015282344,
+      "y": 800.9445873528311,
+      "width": 466.01277191627395,
+      "height": 180,
+      "title": "Dead Letter Queue",
+      "content": "# Dead letters",
+      "type": "BaseNode",
+      "color": "red",
+      "isPinned": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-wh-r1",
+      "startNodeId": "b8185faf-271d-4fdb-bdec-c26540e3eea1",
+      "endNodeId": "d0164c16-9b62-4897-8b73-a47f4027f4b4",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-api-r1",
+      "startNodeId": "8e4cf22c-193c-4d89-88e0-2b53ecad5ef7",
+      "endNodeId": "d0164c16-9b62-4897-8b73-a47f4027f4b4",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-stream-r1",
+      "startNodeId": "b79d5f54-ebba-43e3-88af-35ff38d143c7",
+      "endNodeId": "d0164c16-9b62-4897-8b73-a47f4027f4b4",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-r1-val",
+      "startNodeId": "d0164c16-9b62-4897-8b73-a47f4027f4b4",
+      "endNodeId": "c1d4dfed-06c4-48b8-9eb1-68d93cad8fdc",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-r1-trans",
+      "startNodeId": "d0164c16-9b62-4897-8b73-a47f4027f4b4",
+      "endNodeId": "aa68e16d-975e-4486-9aaf-f5c028b4acdb",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-val-r2",
+      "startNodeId": "c1d4dfed-06c4-48b8-9eb1-68d93cad8fdc",
+      "endNodeId": "c697b138-94ef-434e-9d65-5b9a7f0f9a61",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-trans-r2",
+      "startNodeId": "aa68e16d-975e-4486-9aaf-f5c028b4acdb",
+      "endNodeId": "c697b138-94ef-434e-9d65-5b9a7f0f9a61",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-r2-db",
+      "startNodeId": "c697b138-94ef-434e-9d65-5b9a7f0f9a61",
+      "endNodeId": "51076dab-5a94-4eb2-8354-041dc6020dac",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-r2-search",
+      "startNodeId": "c697b138-94ef-434e-9d65-5b9a7f0f9a61",
+      "endNodeId": "77828dc5-c770-44b3-ac57-fb83dd5bbf5b",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-r2-analytics",
+      "startNodeId": "c697b138-94ef-434e-9d65-5b9a7f0f9a61",
+      "endNodeId": "b298f828-3800-40e6-acbd-8f1a9e0435d7",
+      "startHandleId": "right",
+      "endHandleId": "left",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-val-dlq",
+      "startNodeId": "c1d4dfed-06c4-48b8-9eb1-68d93cad8fdc",
+      "endNodeId": "f03c078f-e1a3-4100-b78e-5a75fdb79a7b",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "e-trans-dlq",
+      "startNodeId": "aa68e16d-975e-4486-9aaf-f5c028b4acdb",
+      "endNodeId": "f03c078f-e1a3-4100-b78e-5a75fdb79a7b",
+      "startHandleId": "bottom",
+      "endHandleId": "top",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    }
+  ]
+}

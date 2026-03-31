@@ -1,0 +1,124 @@
+{
+  "metadata": {
+    "projectName": "Markdown Example",
+    "thumbnailUrl": "",
+    "contextMenuSettings": {
+      "canvas": {
+        "cut": {
+          "label": "Cut",
+          "iconClass": "icon-scissors"
+        },
+        "copy": {
+          "label": "Copy",
+          "iconClass": "icon-copy"
+        },
+        "paste": {
+          "label": "Paste",
+          "iconClass": "icon-clipboard"
+        },
+        "delete": {
+          "label": "Delete",
+          "iconClass": "icon-trash-2"
+        },
+        "note": {
+          "label": "Note",
+          "iconClass": "icon-file-text"
+        },
+        "routingNode": {
+          "label": "Router",
+          "iconClass": "icon-network"
+        },
+        "group": {
+          "label": "Group",
+          "iconClass": "icon-group"
+        },
+        "log": {
+          "label": "Log",
+          "iconClass": "icon-terminal"
+        },
+        "subgraph": {
+          "label": "Subgraph",
+          "iconClass": "icon-box"
+        },
+        "saveGraph": {
+          "label": "Save Graph",
+          "iconClass": "icon-download"
+        },
+        "loadGraph": {
+          "label": "Load Graph",
+          "iconClass": "icon-upload"
+        },
+        "snapGrid": {
+          "label": "Grid Snap",
+          "iconClass": "icon-grid-2x2"
+        },
+        "snapObject": {
+          "label": "Obj Snap",
+          "iconClass": "icon-layout-panel-left"
+        }
+      },
+      "edge": {
+        "edit": {
+          "label": "Edit Label",
+          "iconClass": "icon-edit"
+        },
+        "addRoutingNode": {
+          "label": "Add Routing Node",
+          "iconClass": "icon-network"
+        },
+        "delete": {
+          "label": "Delete",
+          "iconClass": "icon-trash-2"
+        }
+      }
+    }
+  },
+  "nodes": [
+    {
+      "id": "67aaf22d-8e6a-4149-929f-7dc8ae1190ac",
+      "x": -142.11317253210404,
+      "y": 116.08804549355055,
+      "width": 600,
+      "height": 720,
+      "title": "Markdown",
+      "content": "# Heading 1\n## Heading 2\n### Heading 3\n\n**Bold text** and *italic text* and ~~strikethrough~~\n\n`inline code` and **bold with `code` inside**\n\n---\n\n## Lists\n\n- Item one\n- Item two\n  - Nested item\n  - Another nested\n- Item three\n\n1. First\n2. Second\n3. Third\n\n## Checklist\n\n- [x] Completed task\n- [x] Also done\n- [ ] Still to do\n- [ ] Not yet\n\n## Code Block\n\n```js\nfunction greet(name) {\n  return `Hello, ${name}!`\n}\n```\n\n## Blockquote\n\n> Every node is a markdown editor.\n> Write anything, connect everything.\n\n## Links\n\n[NodeUI App](https://app.nodeui.io)",
+      "type": "BaseNode",
+      "color": "default",
+      "isPinned": false
+    },
+    {
+      "id": "e7316062-546a-4ea8-acea-7ee879892ed9",
+      "x": 579.139249604896,
+      "y": 116.08804549355055,
+      "width": 386.13833991410286,
+      "height": 190.27672017165108,
+      "title": "Note",
+      "content": "# Markdown!",
+      "type": "BaseNode",
+      "color": "yellow",
+      "isPinned": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "fc443b3d-6a2f-4ea8-bc9f-abf98461f3e4",
+      "startNodeId": "67aaf22d-8e6a-4149-929f-7dc8ae1190ac",
+      "endNodeId": "67aaf22d-8e6a-4149-929f-7dc8ae1190ac",
+      "startHandleId": "right",
+      "endHandleId": "right",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    },
+    {
+      "id": "c09b3e8a-2f5b-4d08-874a-8ec37d282b39",
+      "startNodeId": "e7316062-546a-4ea8-acea-7ee879892ed9",
+      "endNodeId": "67aaf22d-8e6a-4149-929f-7dc8ae1190ac",
+      "startHandleId": "left",
+      "endHandleId": "right",
+      "routingPoints": [],
+      "type": "BaseEdge",
+      "label": ""
+    }
+  ]
+}
