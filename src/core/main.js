@@ -248,6 +248,7 @@ class Main {
         document.addEventListener('contextmenu', this.contextMenuHandler.onContextMenu.bind(this.contextMenuHandler));
 
         // Add drag and drop listeners for graph files
+        this.container.addEventListener('dragenter', this.fileHandler.onDragEnter.bind(this.fileHandler));
         this.container.addEventListener('dragover', this.fileHandler.onDragOver.bind(this.fileHandler));
         this.container.addEventListener('dragleave', this.fileHandler.onDragLeave.bind(this.fileHandler));
         this.container.addEventListener('drop', this.fileHandler.onDrop.bind(this.fileHandler));

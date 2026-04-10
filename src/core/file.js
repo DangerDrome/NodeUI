@@ -434,12 +434,23 @@ class File {
      * Handles the dragover event for file drops.
      * @param {DragEvent} event
      */
+    onDragEnter(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (event.dataTransfer.types.includes('Files')) {
+            event.dataTransfer.dropEffect = 'copy';
+            this.nodeUI.container.classList.add('is-drop-target');
+        }
+    }
+
     onDragOver(event) {
         event.preventDefault();
         event.stopPropagation();
-        
+
         // Check if the dragged item is a file
         if (event.dataTransfer.types.includes('Files')) {
+            event.dataTransfer.dropEffect = 'copy';
             this.nodeUI.container.classList.add('is-drop-target');
         }
     }
@@ -451,7 +462,11 @@ class File {
     onDragLeave(event) {
         event.preventDefault();
         event.stopPropagation();
-        this.nodeUI.container.classList.remove('is-drop-target');
+        // Only remove the class when actually leaving the container,
+        // not when moving between child elements
+        if (!this.nodeUI.container.contains(event.relatedTarget)) {
+            this.nodeUI.container.classList.remove('is-drop-target');
+        }
     }
 
     /**
