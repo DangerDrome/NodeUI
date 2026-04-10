@@ -15,9 +15,9 @@
 // window.NODEUI_WS_URL = 'wss://your-websocket-server.com';
 
 // For production deployment:
-// Connect directly to the Durable Objects Worker for collaboration
+// Route WebSocket through Pages Functions on the same origin
 if (window.location.hostname === 'app.nodeui.io' || window.location.hostname === 'nodeui.io') {
-    window.NODEUI_WS_URL = 'wss://nodeui-collaboration-do.danger-ltd.workers.dev';
+    window.NODEUI_WS_URL = `wss://${window.location.host}/collab`;
 }
 
 // For development, it will default to ws://localhost:8080
